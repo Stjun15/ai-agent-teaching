@@ -2,10 +2,16 @@ import Link from "next/link";
 import { ChevronRight, Clock } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
-import { MasteryIndicator } from "@/components/learn/mastery-indicator";
+import { MasteryCard } from "@/components/learn/mastery-card";
 import { StepNav } from "@/components/learn/step-nav";
+import { AgentTimeline } from "@/components/chat/agent-timeline";
+import { ChatPanel } from "@/components/chat/chat-panel";
+import { CitationPanel } from "@/components/chat/citation-panel";
+import { Composer } from "@/components/chat/composer";
+import { TokenCounter } from "@/components/chat/token-counter";
+import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceholderPanel } from "@/components/ui/placeholder-panel";
 import type { StepType } from "@/lib/db";
 import type { TeachingModule } from "@/lib/modules";
@@ -22,7 +28,7 @@ import type { TeachingModule } from "@/lib/modules";
  * 分栏职责
  * -------
  * - 左：步骤导航 + 掌握度 + 学习路径缩略图
- * - 中：对话区 + 代码编辑区 + 可视化区，底部是输入区
+ * - 中：对话区（底部输入区在对话卡片内）+ 代码编辑区 + 可视化区
  * - 右：Agent 时间线 + 引用来源 + Token 计数
  *
  * 响应式：`xl`（≥1280px）三栏铺开；`lg` 收右栏到下方；更窄单栏。
@@ -30,7 +36,9 @@ import type { TeachingModule } from "@/lib/modules";
  * 「响应式适配正常」验收项，本阶段先保证各断点可读、不破版。
  *
  * 本组件是**服务端组件**：它只负责结构与排布，不需要交互状态。
- * 真正要订阅 Store 与 SSE 的面板各自是客户端组件，边界在面板处。
+ * 真正要订阅 Store 与 SSE 的面板各自是客户端组件，边界在面板处
+ * （`ChatPanel` / `Composer` / `AgentTimeline` / `CitationPanel` /
+ * `TokenCounter` / `VisualizationPanel` / `MasteryCard`）。
  */
 export function ModuleWorkspace({
   teachingModule,
@@ -104,9 +112,9 @@ export function ModuleWorkspace({
 
           <Card>
             <CardContent>
-              <MasteryIndicator
+              <MasteryCard
+                moduleId={teachingModule.id}
                 moduleName={teachingModule.name}
-                mastery={null}
               />
             </CardContent>
           </Card>
@@ -121,13 +129,20 @@ export function ModuleWorkspace({
 
         {/* 中栏 */}
         <div className="flex min-w-0 flex-col gap-4">
-          <Card className="min-h-[440px]">
-            <CardContent className="flex h-full flex-col">
-              <PlaceholderPanel
-                className="flex-1"
-                title="对话区"
-                note="Phase 3 提交点「feat(ui): add chat panel」"
-              />
+          {/*
+            对话卡片用**定高**而不是 min-h：ChatPanel 的自动滚动依赖一个
+            高度有界的滚动容器 —— auto 高度下 overflow 容器只会被内容撑开，
+            overflow-y-auto 永远不会真的滚起来。
+          */}
+          <Card className="h-[560px]">
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+              <ChatPanel />
+              {/*
+                输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
+                底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
+                滚过整个中栏才够得到输入框。
+              */}
+              <Composer />
             </CardContent>
           </Card>
 
@@ -136,17 +151,12 @@ export function ModuleWorkspace({
             note="Phase 6 提交点「feat(ui): add code editor with monaco」"
           />
 
-          <PlaceholderPanel
-            title="可视化区"
-            note="Phase 6 提交点「feat(scenes): add scene-*」；本讲对应场景见标题栏"
-          />
-
           <Card>
+            <CardHeader>
+              <CardTitle>可视化</CardTitle>
+            </CardHeader>
             <CardContent>
-              <PlaceholderPanel
-                title="输入区"
-                note="Phase 3 提交点「feat(sse): add client-side SSE handler」接入后启用"
-              />
+              <VisualizationPanel sceneId={teachingModule.sceneId} />
             </CardContent>
           </Card>
         </div>
@@ -154,29 +164,35 @@ export function ModuleWorkspace({
         {/* 右栏 */}
         <aside className="flex flex-col gap-4 lg:col-span-2 xl:sticky xl:top-20 xl:col-span-1 xl:self-start">
           <Card>
+            <CardHeader>
+              <CardTitle>Agent 时间线</CardTitle>
+            </CardHeader>
             <CardContent>
-              <PlaceholderPanel
-                title="Agent 时间线"
-                note="Phase 3 提交点「feat(ui): add agent timeline」"
-              />
+              {/*
+                时间线限高 + 内部滚动：右栏在 xl 断点是 sticky，若时间线不限高，
+                整栏会比视口还高，底部两个面板会被顶出视口且再也看不见。
+              */}
+              <div className="max-h-[420px] overflow-y-auto">
+                <AgentTimeline />
+              </div>
             </CardContent>
           </Card>
 
           <Card>
+            <CardHeader>
+              <CardTitle>引用来源</CardTitle>
+            </CardHeader>
             <CardContent>
-              <PlaceholderPanel
-                title="引用来源"
-                note="Phase 3 提交点「feat(ui): add citation panel」"
-              />
+              <CitationPanel />
             </CardContent>
           </Card>
 
           <Card>
+            <CardHeader>
+              <CardTitle>Token 计数</CardTitle>
+            </CardHeader>
             <CardContent>
-              <PlaceholderPanel
-                title="Token 计数"
-                note="Phase 3 提交点「feat(ui): add token counter」"
-              />
+              <TokenCounter />
             </CardContent>
           </Card>
         </aside>
