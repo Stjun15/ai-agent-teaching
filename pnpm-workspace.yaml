@@ -1,0 +1,17 @@
+# pnpm 工作区与配置
+#
+# 为什么用 hoisted 而不是 pnpm 默认的 isolated 链接器？
+#   pnpm 默认链接器需要在 node_modules 顶层创建符号链接（symlink）。
+#   Windows 上创建符号链接要求「管理员权限」或「已开启开发者模式」；
+#   普通用户身份下创建会失败，且 pnpm 不报错，只在 node_modules 顶层
+#   留下空目录，表现为 node_modules/next 为空、require 报 MODULE_NOT_FOUND。
+#   hoisted 链接器把依赖以实体文件（硬链接）平铺到 node_modules，
+#   不依赖符号链接，等价于 npm 的扁平结构。
+#
+# 注意：pnpm 10 起，pnpm 专有配置以 pnpm-workspace.yaml 为准，
+#       写在 .npmrc 里的 node-linker 不会被识别。
+#
+# 排障提示：若 node_modules 已损坏，不要直接 rm -rf（会触发批量删除保护），
+#   先把整个目录改名移走再重装：
+#     mv node_modules node_modules.broken && pnpm install
+nodeLinker: hoisted
