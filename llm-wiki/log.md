@@ -20,3 +20,4 @@ last_updated: 2026-09-17
 | 2026-09-17 | add  | llm-wiki/concepts/agent-loop.md    | 新增概念页 `agent-loop`（Agent Loop，难度 3，前置 llm-api、system-prompt）。内容依 `references/wiki-schema.md`「三、概念页面完整模板」。                                                                           |
 | 2026-09-17 | add  | llm-wiki/concepts/tool-calling.md  | 新增概念页 `tool-calling`（工具调用，难度 3，前置 agent-loop）。内容依 `references/wiki-schema.md`「三、概念页面完整模板」。                                                                                       |
 | 2026-09-17 | add  | llm-wiki/concepts/rag.md           | 新增概念页 `rag`（RAG 检索增强生成，难度 4，前置 tool-calling）。内容依 `references/wiki-schema.md`「三、概念页面完整模板」。                                                                                      |
+| 2026-09-17 | add  | llm-wiki/concepts/llm-wiki.md      | 新增概念页 `llm-wiki`（LLM Wiki 知识编译，难度 4，前置 rag）。内容依 `references/wiki-schema.md`「三、概念页面完整模板」。                                                                                         |
