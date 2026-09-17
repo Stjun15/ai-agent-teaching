@@ -55,14 +55,14 @@ last_updated: 2026-09-17
 
 | 页面                                                     | 名称              | 状态 |
 | -------------------------------------------------------- | ----------------- | ---- |
-| [prompt-rubric](./validation/prompt-rubric.md)           | Prompt 评分标准   | 待建 |
-| [tool-rubric](./validation/tool-rubric.md)               | 工具定义评分标准  | 待建 |
-| [code-rubric](./validation/code-rubric.md)               | 代码评分标准      | 待建 |
-| [question-rubric](./validation/question-rubric.md)       | 出题评分标准      | 待建 |
-| [wiki-page-rubric](./validation/wiki-page-rubric.md)     | Wiki 页面评分标准 | 待建 |
-| [multi-agent-rubric](./validation/multi-agent-rubric.md) | 多 Agent 评分标准 | 待建 |
-| [mcp-rubric](./validation/mcp-rubric.md)                 | MCP 评分标准      | 待建 |
-| [safety-rubric](./validation/safety-rubric.md)           | 安全评分标准      | 待建 |
+| [prompt-rubric](./validation/prompt-rubric.md)           | Prompt 评分标准   | 已建 |
+| [tool-rubric](./validation/tool-rubric.md)               | 工具定义评分标准  | 已建 |
+| [code-rubric](./validation/code-rubric.md)               | 核心代码评分标准  | 已建 |
+| [question-rubric](./validation/question-rubric.md)       | 出题评分标准      | 已建 |
+| [wiki-page-rubric](./validation/wiki-page-rubric.md)     | Wiki 页面评分标准 | 已建 |
+| [multi-agent-rubric](./validation/multi-agent-rubric.md) | 多 Agent 评分标准 | 已建 |
+| [mcp-rubric](./validation/mcp-rubric.md)                 | MCP 评分标准      | 已建 |
+| [safety-rubric](./validation/safety-rubric.md)           | AI 安全评分标准   | 已建 |
 
 ## 项目模板（projects/）
 
