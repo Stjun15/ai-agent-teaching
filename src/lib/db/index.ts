@@ -1,0 +1,22 @@
+/**
+ * 数据访问层出口
+ *
+ * 上层（API 路由、Agent 运行时、脚本）统一从这里取 repository，不要直接
+ * import ./sqlite —— 那是唯一允许出现数据库驱动名的文件，把它挡住，
+ * 将来从 SQLite 切到 CloudBase PostgreSQL 时改动范围才可控。
+ *
+ * 当前覆盖 7 张表（students、student_profiles、mastery、learning_paths、
+ * sessions、messages、agent_traces）—— 即 data-models.md「四、数据访问层设计」
+ * 明确给出签名的全部模块。其余 8 张表（errors、prompt_history、projects、
+ * citations、agent_events、validation_results、questions、question_results）
+ * 文档未定义访问方法，留到各自所属的 Phase 再补，不在这里提前发明接口。
+ */
+
+export type * from "./types";
+
+export { studentDb } from "./students";
+export { masteryDb } from "./mastery";
+export { learningPathDb } from "./learning-path";
+export { sessionDb } from "./sessions";
+export { messageDb } from "./messages";
+export { traceDb } from "./traces";

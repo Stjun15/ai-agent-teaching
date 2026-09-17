@@ -1,0 +1,114 @@
+/**
+ * 消息的数据访问
+ *
+ * 接口签名来自 agent-prompts/references/data-models.md「四、数据访问层设计」。
+ *
+ * ⚠ 一处尚未澄清的设计重叠（需要你裁定时会单独提出）：
+ * 引用（Citation）在数据模型里有两种存法 —— messages 表的 citations JSON 列，
+ * 以及独立的 citations 表。两者在文档里同时存在，但没说何时写哪一个。
+ * 本实现只写 messages.citations 这一份，不写 citations 表。
+ * 理由：同一份数据写两处而不定义同步规则，比只写一处更危险；
+ * 而 messages.citations 是 Message 类型的直接组成部分，读的时候不需要额外的 join。
+ * 等设计明确后（比如 citations 表用于跨消息检索引用来源），再补写入逻辑。
+ *
+ * 所有方法都是 async 的，尽管 node:sqlite 是同步 API —— 见 students.ts 的说明。
+ */
+
+import { getDb } from "./sqlite";
+import {
+  asNumber,
+  asOptionalNumber,
+  asOptionalString,
+  asString,
+  newId,
+  nowIso,
+  parseJson,
+  toJson,
+  type Row,
+} from "./helpers";
+import type { Citation, Message, MessageMetadata } from "./types";
+
+function mapCitation(raw: unknown): Citation | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const item = raw as Record<string, unknown>;
+  return {
+    id: asString(item.id),
+    messageId: asString(item.messageId),
+    source: asString(item.source),
+    page: asOptionalNumber(item.page),
+    snippet: asString(item.snippet),
+    relevance: asNumber(item.relevance),
+  };
+}
+
+function mapMessage(row: Row): Message {
+  const citations = parseJson<unknown[]>(row.citations, []);
+  const language = asOptionalString(row.language);
+
+  return {
+    id: asString(row.id),
+    sessionId: asString(row.session_id),
+    role: asString(row.role) as Message["role"],
+    content: asString(row.content),
+    code: asOptionalString(row.code),
+    language: language as Message["language"],
+    citations: citations
+      .map(mapCitation)
+      .filter((c): c is Citation => c !== null),
+    metadata: parseJson<MessageMetadata>(row.metadata, {}),
+    createdAt: asString(row.created_at),
+  };
+}
+
+/** 提取 SELECT 后的行映射所需的列清单，避免两处 SQL 不一致 */
+const SELECT_COLUMNS = `id, session_id, role, content, code, language,
+   citations, metadata, created_at`;
+
+export const messageDb = {
+  /** 新建消息；id 与 createdAt 由本层生成 */
+  async create(data: Omit<Message, "id" | "createdAt">): Promise<Message> {
+    const message: Message = {
+      ...data,
+      id: newId(),
+      createdAt: nowIso(),
+    };
+
+    getDb()
+      .prepare(
+        `INSERT INTO messages (
+           id, session_id, role, content, code, language,
+           citations, metadata, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        message.id,
+        message.sessionId,
+        message.role,
+        message.content,
+        message.code ?? null,
+        message.language ?? null,
+        toJson(message.citations),
+        toJson(message.metadata),
+        message.createdAt,
+      );
+
+    return message;
+  },
+
+  /**
+   * 列出某会话的全部消息，按时间升序。
+   *
+   * 以 rowid 作为排序的次级键：created_at 只有毫秒精度，
+   * 同一毫秒内连续写入的消息（流式回复的场景）否则顺序不稳定。
+   */
+  async listBySession(sessionId: string): Promise<Message[]> {
+    const rows = getDb()
+      .prepare(
+        `SELECT ${SELECT_COLUMNS} FROM messages
+         WHERE session_id = ?
+         ORDER BY created_at ASC, rowid ASC`,
+      )
+      .all(sessionId);
+    return (rows as Row[]).map(mapMessage);
+  },
+};
