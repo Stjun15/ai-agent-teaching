@@ -95,8 +95,15 @@ last_updated: 2026-09-17
 
 ## 学生（students/）
 
-学生目录按需创建，每个学生 6 个页面，不在本索引中逐一列出：
+学生目录按需创建（命名依 SCHEMA.md「命名规范」：`s001/`、`s002/`），每个学生 6 个页面：
 
-`profile.md`、`mastery.md`、`learning-path.md`、`errors.md`、`prompts.md`、`projects.md`
+| 页面                                                 | 用途                                      |
+| ---------------------------------------------------- | ----------------------------------------- |
+| [profile.md](./students/s001/profile.md)             | 基本信息、偏好、行为特征                  |
+| [mastery.md](./students/s001/mastery.md)             | 9 个概念掌握度 + 6 个子能力雷达           |
+| [learning-path.md](./students/s001/learning-path.md) | 模块顺序、状态、练习记录、路径调整        |
+| [errors.md](./students/s001/errors.md)               | 错题记录、关联概念、订正状态              |
+| [prompts.md](./students/s001/prompts.md)             | Prompt 历史、评分、改进建议               |
+| [projects.md](./students/s001/projects.md)           | 项目进度、检查清单、Prompt 链接、项目链接 |
 
-模板见 `agent-prompts/references/wiki-schema.md`「四、学生画像 6 个页面完整模板」。
+当前 `s001/` 是**模板样例**：日期类字段保留 `YYYY-MM-DD` 占位符，供新建学生目录时复制填充。模板出处见 `references/wiki-schema.md`「四、学生画像 6 个页面完整模板」。
