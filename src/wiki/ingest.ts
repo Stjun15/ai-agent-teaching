@@ -98,7 +98,11 @@ export async function ingest(
 function resolveSchemaArgument(value: string, root: string): string {
   const candidates = path.isAbsolute(value)
     ? [value]
-    : [path.join(root, value), path.resolve(process.cwd(), value)];
+    : [
+        path.join(root, value),
+        // 同上：参数由调用方给出，静态分析追不到，忽略追踪以免整个项目被打进产物。
+        path.resolve(/*turbopackIgnore: true*/ process.cwd(), value),
+      ];
   const found = candidates.find((candidate) => existsSync(candidate));
   if (!found) {
     throw new WikiPageNotFoundError(
@@ -108,9 +112,27 @@ function resolveSchemaArgument(value: string, root: string): string {
   return found;
 }
 
-/** `source` 参数按 cwd 解析 —— 源资料通常在 wiki 之外的目录。 */
+/**
+ * `source` 参数按 cwd 解析 —— 源资料通常在 wiki 之外的目录。
+ *
+ * ⚠️ `turbopackIgnore` 不可删
+ * -------------------------
+ * 这个 `path.resolve` 的参数**来自调用方**，Turbopack 静态分析无法确定它的取值，
+ * 于是会退化成「把整个项目追踪进服务端产物」（构建期警告原话：
+ * "Dynamic filesystem access causes tracing of the whole project"）。
+ *
+ * 这个代价是纯损失：用户传进来的源路径本来就不在项目里，追踪整个项目也追不到它，
+ * 只会让部署包无谓地变大 —— 而比赛要求部署到 EdgeOne Pages，包体积是有上限的。
+ *
+ * 之所以这个警告由前端页面暴露出来：`src/lib/modules.ts` 经 `src/wiki/index.ts`
+ * 这个出口 import，而出口同时导出了本文件（写路径）。只读的消费者因此也继承了
+ * 写路径的追踪行为。加忽略注释比拆出口更划算 —— 拆出口会破坏
+ * 「上层只从 index.ts 取」的分层约定，那是更贵的代价。
+ */
 function resolveSourceArgument(value: string): string {
-  return path.isAbsolute(value) ? value : path.resolve(process.cwd(), value);
+  return path.isAbsolute(value)
+    ? value
+    : path.resolve(/*turbopackIgnore: true*/ process.cwd(), value);
 }
 
 function normalizeTargetPath(target: string): string {
