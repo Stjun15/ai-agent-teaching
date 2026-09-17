@@ -17,15 +17,15 @@ last_updated: 2026-09-17
 
 | 页面                                         | 名称               | 难度 | 状态 |
 | -------------------------------------------- | ------------------ | ---- | ---- |
-| [llm-api](./concepts/llm-api.md)             | LLM API 入门       | 1    | 待建 |
-| [system-prompt](./concepts/system-prompt.md) | System Prompt 设计 | 1    | 待建 |
-| [agent-loop](./concepts/agent-loop.md)       | Agent Loop         | 2    | 待建 |
+| [llm-api](./concepts/llm-api.md)             | LLM API 入门       | 1    | 已建 |
+| [system-prompt](./concepts/system-prompt.md) | System Prompt 设计 | 2    | 待建 |
+| [agent-loop](./concepts/agent-loop.md)       | Agent Loop         | 3    | 待建 |
 | [tool-calling](./concepts/tool-calling.md)   | 工具调用           | 3    | 待建 |
-| [rag](./concepts/rag.md)                     | RAG 检索增强生成   | 3    | 待建 |
+| [rag](./concepts/rag.md)                     | RAG 检索增强生成   | 4    | 待建 |
 | [llm-wiki](./concepts/llm-wiki.md)           | LLM Wiki 知识编译  | 4    | 待建 |
-| [multi-agent](./concepts/multi-agent.md)     | 多 Agent 协作      | 4    | 待建 |
+| [multi-agent](./concepts/multi-agent.md)     | 多 Agent 协作      | 5    | 待建 |
 | [mcp](./concepts/mcp.md)                     | MCP 工具集成       | 4    | 待建 |
-| [ai-safety](./concepts/ai-safety.md)         | AI 安全与可控性    | 5    | 待建 |
+| [ai-safety](./concepts/ai-safety.md)         | AI 安全与可控性    | 4    | 待建 |
 
 ## 设计模式（patterns/）
 
