@@ -119,10 +119,10 @@ feat(api): add health check endpoint
 - 写 9 个反模式
 - 写 8 个评分标准
 - 写学生画像 6 个页面模板
-- 集成 `@zosmaai/pi-llm-wiki`
+- 自研 `src/wiki/` 最小实现（`@zosmaai/pi-llm-wiki` 无法接入，见下方注记）
 - 验证 ingest / query / maintain
 
-**提交点（15 个）：**
+**提交点（17 个）：**
 
 ```
 docs(wiki): add SCHEMA.md
@@ -139,19 +139,22 @@ feat(wiki): add ai-safety concept page
 feat(wiki): add anti-pattern library
 feat(wiki): add rubrics library
 feat(wiki): add student profile templates
-chore(wiki): integrate pi-llm-wiki package   （受阻，待改写，见下方注记）
+feat(wiki): add wiki page parsing and schema validation
+feat(wiki): add wiki ingest query and maintain operations
+chore(wiki): add seed-wiki script
 ```
 
 **验收标准：**
 
+- SCHEMA 完整，所有页面有 frontmatter
 - 9 个概念页面完整
-- 交叉引用正确
+- 交叉引用正确，无死链
 - 学生画像 6 个页面模板可用
 - ingest / query / maintain 三个操作可用
 
-**⚠️ 提交点 15 受阻（2026-09-17 取证结论）**：`@zosmaai/pi-llm-wiki@0.12.2` **无 `main` / `module` / `types` / `exports`**，不存在 Node 可导入入口。它只能作为 pi 扩展 / skill / prompt / MCP server 接入，且要求 `{root}/.llm-wiki/wiki/{sources,concepts,entities,syntheses,analyses,requirements}` 的 vault 布局；而本项目是**无点前缀**的 `llm-wiki/`，且含 `anti-patterns/` `validation/` `students/` 三层，该包不识别。若走扩展接入，还需放开 `loop.ts` 的 `noExtensions: true`，而扩展注册的工具**会绕过 `tools` 白名单** —— 与「Agent 权限由代码控制」铁律冲突。
+**原提交点 15 已改写（2026-09-17 取证结论）**：`@zosmaai/pi-llm-wiki@0.12.2` **无 `main` / `module` / `types` / `exports`**，不存在 Node 可导入入口。它只能作为 pi 扩展 / skill / prompt / MCP server 接入，且要求 `{root}/.llm-wiki/wiki/{sources,concepts,entities,syntheses,analyses,requirements}` 的 vault 布局；而本项目是**无点前缀**的 `llm-wiki/`，且含 `anti-patterns/` `validation/` `students/` 三层，该包不识别。若走扩展接入，还需放开 `loop.ts` 的 `noExtensions: true`，而扩展注册的工具**会绕过 `tools` 白名单** —— 与「Agent 权限由代码控制」铁律冲突。
 
-**推荐处置**：改为自研最小实现 —— 按 `references/wiki-schema.md` 第六节的函数签名自行实现，直接读写本项目的 SCHEMA 格式；包集成整体推到 Phase 4 的 MCP 阶段再定。**待用户拍板后改写该提交点。**
+**已按用户裁定（2026-09-17）改为自研最小实现**，`src/wiki/` 按 `references/wiki-schema.md` 第六节的 5 个函数签名自行实现，直接读写本项目的 SCHEMA 格式，且只依赖 `node:` 内置模块。该包的集成整体推到 Phase 4 的 MCP 阶段再定。
 
 **前置条件（硬节点）：** RAG 上线前必须把数据层从 SQLite 切到 CloudBase PostgreSQL + pgvector，repository 抽象层需提供 PG 实现。
 
