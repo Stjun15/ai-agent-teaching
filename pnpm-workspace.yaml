@@ -23,4 +23,13 @@ nodeLinker: hoisted
 # 设为 false 表示「已知并接受跳过」，避免 pnpm install 以
 # ERR_PNPM_IGNORED_BUILDS 报错。
 allowBuilds:
+  # 只有 prepare（开发期脚本），作为依赖安装时不需要运行；
+  # 本项目走火山方舟的 OpenAI 兼容端点，不使用 Gemini provider。
+  "@google/genai": false
+  # postinstall 把平台二进制从可选依赖链接进包目录 —— 必须运行，
+  # 否则 esbuild 会报「为其他平台安装」并在构建期失败。
+  esbuild: true
+  # postinstall 生成本地构建产物；@aws-sdk 的 EventStream 编解码会用到。
+  protobufjs: true
+  # postinstall 仅做自检；预编译二进制已由可选依赖提供，跳过不影响功能。
   unrs-resolver: false
