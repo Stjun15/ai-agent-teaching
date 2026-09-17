@@ -20,3 +20,7 @@ export { learningPathDb } from "./learning-path";
 export { sessionDb } from "./sessions";
 export { messageDb } from "./messages";
 export { traceDb } from "./traces";
+
+// 健康检查。与 repository 一样走本出口，让路由不必碰 ./sqlite。
+export { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "./health";
+export type { DatabaseHealth } from "./health";

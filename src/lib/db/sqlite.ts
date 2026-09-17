@@ -59,3 +59,41 @@ export function closeDb(): void {
   globalForDb.__aiTeachingDb?.close();
   delete globalForDb.__aiTeachingDb;
 }
+
+// ---------------------------------------------------------------------------
+// 结构内省
+//
+// `sqlite_master` 是 SQLite 专有的系统表，属于「驱动细节」，按本文件头部的
+// 分层约束只能出现在这里。健康检查（health.ts）通过下面两个函数取信息，
+// 自身不写任何 SQL —— 部署期换 PostgreSQL 时只需替换这两个实现。
+// ---------------------------------------------------------------------------
+
+/** 迁移记录表名。不算业务表。 */
+export const MIGRATION_TABLE = "schema_migrations";
+
+/** 列出全部用户表名（已排除 sqlite 内部表）。 */
+export function listUserTableNames(): string[] {
+  const rows = getDb()
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    )
+    .all() as Array<{ name: string }>;
+  return rows.map((row) => row.name);
+}
+
+/**
+ * 列出已应用的迁移 id。
+ *
+ * 库文件存在但没跑过迁移时 `schema_migrations` 也不存在，此处返回空数组而不抛错 ——
+ * 「还没迁移」是一种正常状态，不是异常。
+ */
+export function listAppliedMigrationIds(): string[] {
+  try {
+    const rows = getDb()
+      .prepare(`SELECT id FROM ${MIGRATION_TABLE} ORDER BY id`)
+      .all() as Array<{ id: string }>;
+    return rows.map((row) => row.id);
+  } catch {
+    return [];
+  }
+}
