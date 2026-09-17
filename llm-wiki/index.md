@@ -20,7 +20,7 @@ last_updated: 2026-09-17
 | [llm-api](./concepts/llm-api.md)             | LLM API 入门       | 1    | 已建 |
 | [system-prompt](./concepts/system-prompt.md) | System Prompt 设计 | 2    | 已建 |
 | [agent-loop](./concepts/agent-loop.md)       | Agent Loop         | 3    | 已建 |
-| [tool-calling](./concepts/tool-calling.md)   | 工具调用           | 3    | 待建 |
+| [tool-calling](./concepts/tool-calling.md)   | 工具调用           | 3    | 已建 |
 | [rag](./concepts/rag.md)                     | RAG 检索增强生成   | 4    | 待建 |
 | [llm-wiki](./concepts/llm-wiki.md)           | LLM Wiki 知识编译  | 4    | 待建 |
 | [multi-agent](./concepts/multi-agent.md)     | 多 Agent 协作      | 5    | 待建 |
