@@ -82,9 +82,71 @@ export const DEFAULT_AGENT_ID = "chat";
 /** `thinking` 事件里 `step` 字段的取值。当前只有「模型在思考」这一种来源。 */
 const THINKING_STEP = "思考";
 
+/**
+ * 代码语言。与 `SendMessageSchema.language` / `Message.language` 同值域。
+ *
+ * 为什么这里再写一遍字面量联合，而不是 import `@/schemas`
+ * -----------------------------------------------------
+ * `src/schemas/index.ts` 头部的约定：Agent 内核不 import schema 出口 ——
+ * 内核的进出都是 SDK 类型，把 HTTP 契约塞进内核会让内核多一层依赖。
+ *
+ * 那重复一遍会不会又埋一个「两处口径不一致」的坑？不会，因为这里没有
+ * 任何**无类型**的传输环节：`route.ts` 拿到的是 schema 校验过的值，直接作为
+ * 实参传给 `runAgentLoop`。两边字面量联合只要有一个取值对不上，调用处就编译
+ * 不过。真正危险的是「值经过 JSON / 数据库再回来」那种边界 —— 那里由 Zod 拦，
+ * 与这里无关。
+ */
+export type AgentCodeLanguage = "typescript" | "python";
+
+/**
+ * 把「学生说的话」与「学生提交的代码」组装成模型真正读到的用户输入。
+ *
+ * ⚠️ 这是**第一版**，Phase 5 会替换
+ * ---------------------------------
+ * 当前 `/api/chat` 刻意不落库、不带历史（见 `route.ts`），所以一轮请求里
+ * 只有「这一句 + 这一份代码」。Phase 5 的落库端点要带多轮历史，届时组装逻辑
+ * 会整体搬到提示词构造层 —— 所以这里刻意做成**纯函数且单独导出**：
+ * 搬运时不用改逻辑，也便于直接断言输出（喂一组输入，比对字符串）。
+ *
+ * 为什么要一句话说明「这是学生写的代码」
+ * ----------------------------------
+ * 直接把代码贴在问题后面，模型无法区分「代码是讨论对象」还是「代码是问题的一部分」。
+ * 教学场景里这个区别是本质的：第 3 步「动手模仿」学生交代码，第 4 步导师要
+ * **按评分标准点评它**，而不是继续写自己的实现。
+ *
+ * 语言后缀（```typescript）不是装饰：它把语法信息一并给了模型，
+ * Python 与 TypeScript 的常见错误模式完全不同。
+ */
+export function composeUserPrompt(options: {
+  prompt: string;
+  code?: string;
+  /** 省略时按 `StudentProfile.preferredLanguage` 的默认值 `typescript`。 */
+  language?: AgentCodeLanguage;
+}): string {
+  const { prompt, code, language = "typescript" } = options;
+
+  // 空代码等同于没附代码：不要把「```typescript\n\n```」这种空围栏发给模型，
+  // 它会浪费 token 还让模型以为学生在提交空实现。
+  if (code === undefined || code.trim() === "") return prompt;
+
+  return [
+    prompt,
+    "",
+    `以下是我写的代码（${language}），请按评分标准逐项点评：`,
+    "",
+    `\`\`\`${language}`,
+    code.trim(),
+    "```",
+  ].join("\n");
+}
+
 export interface AgentLoopOptions {
   /** 学生输入的一轮内容 */
   prompt: string;
+  /** 学生提交的待点评代码。与 `prompt` 一起组装成模型读到的输入。 */
+  code?: string;
+  /** 代码语言；只在与 `code` 同时出现时有意义。 */
+  language?: AgentCodeLanguage;
   /** Agent 标识，用于 SSE 的 thinking 事件。默认 `DEFAULT_AGENT_ID`。 */
   agent?: string;
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
@@ -232,7 +294,17 @@ function createEventTranslator(
  * 想等整轮结束的调用方 await `completed`。
  */
 export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
-  const { prompt, agent = DEFAULT_AGENT_ID, env, signal } = options;
+  const {
+    prompt,
+    code,
+    language,
+    agent = DEFAULT_AGENT_ID,
+    env,
+    signal,
+  } = options;
+  // 组装一次、全程用组装后的值：后续若要记录「模型到底看到了什么」（审计、
+  // 复现一次失败），必须能拿到同一个字符串，不能在两处各拼一次。
+  const userMessage = composeUserPrompt({ prompt, code, language });
   const stream = createSSEStream();
   const translator = createEventTranslator(stream, agent);
 
@@ -291,7 +363,7 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
         }
       }
 
-      await session.prompt(prompt);
+      await session.prompt(userMessage);
 
       const { text: answer, toolCalls, tokens } = translator.summary();
       stream.send({

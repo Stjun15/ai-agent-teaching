@@ -82,6 +82,12 @@ export async function POST(req: Request): Promise<Response> {
 
   const { response } = runAgentLoop({
     prompt: parsed.data.content,
+    // 学生附带的代码。⚠️ 这两行是后补的：schema 首版没这两个字段时，
+    // 前端「附带代码」按钮发出去的内容会被 Zod 静默剥离（详见
+    // ChatRequestSchema 上方的注释）。组装成模型可见输入在 loop.ts 的
+    // composeUserPrompt；Phase 5 换成落库端点后由提示词构造层统一组装。
+    code: parsed.data.code,
+    language: parsed.data.language,
     agent: parsed.data.agent,
     // 浏览器关闭标签页 / 前端点「停止」时，让 SSE 的取消动作一路传到 SDK 的 abort()。
     signal: req.signal,
