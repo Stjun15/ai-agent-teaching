@@ -16,7 +16,10 @@
     "typecheck": "tsc --noEmit",
     "check": "eslint && prettier --check . && tsc --noEmit",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "wiki:seed": "node scripts/seed-wiki.mjs"
+    "wiki:seed": "node scripts/seed-wiki.mjs",
+    "test": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts",
+    "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
+    "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
