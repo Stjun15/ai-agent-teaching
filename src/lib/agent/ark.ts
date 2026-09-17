@@ -159,8 +159,11 @@ export function buildArkProviderConfig(
   const text: ProviderModelConfig = {
     id: textModel,
     name: "DeepSeek V4 Flash（方舟）",
-    // 暂声明为不支持扩展思考：方舟对该模型的 thinking 参数支持情况尚待确认，
-    // 声明为 true 会让 pi 发送未经验证的思考参数。
+    // 声明为 false 的理由是「thinking 参数是否被支持尚未确认」，声明为 true 会让 pi
+    // 发出未经验证的思考参数（如 reasoning_effort / thinking.type）。
+    // 注意这不代表模型不思考：实测即使 `thinkingLevel: "off"`，方舟仍会流式返回
+    // `reasoning_content`，pi 也会照常把它转成 thinking 增量。也就是说思考是「附带的」，
+    // 关不掉也不需要额外参数。链路已能正常承载（见 loop.ts 的 thinking 事件映射）。
     reasoning: false,
     input: ["text"],
     cost: { ...ZERO_COST },
