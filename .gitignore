@@ -15,6 +15,12 @@ build/
 dist/
 *.tsbuildinfo
 
+# Next 每次运行都会重写 next-env.d.ts，且内容随命令而变
+#   next dev   → import "./.next/dev/types/routes.d.ts"
+#   next build → import "./.next/types/routes.d.ts"
+# 入库只会让两条命令交替时反复产生无意义 diff，故排除（由 Next 自行生成）。
+next-env.d.ts
+
 # ============================================================================
 # 环境变量（铁律：API Key 绝不入库）
 #   .env.example 是模板，必须入库；其余 .env* 一律排除
