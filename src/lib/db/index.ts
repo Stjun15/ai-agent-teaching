@@ -25,6 +25,7 @@ export { traceDb } from "./traces";
 export { errorDb } from "./errors";
 export { promptHistoryDb } from "./prompt-history";
 export { projectDb } from "./projects";
+export { questionResultDb } from "./question-results";
 
 // 健康检查。与 repository 一样走本出口，让路由不必碰 ./sqlite。
 export { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "./health";
