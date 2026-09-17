@@ -199,7 +199,9 @@ try {
     } catch {
       continue;
     }
-    for (let i = 0; i < 4; i++) {
+    // 水合要给足时间：脚本新拉起的 Edge（冷启动 + 首次编译产物加载）比
+    // 附加到已有实例慢得多，只等 2s 会误判成「没水合」而走 iframe 后备路径。
+    for (let i = 0; i < 40; i++) {
       if (await checkReady(candidate)) {
         app = candidate;
         break;
@@ -252,13 +254,19 @@ try {
 
   // 每轮验收从干净状态开始：否则上一轮的消息会混进断言
   // （「最后一条助手消息」可能还是上一轮的）。
-  await app.send("Page.reload");
-  await sleep(2500);
-  for (let i = 0; i < 20; i++) {
-    if (await checkReady(app)) break;
-    await sleep(500);
+  // Page.reload 只能用于顶层 target：走 iframe 后备路径时会报 -32000，
+  // 那种情况下 iframe 本来就是刚注入的干净页面，跳过即可。
+  try {
+    await app.send("Page.reload");
+    await sleep(2500);
+    for (let i = 0; i < 20; i++) {
+      if (await checkReady(app)) break;
+      await sleep(500);
+    }
+    console.log("页面已重新加载");
+  } catch {
+    console.log("跳过 reload（非顶层 target，页面本就是干净的）");
   }
-  console.log("页面已重新加载");
 
   // A0 页面结构
   for (let i = 0; i < 20; i++) {
