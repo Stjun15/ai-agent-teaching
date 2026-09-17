@@ -37,6 +37,11 @@ import {
 import { getAgent } from "./prompts";
 import { getSkill } from "./skills";
 import { createSession } from "./session";
+import {
+  recordAgentTrace,
+  type TraceContext,
+  type TraceRecordResult,
+} from "./trace";
 import type { AgentId, SkillId } from "./types";
 import type { Expect } from "@/lib/type-assert";
 
@@ -87,6 +92,8 @@ export interface AgentRunResult<T> {
   durationMs: number;
   /** 失败原因；ok 为 true 且未兜底时不存在。 */
   error?: string;
+  /** Trace 写入结果。只在调用方传了 `trace` 上下文时存在。 */
+  trace?: TraceRecordResult;
 }
 
 export interface RunAgentOptions<Id extends AgentId> {
@@ -102,6 +109,11 @@ export interface RunAgentOptions<Id extends AgentId> {
    * 不提供则 `ok` 为 false。
    */
   fallback?: () => AgentOutputMap[Id];
+  /**
+   * Trace 上下文。传了才写库，探针与回归测试不传。
+   * 见 `trace.ts` 文件头：记录失败不阻断主流程，但会把原因带回调用方。
+   */
+  trace?: TraceContext;
   env?: ArkEnv;
   signal?: AbortSignal;
 }
@@ -197,12 +209,47 @@ export function composeAgentPrompt(options: {
 }
 
 /**
- * 跑一个 Agent。
+ * 跑一个 Agent（**唯一对外入口**）。
+ *
+ * 在 `executeAgent` 外面套一层，只为了做一件事：写 Trace。
+ * 「每次 Agent 调用都要记录」必须是**结构上**的每次 —— 放在这里，
+ * 新增编排流程自动被覆盖；放在各 loop 里，漏一个就永久少一类数据且无人发现。
+ * 传了 `trace` 上下文才写；探针与回归测试不传，避免污染数据库。
+ */
+export async function runAgent<Id extends AgentId>(
+  options: RunAgentOptions<Id>,
+): Promise<AgentRunResult<AgentOutputMap[Id]>> {
+  const result = await executeAgent(options);
+  const traceContext = options.trace;
+
+  if (!traceContext) return result;
+
+  const recorded = await recordAgentTrace({
+    ...traceContext,
+    agent: options.agent,
+    skill: options.skill ?? getAgent(options.agent).defaultSkill,
+    input: options.input,
+    // 失败且未兜底时没有 data，把原始文本记下来 —— 否则这次失败无法复盘。
+    output: result.data ?? { rawText: result.rawText },
+    durationMs: result.durationMs,
+    tokens: result.tokens,
+    retries: result.attempts - 1,
+    success: result.ok && !result.usedFallback,
+    ...(result.error === undefined ? {} : { error: result.error }),
+  });
+
+  return { ...result, trace: recorded };
+}
+
+/**
+ * 实际执行（不含 Trace）。仅被 `runAgent` 调用。
+ *
+ * 不导出：绕过它就能跳过权限检查与 Zod 校验直接调模型。
  *
  * 权限检查在最前面：Skill 不在该 Agent 的 `allowedSkills` 里就直接抛错，
  * 不发给模型。对应铁律「Agent 权限由代码控制」—— 越权不靠模型自觉。
  */
-export async function runAgent<Id extends AgentId>(
+async function executeAgent<Id extends AgentId>(
   options: RunAgentOptions<Id>,
 ): Promise<AgentRunResult<AgentOutputMap[Id]>> {
   const {
