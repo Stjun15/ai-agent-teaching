@@ -122,7 +122,33 @@ export const ChatRequestSchema = z.object({
   agent: z.string().min(1).max(64).optional(),
 });
 
+/**
+ * `PUT /api/student/profile` 的请求体。
+ *
+ * 全部字段可选（这是 PATCH 语义，但文档给的方法是 PUT）——
+ * 学生画像的每一列都有库里的默认值，第一次填写时通常只给一两项
+ * （例如只有 `programmingBackground` 与 `learningGoal`）。
+ * 要求全填会让「先填一部分、以后再补」这个真实用法直接 400。
+ *
+ * 取值与 `StudentProfile` 的联合一一对应，不在这里放宽成 `string`：
+ * 这些枚举会被 Agent 读进提示词（讲解风格、提示偏好等），
+ * 一个库里不存在的取值会让提示词拼出无效指令。
+ */
+export const UpdateProfileSchema = z.object({
+  programmingBackground: z
+    .enum(["zero", "beginner", "intermediate"])
+    .optional(),
+  learningGoal: z.string().max(500).optional(),
+  preferredLanguage: z.enum(["typescript", "python"]).optional(),
+  pace: z.enum(["slow", "normal", "fast"]).optional(),
+  explanationStyle: z.enum(["analogy", "example", "theory"]).optional(),
+  hintPreference: z.enum(["try_first", "hint_early", "direct"]).optional(),
+  feedbackPreference: z.enum(["encouraging", "strict", "neutral"]).optional(),
+  visualPreference: z.enum(["animation", "static", "text"]).optional(),
+});
+
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 export type CreateSessionInput = z.infer<typeof CreateSessionSchema>;
 export type SendMessageInput = z.infer<typeof SendMessageSchema>;
 export type ValidateInput = z.infer<typeof ValidateSchema>;
