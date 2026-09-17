@@ -302,9 +302,13 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
       return { ok: true, text: answer, toolCalls, tokens };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      // 错误码取 LLM_ERROR 而非自造的 INTERNAL：本 catch 能覆盖的范围就是
+      // 「建模型运行时 / 建会话 / 执行一轮 prompt」，全部属于 `api-spec.md`
+      // 「六、错误码」里 LLM_ERROR 的定义（LLM 调用失败）。自造码不在协议表里，
+      // 前端按表查不到状态码与可恢复性，只能当未知错误处理。
       stream.send({
         type: "error",
-        data: { code: "INTERNAL", message, recoverable: false },
+        data: { code: "LLM_ERROR", message, recoverable: true },
       });
       const { text: answer, toolCalls, tokens } = translator.summary();
       return { ok: false, text: answer, toolCalls, tokens, error: message };
