@@ -17,6 +17,29 @@
 - 不 force push，不 squash
 - 时间戳自然分布
 
+## 排期原则（2026-09-17 重排）
+
+**动因**：比赛要求「特别说明」明写 —— 参赛作品须以**前端 Web 应用为主要呈现形态，后端服务仅作为 AI 能力的接入层，不作为重点考察对象**。原计划把前端排在 Phase 5（倒数第三块），而按 17 个考察点计算：
+
+- 前端直接相关权重 = 前端工程质量 10 + 用户体验 10 + 交互模式创新 7 = **27%**
+- 更关键的是 **AI 技术深度那 35% 也只能通过前端呈现给评审** —— ≥3 位专家看的是演示视频与在线演示，不是源码
+
+**调整**：
+
+1. **前端主链路提前到 Phase 3**，紧跟知识层之后。后端只做到「能支撑前端演示」为止。
+2. **Phase 3 首个提交点是 `/api/chat` SSE 端点** —— 把 Phase 1 已跑通的 Agent 循环接到 HTTP 层。一个提交点即可让前端对接，无需等待 Agent 系统完工。
+3. **后续每个 Phase 完成后，其能力立刻接入已有界面**，作品自 Day 16 起始终处于「可演示」状态，演示视频随时可录。
+4. 原 Phase 3 / 4（Agent 系统、数据与接口）整体后移为 Phase 4 / 5，内容不变。
+5. 原 Phase 5 前端拆为两块：**主链路进 Phase 3**，**9 个可视化场景与剩余 4 个页面并入 Phase 6**（与原 Phase 6 教学集成合并）。
+
+**切分理由**：9 个可视化场景是「交互模式创新 7%」的核心载体，但它们对应的能力（Agent 编排、RAG、MCP、多 Agent）要到 Phase 4 / 5 才具备，场景必须跟着能力走。而对话界面、模块页、Agent 时间线等主链路只依赖已完成的最小闭环，可以立即开工。
+
+**同步修正的既存偏差**（计划与代码不一致）：
+
+- 原 Phase 4 的 6 个数据访问层提交点已于 Phase 1（`137fcca`）一次性完成，从列表中移除。
+- 原 Phase 4 验收标准「15 张表全部创建」已由 Phase 1 验收覆盖，移除。
+- Phase 0 提交点中的 `chore: add husky pre-commit hook` 已决策废弃（本机 safe-delete 垫片的删除预算会被 Git 钩子撞爆），实际以显式 `pnpm check` 替代。
+
 ## 阶段顺序
 
 ### Phase 0：项目初始化（1 天）
@@ -38,7 +61,7 @@ chore: configure typescript and path aliases
 chore: add tailwind css and postcss config
 chore: setup shadcn/ui with base components
 chore: add eslint and prettier config
-chore: add husky pre-commit hook
+chore: add husky pre-commit hook          （已废弃，见「排期原则」）
 docs: add .env.example and .gitignore
 docs: add README skeleton
 chore: create dev branch and initial structure
@@ -116,7 +139,7 @@ feat(wiki): add ai-safety concept page
 feat(wiki): add anti-pattern library
 feat(wiki): add rubrics library
 feat(wiki): add student profile templates
-chore(wiki): integrate pi-llm-wiki package
+chore(wiki): integrate pi-llm-wiki package   （受阻，待改写，见下方注记）
 ```
 
 **验收标准：**
@@ -126,11 +149,63 @@ chore(wiki): integrate pi-llm-wiki package
 - 学生画像 6 个页面模板可用
 - ingest / query / maintain 三个操作可用
 
+**⚠️ 提交点 15 受阻（2026-09-17 取证结论）**：`@zosmaai/pi-llm-wiki@0.12.2` **无 `main` / `module` / `types` / `exports`**，不存在 Node 可导入入口。它只能作为 pi 扩展 / skill / prompt / MCP server 接入，且要求 `{root}/.llm-wiki/wiki/{sources,concepts,entities,syntheses,analyses,requirements}` 的 vault 布局；而本项目是**无点前缀**的 `llm-wiki/`，且含 `anti-patterns/` `validation/` `students/` 三层，该包不识别。若走扩展接入，还需放开 `loop.ts` 的 `noExtensions: true`，而扩展注册的工具**会绕过 `tools` 白名单** —— 与「Agent 权限由代码控制」铁律冲突。
+
+**推荐处置**：改为自研最小实现 —— 按 `references/wiki-schema.md` 第六节的函数签名自行实现，直接读写本项目的 SCHEMA 格式；包集成整体推到 Phase 4 的 MCP 阶段再定。**待用户拍板后改写该提交点。**
+
 **前置条件（硬节点）：** RAG 上线前必须把数据层从 SQLite 切到 CloudBase PostgreSQL + pgvector，repository 抽象层需提供 PG 实现。
 
 ---
 
-### Phase 3：B 阶段（Agent 系统）（7 天）
+### Phase 3：D 阶段（前端主链路）（7 天）
+
+**任务：**
+
+- 新增 `/api/chat` SSE 端点，把已跑通的 Agent 循环接入 HTTP 层
+- 实现应用外壳与路由布局
+- 实现首页、学习页、模块页（三栏布局）
+- 实现对话界面：聊天面板、消息组件、浏览器端 SSE 客户端与流式渲染
+- 实现 Agent 工作过程可视化：时间线、引用面板、Token 计数、步骤导航、掌握度指示
+- 实现 5 个 Zustand Store
+
+**提交点（20 个）：**
+
+```
+feat(api): add chat sse endpoint
+chore(ui): add app shell and layout
+feat(ui): add top navigation
+feat(ui): add home page
+feat(ui): add learn page with module grid
+feat(ui): add module page with three-column layout
+feat(ui): add chat panel
+feat(ui): add message component
+feat(ui): add visualization panel
+feat(ui): add agent timeline
+feat(ui): add citation panel
+feat(ui): add token counter
+feat(ui): add step navigation
+feat(ui): add mastery indicator
+feat(store): add student store
+feat(store): add session store
+feat(store): add code store
+feat(store): add visualization store
+feat(store): add settings store
+feat(sse): add client-side SSE handler
+```
+
+**验收标准：**
+
+- `pnpm dev` 后，浏览器可完成一次真实对话，流式输出可见
+- 对话中触发工具调用时，界面显示对应卡片（如 `calculate`）
+- 所有路由可访问，无 TypeScript 错误
+- 5 个 Zustand Store 状态可读写
+- **作品进入「可持续演示」状态** —— 后续 Phase 的能力可立即接入本界面
+
+**与 Phase 5 的边界**：本阶段的 `/api/chat` 是**不落库的最小端点**，只负责把 Agent 循环的输出推给浏览器；会话持久化与消息落库由 Phase 5 的 `feat(api): add SSE message endpoint` 承接。
+
+---
+
+### Phase 4：B 阶段（Agent 系统）（7 天）
 
 **任务：**
 
@@ -178,7 +253,7 @@ test(agent): add teacher regression tests
 
 ---
 
-### Phase 4：E 阶段（数据与接口）（5 天）
+### Phase 5：E 阶段（数据与接口）（5 天）
 
 **任务：**
 
@@ -188,15 +263,9 @@ test(agent): add teacher regression tests
 - 实现 API 输入输出校验
 - 写 API 测试
 
-**提交点（15 个）：**
+**提交点（9 个，原 15 个中前 6 个数据访问层已于 Phase 1 完成）：**
 
 ```
-feat(db): add student data access layer
-feat(db): add mastery data access layer
-feat(db): add learning-path data access layer
-feat(db): add session data access layer
-feat(db): add message data access layer
-feat(db): add trace data access layer
 feat(api): add student profile endpoints
 feat(api): add session endpoints
 feat(api): add SSE message endpoint
@@ -210,7 +279,6 @@ feat(api): add report endpoint
 
 **验收标准：**
 
-- 15 张表全部创建，索引正确
 - 18 个 API 路由可访问
 - SSE 流式返回正常
 - 所有输入输出通过 Zod 校验
@@ -218,43 +286,24 @@ feat(api): add report endpoint
 
 ---
 
-### Phase 5：D 阶段（前端）（10 天）
+### Phase 6：可视化场景 + 前端收尾 + A 阶段（教学系统集成）（7 天）
 
 **任务：**
 
-- 实现所有路由页面
-- 实现所有组件
-- 实现 5 个 Zustand Store
-- 实现 Vercel AI SDK 流式客户端（SSE）
+- 补齐剩余 4 个页面（代码编辑器、playground、report、settings）
 - 实现 9 个可视化场景
-- 响应式适配
+- 把 9 个模块接入前端
+- 把 4 个 Agent 接入教学流程
+- 把可视化场景接入模块
+- 端到端测试完整教学循环
 
-**提交点（32 个）：**
+**提交点（23 个）：**
 
 ```
-chore(ui): add app shell and layout
-feat(ui): add top navigation
-feat(ui): add home page
-feat(ui): add learn page with module grid
-feat(ui): add module page with three-column layout
-feat(ui): add chat panel
-feat(ui): add message component
 feat(ui): add code editor with monaco
-feat(ui): add visualization panel
-feat(ui): add agent timeline
-feat(ui): add citation panel
-feat(ui): add token counter
-feat(ui): add step navigation
-feat(ui): add mastery indicator
 feat(ui): add playground page
 feat(ui): add report page
 feat(ui): add settings page
-feat(store): add student store
-feat(store): add session store
-feat(store): add code store
-feat(store): add visualization store
-feat(store): add settings store
-feat(sse): add client-side SSE handler
 feat(scenes): add scene-request-response
 feat(scenes): add scene-role-filter
 feat(scenes): add scene-loop-weather
@@ -264,33 +313,6 @@ feat(scenes): add scene-rag-vs-wiki
 feat(scenes): add scene-orchestration
 feat(scenes): add scene-mcp-flow
 feat(scenes): add scene-attack-defense
-```
-
-**验收标准：**
-
-- 所有路由可访问
-- 所有组件渲染正常
-- SSE 流式渲染流畅
-- 9 个可视化场景可播放
-- 响应式适配正常
-- 无 TypeScript 错误
-- Lighthouse 性能 ≥ 85
-
----
-
-### Phase 6：A 阶段（教学系统集成）（7 天）
-
-**任务：**
-
-- 把 9 个模块接入前端
-- 把 4 个 Agent 接入教学流程
-- 把可视化场景接入模块
-- 端到端测试完整教学循环
-- 优化性能和体验
-
-**提交点（10 个）：**
-
-```
 feat(integration): wire llm-api module
 feat(integration): wire system-prompt module
 feat(integration): wire agent-loop module
@@ -305,6 +327,10 @@ test(e2e): add full teaching loop test
 
 **验收标准：**
 
+- 9 个可视化场景可播放
+- 所有路由可访问，所有组件渲染正常
+- 响应式适配正常，无 TypeScript 错误
+- Lighthouse 性能 ≥ 85
 - 9 个模块能完整跑通教学流程
 - 4 个 Agent 协作正常
 - 可视化场景与模块匹配
@@ -354,21 +380,21 @@ chore: tag v0.1.0 for provincial competition
 
 ## 提交总数估算
 
-| Phase | 内容 | 提交数 |
-|---|---|---|
-| Phase 0 | 项目初始化 | 9 |
+| Phase | 内容                    | 提交数 |
+| ----- | ----------------------- | ------ |
+| Phase 0 | 项目初始化            | 9      |
 | Phase 1 | 数据层 + piagentSDK 最小闭环 | 8 |
-| Phase 2 | 知识层（LLM Wiki） | 15 |
-| Phase 3 | Agent 系统 | 20 |
-| Phase 4 | 数据与接口 | 15 |
-| Phase 5 | 前端 | 32 |
-| Phase 6 | 教学系统集成 | 10 |
-| Phase 7 | 打磨与提交 | 12 |
-| **总计** | 6 周 | **121** |
+| Phase 2 | 知识层（LLM Wiki）    | 15     |
+| Phase 3 | 前端主链路            | 20     |
+| Phase 4 | Agent 系统            | 20     |
+| Phase 5 | 数据与接口            | 9      |
+| Phase 6 | 可视化场景 + 前端收尾 + 教学集成 | 23 |
+| Phase 7 | 打磨与提交            | 12     |
+| **总计** | **约 40 天**         | **116** |
 
-6 周 121 个提交，平均每天约 3 个提交。这是真实开发节奏。
+40 天 116 个提交，平均每天约 3 个提交。这是真实开发节奏。
 
-省赛提交截止 **2026-11-18**。本计划约 43 天（6 周），预留约 19 天缓冲。
+省赛提交截止 **2026-11-18**。本计划约 40 天，预留约 22 天缓冲。
 
 ---
 
@@ -396,13 +422,13 @@ git log --stat --oneline | grep -E "\.env|node_modules"
 
 ## 关键里程碑
 
-| 时间 | 里程碑 | 累计提交数 |
-|---|---|---|
-| Day 1 | 项目初始化 | 9 |
-| Day 4 | 最小闭环跑通 | 17 |
-| Day 9 | 知识层完成 | 32 |
-| Day 16 | Agent 系统完成 | 52 |
-| Day 21 | 数据与接口完成 | 67 |
-| Day 31 | 前端完成 | 99 |
-| Day 38 | 教学系统集成完成 | 109 |
-| Day 43 | 提交材料完成 | 121 |
+| 时间   | 里程碑             | 累计提交数 |
+| ------ | ------------------ | ---------- |
+| Day 1  | 项目初始化         | 9          |
+| Day 4  | 最小闭环跑通       | 17         |
+| Day 9  | 知识层完成         | 32         |
+| Day 16 | 前端主链路可演示   | 52         |
+| Day 23 | Agent 系统完成     | 72         |
+| Day 28 | 数据与接口完成     | 81         |
+| Day 35 | 教学系统集成完成   | 104        |
+| Day 40 | 提交材料完成       | 116        |
