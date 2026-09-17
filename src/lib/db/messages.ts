@@ -111,4 +111,22 @@ export const messageDb = {
       .all(sessionId);
     return (rows as Row[]).map(mapMessage);
   },
+
+  /**
+   * 回填某条消息的引用。
+   *
+   * 为什么不在 `create` 里一起写
+   * -------------------------
+   * 引用的 `messageId` 必须指向已存在的消息，而 `create` 在插入前才会生成
+   * id。先建消息拿到 id、再回填，是这条依赖顺序的唯一干净写法 —— 也避免了
+   * 让 `create` 接受「还没 id 的引用」这种半成品入参。
+   */
+  async updateCitations(
+    messageId: string,
+    citations: Citation[],
+  ): Promise<void> {
+    getDb()
+      .prepare("UPDATE messages SET citations = ? WHERE id = ?")
+      .run(toJson(citations), messageId);
+  },
 };

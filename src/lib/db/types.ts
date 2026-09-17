@@ -175,10 +175,15 @@ export interface Message {
 }
 
 export interface MessageMetadata {
+  /** 编排层 Agent 标识（teacher/reviewer/examiner/assistant/chat）。 */
+  agent?: string;
+  /** `agentSkill` 的别名，语义更直白；旧字段保留以兼容历史数据。 */
   agentSkill?: string;
   tokens?: { input: number; output: number };
   duration?: number;
   model?: string;
+  /** 流式结束后若整轮失败，记录模型侧错误原因，便于复现。 */
+  error?: string;
 }
 
 export interface Citation {
