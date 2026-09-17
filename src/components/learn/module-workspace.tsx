@@ -7,6 +7,7 @@ import { StepNav } from "@/components/learn/step-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlaceholderPanel } from "@/components/ui/placeholder-panel";
+import type { StepType } from "@/lib/db";
 import type { TeachingModule } from "@/lib/modules";
 
 /**
@@ -38,7 +39,7 @@ export function ModuleWorkspace({
 }: {
   teachingModule: TeachingModule;
   allModules: readonly TeachingModule[];
-  currentStepId: string;
+  currentStepId: StepType;
 }) {
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,

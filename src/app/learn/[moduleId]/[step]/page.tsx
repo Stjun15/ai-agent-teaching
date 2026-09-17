@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
-import { LEARNING_STEPS, stepIndex } from "@/lib/learning-steps";
+import { isStepType, LEARNING_STEPS } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
 
 interface ModuleStepPageProps {
@@ -17,7 +17,8 @@ interface ModuleStepPageProps {
  * 收藏 —— 学生问「我卡在第三步」时，链接能直接指向那一步。
  *
  * 非法的 step 一律 404，不做「静默回退到第一步」：URL 写错却看起来正常，
- * 会让人以为自己的操作生效了。`LEARNING_STEPS` 是 step 取值的唯一定义处。
+ * 会让人以为自己的操作生效了。step 取值的权威是 `data-models.md` 的 `StepType`
+ * （7 个取值），`LEARNING_STEPS` 是它的界面映射，并在编译期与之双向钉死。
  */
 
 export async function generateStaticParams() {
@@ -35,7 +36,7 @@ export async function generateMetadata({
 }: ModuleStepPageProps): Promise<Metadata> {
   const { moduleId, step } = await params;
   const teachingModule = await findModule(moduleId);
-  const matched = LEARNING_STEPS[stepIndex(step)];
+  const matched = LEARNING_STEPS.find((item) => item.id === step);
   if (!teachingModule || !matched) return { title: "模块不存在" };
   return {
     title: `${teachingModule.name} · ${matched.label}`,
@@ -50,7 +51,7 @@ export default async function ModuleStepPage({ params }: ModuleStepPageProps) {
     loadModules(),
   ]);
 
-  if (!teachingModule || stepIndex(step) === -1) notFound();
+  if (!teachingModule || !isStepType(step)) notFound();
 
   return (
     <ModuleWorkspace

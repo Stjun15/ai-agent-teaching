@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
-import { LEARNING_STEPS } from "@/lib/learning-steps";
+import { FIRST_STEP_ID } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
 
 interface ModulePageProps {
@@ -46,7 +46,7 @@ export default async function ModulePage({ params }: ModulePageProps) {
     <ModuleWorkspace
       teachingModule={teachingModule}
       allModules={allModules}
-      currentStepId={LEARNING_STEPS[0].id}
+      currentStepId={FIRST_STEP_ID}
     />
   );
 }

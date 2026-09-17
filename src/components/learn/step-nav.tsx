@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, Circle } from "lucide-react";
 
+import type { StepType } from "@/lib/db";
 import { LEARNING_STEPS } from "@/lib/learning-steps";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +22,8 @@ export function StepNav({
   doneStepIds = [],
 }: {
   moduleId: string;
-  currentStepId: string;
-  doneStepIds?: readonly string[];
+  currentStepId: StepType;
+  doneStepIds?: readonly StepType[];
 }) {
   const done = new Set(doneStepIds);
 
