@@ -25,7 +25,7 @@ last_updated: 2026-09-17
 | [llm-wiki](./concepts/llm-wiki.md)           | LLM Wiki 知识编译  | 4    | 已建 |
 | [multi-agent](./concepts/multi-agent.md)     | 多 Agent 协作      | 5    | 已建 |
 | [mcp](./concepts/mcp.md)                     | MCP 工具集成       | 4    | 已建 |
-| [ai-safety](./concepts/ai-safety.md)         | AI 安全与可控性    | 4    | 待建 |
+| [ai-safety](./concepts/ai-safety.md)         | AI 安全与可控性    | 4    | 已建 |
 
 ## 设计模式（patterns/）
 
