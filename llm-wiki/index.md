@@ -39,17 +39,17 @@ last_updated: 2026-09-17
 
 ## 反模式（anti-patterns/）
 
-| 页面                                                            | 名称         | 状态 |
-| --------------------------------------------------------------- | ------------ | ---- |
-| [vague-prompt](./anti-patterns/vague-prompt.md)                 | 模糊 Prompt  | 待建 |
-| [weak-role-definition](./anti-patterns/weak-role-definition.md) | 角色定义薄弱 | 待建 |
-| [missing-params](./anti-patterns/missing-params.md)             | 参数缺失     | 待建 |
-| [no-error-handling](./anti-patterns/no-error-handling.md)       | 缺少错误处理 | 待建 |
-| [infinite-loop](./anti-patterns/infinite-loop.md)               | 无限循环     | 待建 |
-| [token-explosion](./anti-patterns/token-explosion.md)           | Token 爆炸   | 待建 |
-| [prompt-injection](./anti-patterns/prompt-injection.md)         | Prompt 注入  | 待建 |
-| [over-retrieval](./anti-patterns/over-retrieval.md)             | 过度检索     | 待建 |
-| [role-overlap](./anti-patterns/role-overlap.md)                 | 角色重叠     | 待建 |
+| 页面                                                            | 名称         | 严重程度 | 状态 |
+| --------------------------------------------------------------- | ------------ | -------- | ---- |
+| [vague-prompt](./anti-patterns/vague-prompt.md)                 | 模糊 Prompt  | high     | 已建 |
+| [weak-role-definition](./anti-patterns/weak-role-definition.md) | 角色定义薄弱 | high     | 已建 |
+| [missing-params](./anti-patterns/missing-params.md)             | 参数定义缺失 | high     | 已建 |
+| [no-error-handling](./anti-patterns/no-error-handling.md)       | 无错误处理   | medium   | 已建 |
+| [infinite-loop](./anti-patterns/infinite-loop.md)               | 无限循环     | high     | 已建 |
+| [token-explosion](./anti-patterns/token-explosion.md)           | Token 爆炸   | medium   | 已建 |
+| [prompt-injection](./anti-patterns/prompt-injection.md)         | 提示注入     | high     | 已建 |
+| [over-retrieval](./anti-patterns/over-retrieval.md)             | 过度检索     | medium   | 已建 |
+| [role-overlap](./anti-patterns/role-overlap.md)                 | 角色重叠     | medium   | 已建 |
 
 ## 评分标准（validation/）
 
