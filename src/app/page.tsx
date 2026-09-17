@@ -6,7 +6,7 @@ export default function HomePage() {
       <h1 className="text-3xl font-semibold tracking-tight">
         AI Native 编程教学助手
       </h1>
-      <p className="text-muted-foreground text-base">用 Agent 教 Agent。</p>
+      <p className="text-base text-muted-foreground">用 Agent 教 Agent。</p>
       <div className="flex gap-2">
         <Button>开始学习</Button>
         <Button variant="outline" size="sm">

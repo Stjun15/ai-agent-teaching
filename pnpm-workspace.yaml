@@ -15,3 +15,12 @@
 #   先把整个目录改名移走再重装：
 #     mv node_modules node_modules.broken && pnpm install
 nodeLinker: hoisted
+
+# pnpm 12 默认拦截依赖的构建脚本（供应链安全）。
+# unrs-resolver 是 eslint-plugin-import-x 使用的原生模块解析器，其
+# postinstall 仅做自检；预编译二进制已通过可选依赖
+# @unrs/resolver-binding-<platform> 随包安装，跳过脚本不影响功能。
+# 设为 false 表示「已知并接受跳过」，避免 pnpm install 以
+# ERR_PNPM_IGNORED_BUILDS 报错。
+allowBuilds:
+  unrs-resolver: false
