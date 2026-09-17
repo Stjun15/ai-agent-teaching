@@ -31,7 +31,12 @@ export function resolveSqlitePath(
     withoutScheme && withoutScheme.length > 0
       ? withoutScheme
       : DEFAULT_SQLITE_FILE;
-  return path.resolve(process.cwd(), relative);
+  // turbopackIgnore：这里的路径来自 DATABASE_URL，是运行期才知道的动态值。
+  // 不加这个注释时，Turbopack 的静态分析会保守地把**整个项目**纳入产物追踪
+  // （构建期会报 "Dynamic filesystem access causes tracing of the whole project"），
+  // 拖大部署包。库文件本身是开发期产物（已被 .gitignore 排除，生产走 PostgreSQL），
+  // 不应该被追踪进产物，所以显式退出追踪。
+  return path.resolve(/*turbopackIgnore: true*/ process.cwd(), relative);
 }
 
 const globalForDb = globalThis as unknown as { __aiTeachingDb?: DatabaseSync };

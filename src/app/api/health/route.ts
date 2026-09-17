@@ -27,10 +27,21 @@
  * ----
  * 只回禀密钥「是否已配置」这一个布尔值，绝不回显密钥内容；数据库只回文件名
  * （basename），不回显本机绝对路径。
+ *
+ * ⚠️ 为什么 import `@/lib/agent/ark-config` 而不是 `@/lib/agent/ark`
+ * ---------------------------------------------------------------
+ * `ark.ts` 为注册 provider 必须 import pi-coding-agent SDK。若本路由从那里取
+ * `readArkSettings`，构建产物会把整个 SDK 一起追踪进来 —— 实测追踪到 530 个文件
+ * （266 个来自 pi-coding-agent、41 个来自 pi-tui，还带进一个 WASM 图像库），
+ * 只为读四个环境变量。`ark-config.ts` 是纯逻辑、不 import SDK，故本路由只依赖它。
  */
 
 import { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "@/lib/db";
-import { ARK_API_KEY_ENV, readArkSettings } from "@/lib/agent/ark";
+import {
+  ARK_API_KEY_ENV,
+  isArkApiKeyConfigured,
+  readArkSettings,
+} from "@/lib/agent/ark-config";
 
 // node:sqlite 是 Node 专有模块，不能跑在 Edge Runtime。
 export const runtime = "nodejs";
@@ -51,7 +62,7 @@ interface ConfigHealth {
 
 function checkConfig(): ConfigHealth {
   const { baseUrl, textModel, visionModel } = readArkSettings();
-  const arkApiKeyConfigured = Boolean(process.env[ARK_API_KEY_ENV]?.trim());
+  const arkApiKeyConfigured = isArkApiKeyConfigured();
 
   return {
     ok: arkApiKeyConfigured,
