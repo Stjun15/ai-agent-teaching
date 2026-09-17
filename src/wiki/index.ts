@@ -6,7 +6,7 @@
  * SCHEMA 解析、markdown 表格格式化都是**实现细节**，挡在出口后面，
  * 将来换存储（CloudBase / 对象存储）或换检索方式（向量库）时改动才可控。
  *
- * `wiki-schema.md`「六、LLM Wiki 操作接口」要求的 5 个函数：
+ * `wiki-schema.md`「六、LLM Wiki 操作接口」要求的 5 个函数在这里齐全：
  * `ingest` / `query` / `maintain` / `getPage` / `updatePage`。
  *
  * 本模块**只依赖 node: 内置模块**，不 import 任何 AI SDK —— 这样它既能被
@@ -17,6 +17,7 @@
 export type * from "./types";
 export type { WikiPageTypeSpec, WikiSchema } from "./schema";
 export type { MarkdownTable, TableAlignment } from "./markdown-table";
+export type { WikiQueryOptions } from "./query";
 export type { WikiLogEntry } from "./log";
 
 export {
@@ -82,3 +83,9 @@ export {
 } from "./page";
 
 export { appendWikiLog } from "./log";
+
+export { DEFAULT_TOP_K, query, tokenize } from "./query";
+
+export { ingest } from "./ingest";
+
+export { maintain, syncIndexStatuses } from "./maintain";
