@@ -23,15 +23,28 @@
 
 import { z } from "zod";
 
+import type { Expect } from "@/lib/type-assert";
+
 // ---------------------------------------------------------------------------
 // 共享子结构
 // ---------------------------------------------------------------------------
 
 /**
  * api-spec.md 里 `params` / `result` 声明为 `object`，即「任意 JSON 对象」。
- * 用 catchall 而不是 `z.object({})` —— 后者会把所有键静默剥掉，校验通过但数据没了。
+ * 用 `z.record` 而不是 `z.object({})` —— 后者会把所有键静默剥掉，
+ * 校验通过但数据没了。
+ *
+ * ⚠️ 类型侧必须用 `JsonObject`，不能用 `object`
+ * -------------------------------------------
+ * `sse-server.ts` 原本把这几个字段写成 `object`，它比 `Record<string, unknown>`
+ * **更宽**（`object` 不含字符串索引签名），因此 `SSEEvent` 无法赋给本 schema
+ * 的产出类型。这让文件末尾那条双向断言失败 —— 而它此前被一个空断言掩盖着
+ * （详见该处说明）。现在两边统一到这个类型。
  */
 export const JsonObjectSchema = z.record(z.string(), z.unknown());
+
+/** `params` / `result` / `props` 的类型。由 schema 推出，不手写第二份。 */
+export type JsonObject = z.infer<typeof JsonObjectSchema>;
 
 /** api-spec.md「六、错误码」的 8 个取值。 */
 export const ErrorCodeSchema = z.enum([
@@ -186,7 +199,14 @@ export const SSEEventSchema = z.discriminatedUnion("type", [
 
 export type SSEEventInput = z.infer<typeof SSEEventSchema>;
 
-/** 全部合法事件类型，供遍历 / 穷举检查使用。 */
+/**
+ * 全部合法事件类型，供遍历 / 穷举检查使用。
+ *
+ * 这份数组是**手写的**（判别联合推不出数组字面量），因此需要下面两条断言把它
+ * 与协议钉住 —— 否则往里多塞一个 `"nope"` 不会有任何报错（实测确认过）。
+ * 事件类型的权威是 `sse-server.ts` 的 `SSEEvent`。
+ * 配套断言见文件末尾。
+ */
 export const SSE_EVENT_TYPES = [
   "token",
   "thinking",
@@ -208,18 +228,45 @@ export type SSEEventType = (typeof SSE_EVENT_TYPES)[number];
  *
  * 只做单向断言是不够的 —— 少写一种事件时单向仍能通过；双向断言能同时抓住
  * 「schema 缺事件」和「schema 与类型字段不一致」两类偏差。
+ *
+ * ⚠️ `Expect<T extends true>` 这个包装不能省
+ * -----------------------------------------
+ * 本文件首版把断言写成 `[X extends Y ? true : never][0]`，那是**空的**：
+ * 条件不成立时只是把类型静默解析成 `never`，tsc 不报任何错。
+ * 必须让条件不成立时**违反一个泛型约束**才会真的报错 ——
+ * `Expect<false>` 会得到 "Type 'false' does not satisfy the constraint 'true'"。
+ *
+ * 已在 `learning-steps.ts` 上实测验证过这个差异：用 `? true : never` 时故意
+ * 删掉一步，`tsc --noEmit` 依然全绿；换成 `Expect` 后立刻报错。
  */
 type _SchemaOutputAssignableToEvent = SSEEventInput;
 type _EventAssignableToSchemaInput = import("@/lib/sse-server").SSEEvent;
 
-// 这两个 never 值只在类型层面存在，运行时不存在，且被 tsc 检查。
-export type __AssertSchemaMatchesEvent = [
+/** schema 产出的事件必须都能当 `SSEEvent` 用（schema 缺字段时会失败）。 */
+export type __AssertSchemaMatchesEvent = Expect<
   _SchemaOutputAssignableToEvent extends _EventAssignableToSchemaInput
     ? true
-    : never,
-][0];
-export type __AssertEventMatchesSchema = [
+    : false
+>;
+
+/** `SSEEvent` 的每种事件都必须有对应 schema（schema 漏一种事件时会失败）。 */
+export type __AssertEventMatchesSchema = Expect<
   _EventAssignableToSchemaInput extends _SchemaOutputAssignableToEvent
     ? true
-    : never,
-][0];
+    : false
+>;
+
+/**
+ * 把 `SSE_EVENT_TYPES` 这份手写数组与协议钉死（双向）。
+ *
+ * 为什么会漏掉这条：这张数组是个常量列表，而「列表」的完整性检查不像
+ * 判别联合那样自然 —— 实测发现，往里面多塞一个 `"nope"` 时，
+ * 上面三条断言全部沉默。少了这条，一个拼错的事件类型可以一路进到遍历逻辑里。
+ */
+export type __AssertEventTypesCoverProtocol = Expect<
+  SSEEventType extends _EventAssignableToSchemaInput["type"] ? true : false
+>;
+
+export type __AssertProtocolCoveredByEventTypes = Expect<
+  _EventAssignableToSchemaInput["type"] extends SSEEventType ? true : false
+>;

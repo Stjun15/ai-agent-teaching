@@ -15,6 +15,10 @@
  */
 
 import type { ValidationResult } from "@/lib/db";
+// 只借类型，不借实现 —— `import type` 在编译后完全擦除，因此不与 `@/schemas`
+// 形成运行时循环（那边对本文件的 import 同样是 `import type`）。
+// 协议表（8 个错误码、JSON 对象形状）只在 `@/schemas` 定义一次，这里不另立一份。
+import type { ErrorCode, JsonObject } from "@/schemas";
 
 // ---------------------------------------------------------------------------
 // 事件类型（10 种，逐字对应 api-spec.md 第三节）
@@ -41,7 +45,7 @@ export interface ToolCallEvent {
   type: "tool_call";
   data: {
     toolName: string;
-    params: object;
+    params: JsonObject;
     callId: string;
   };
 }
@@ -50,7 +54,7 @@ export interface ToolResultEvent {
   type: "tool_result";
   data: {
     callId: string;
-    result: object;
+    result: JsonObject;
     duration: number;
   };
 }
@@ -69,7 +73,7 @@ export interface UIEvent {
   type: "ui";
   data: {
     component: string;
-    props: object;
+    props: JsonObject;
   };
 }
 
@@ -82,14 +86,17 @@ export interface VisualizationEvent {
   type: "visualization";
   data: {
     sceneId: string;
-    params: object;
+    params: JsonObject;
   };
 }
 
 export interface ErrorEvent {
   type: "error";
   data: {
-    code: string;
+    // 不是 `string`：协议表只有 8 个取值，写宽了就能发协议外的码。
+    // 上一轮 loop.ts 发 `INTERNAL` 正是这类错误 —— 若本断言当时是活的，
+    // 它会在编译期被拦下，而不是等到前端查表查不到才发现。
+    code: ErrorCode;
     message: string;
     recoverable: boolean;
   };
