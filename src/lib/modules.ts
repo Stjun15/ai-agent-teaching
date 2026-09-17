@@ -25,6 +25,7 @@
  */
 
 import { listPages } from "@/wiki";
+import type { SceneId } from "@/lib/agent/scene-ids";
 import type { WikiPage } from "@/wiki";
 
 /**
@@ -33,8 +34,12 @@ import type { WikiPage } from "@/wiki";
  * 这一份是**产品决策**，不是从 wiki 推导的：出处 `04-frontend.md`「9 个可视化场景」
  * 的对应表。场景的实现在 Phase 6，本阶段只把 id 带进数据，让模块页能提前
  * 声明「这里将来放哪个场景」。
+ *
+ * 值受 `SceneId` 约束（`satisfies`）：场景 ID 在提示词、本文档、本表各存一份，
+ * 若某天提示词里写了个前端不存在的场景，界面会静默空白 —— 用类型把这处漂移
+ * 提前到编译期。权威定义见 `src/lib/agent/scene-ids.ts`。
  */
-export const MODULE_SCENE_IDS: Readonly<Record<string, string>> = {
+export const MODULE_SCENE_IDS: Readonly<Record<string, SceneId>> = {
   "llm-api": "scene-request-response",
   "system-prompt": "scene-role-filter",
   "agent-loop": "scene-loop-weather",
