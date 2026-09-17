@@ -52,16 +52,11 @@
  * 只保证「不胡说、优先用工具算数、说中文」，不承担任何教学人设。它被替换是预期内的。
  */
 
-import {
-  createAgentSession,
-  DefaultResourceLoader,
-  SessionManager,
-  SettingsManager,
-  type AgentSessionEvent,
-} from "@earendil-works/pi-coding-agent";
+import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 
-import { createArkModels, type ArkEnv } from "./ark";
+import type { ArkEnv } from "./ark";
 import { calculatorTool } from "./tools/calculator";
+import { createSession, type AgentSessionHandle } from "./session";
 import { createSSEStream, sseResponse, type SSEStream } from "../sse-server";
 
 /**
@@ -309,61 +304,23 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
   const translator = createEventTranslator(stream, agent);
 
   const completed = (async (): Promise<AgentLoopSummary> => {
-    let session:
-      Awaited<ReturnType<typeof createAgentSession>>["session"] | undefined;
+    let handle: AgentSessionHandle | undefined;
 
     try {
-      const { modelRuntime, text } = await createArkModels(env);
-
-      // 关掉全部资源发现：Phase 1 不需要扩展 / 技能 / 提示词模板 / 上下文文件，
-      // 开着会让 cwd 与 agentDir 里出现的任何文件悄悄改变 Agent 行为。
-      const resourceLoader = new DefaultResourceLoader({
-        cwd: process.cwd(),
-        agentDir: process.cwd(),
-        noExtensions: true,
-        noSkills: true,
-        noPromptTemplates: true,
-        noThemes: true,
-        noContextFiles: true,
+      // 会话一律走 `session.ts` 的工厂：资源锁定策略（关掉扩展/技能/提示词模板
+      // /上下文文件）只在那儿定义一次，避免流式与非流式两条路径悄悄漂移。
+      handle = await createSession({
         systemPrompt: PROVISIONAL_SYSTEM_PROMPT,
-      });
-      await resourceLoader.reload();
-
-      const created = await createAgentSession({
-        cwd: process.cwd(),
-        agentDir: process.cwd(),
-        modelRuntime,
-        model: text,
-        // 已在 ark.ts 里把该模型声明为 reasoning: false，这里同步关掉思考档位，
-        // 避免发出未经验证的 thinking 参数。
-        thinkingLevel: "off",
         // 工具白名单。注意 `tools` 是总白名单，自定义工具必须按名字列进来，
         // 写成空数组会把 calculate 一起挡掉（见文件头「工具白名单」的踩坑记录）。
         tools: [calculatorTool.name],
         customTools: [calculatorTool],
-        resourceLoader,
-        sessionManager: SessionManager.inMemory(),
-        // 单轮对话不需要压缩；429 退避重试按 02-agent-system.md 的异常处理表开启。
-        settingsManager: SettingsManager.inMemory({
-          compaction: { enabled: false },
-          retry: { enabled: true, maxRetries: 2 },
-        }),
+        onEvent: translator.handle,
+        env,
+        signal,
       });
-      session = created.session;
 
-      session.subscribe(translator.handle);
-
-      if (signal) {
-        if (signal.aborted) {
-          await session.abort();
-        } else {
-          signal.addEventListener("abort", () => void session?.abort(), {
-            once: true,
-          });
-        }
-      }
-
-      await session.prompt(userMessage);
+      await handle.prompt(userMessage);
 
       const { text: answer, toolCalls, tokens } = translator.summary();
       stream.send({
@@ -386,7 +343,7 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
       return { ok: false, text: answer, toolCalls, tokens, error: message };
     } finally {
       stream.close();
-      session?.dispose();
+      handle?.dispose();
     }
   })();
 
