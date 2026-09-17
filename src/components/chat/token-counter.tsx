@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { AlertTriangle, Coins } from "lucide-react";
 
 import { selectTotalTokens, useSessionStore } from "@/stores";
@@ -28,10 +29,15 @@ import { selectTotalTokens, useSessionStore } from "@/stores";
  * 界面必须能说明「为什么内容好像少了一段」，而不是静默。
  */
 export function TokenCounter() {
-  const totals = useSessionStore(selectTotalTokens);
+  // 只订阅原始切片，派生计算放 useMemo —— selectTotalTokens 与内联的
+  // .filter() 都会返回新对象/新数组，直接当 selector 用会无限重渲染
+  // （React #185，见 selectTotalTokens 上方的说明）。
+  const messages = useSessionStore((state) => state.messages);
   const invalidFrames = useSessionStore((state) => state.invalidFrames);
-  const turns = useSessionStore(
-    (state) => state.messages.filter((m) => m.role === "student").length,
+  const totals = useMemo(() => selectTotalTokens(messages), [messages]);
+  const turns = useMemo(
+    () => messages.filter((m) => m.role === "student").length,
+    [messages],
   );
 
   const total = totals.input + totals.output;

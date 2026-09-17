@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Brain, ChevronRight, Timer, Wrench } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,15 @@ import { selectTimeline, useSessionStore } from "@/stores";
  * 「先思考、再调工具、再思考」的顺序本身就是 Agent Loop 的教学内容。
  */
 export function AgentTimeline() {
-  const entries = useSessionStore(selectTimeline);
+  // 只订阅原始切片（引用稳定），派生的时间线放 useMemo ——
+  // 把 selectTimeline 直接传给 hook 会因快照不稳定导致无限重渲染
+  // （React #185，见 selectTimeline 上方的说明）。
+  const thinking = useSessionStore((state) => state.thinking);
+  const tools = useSessionStore((state) => state.tools);
+  const entries = useMemo(
+    () => selectTimeline(thinking, tools),
+    [thinking, tools],
+  );
   const status = useSessionStore((state) => state.status);
 
   if (entries.length === 0) {

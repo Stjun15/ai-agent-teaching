@@ -411,6 +411,14 @@ function closeThinking(thinking: ThinkingStep[]): ThinkingStep[] {
 //
 // 放在 store 文件里而不是各组件里现算：Agent 时间线的排序、Token 计数的累加
 // 这类口径只应有一处。都是纯函数，可以直接在测试里断言。
+//
+// ⚠️ 调用方式（踩过坑）：这些选择器**接收原始切片**，不要把「返回新对象/
+// 新数组」的选择器直接传给 hook。zustand v5 的 hook 基于 useSyncExternalStore，
+// React 每次渲染都会调 selector 并用 Object.is 比较快照 —— 快照每次都是新的
+// （比如这里曾经接收整个 state 再 return 一个新数组）就会无限重渲染，
+// React #185（Maximum update depth exceeded）→ 整棵树被卸载，落到 Next 内置
+// 的 global-error 页。实测于 Edge 有头模式：页面只剩「This page couldn't load」。
+// 正确姿势：hook 里只订阅原始切片（引用稳定），派生计算放 useMemo。
 // ---------------------------------------------------------------------------
 
 /** 右栏时间线的条目：思考段与工具调用按时间交错。 */
@@ -419,14 +427,17 @@ export type TimelineEntry =
   | { kind: "tool"; at: number; tool: ToolActivity };
 
 /** 把思考段与工具调用按发生时间合并成一条时间线。 */
-export function selectTimeline(state: SessionState): TimelineEntry[] {
+export function selectTimeline(
+  thinking: readonly ThinkingStep[],
+  tools: readonly ToolActivity[],
+): TimelineEntry[] {
   const entries: TimelineEntry[] = [
-    ...state.thinking.map((step): TimelineEntry => ({
+    ...thinking.map((step): TimelineEntry => ({
       kind: "thinking",
       at: step.startedAt,
       step,
     })),
-    ...state.tools.map((tool): TimelineEntry => ({
+    ...tools.map((tool): TimelineEntry => ({
       kind: "tool",
       at: tool.startedAt,
       tool,
@@ -436,13 +447,13 @@ export function selectTimeline(state: SessionState): TimelineEntry[] {
 }
 
 /** 累计 token 用量：所有轮次相加，而不是只显示最近一轮。 */
-export function selectTotalTokens(state: SessionState): {
+export function selectTotalTokens(messages: readonly ChatMessage[]): {
   input: number;
   output: number;
 } {
   let input = 0;
   let output = 0;
-  for (const message of state.messages) {
+  for (const message of messages) {
     if (message.tokens === undefined) continue;
     input += message.tokens.input;
     output += message.tokens.output;
