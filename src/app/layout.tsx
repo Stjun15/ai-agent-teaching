@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TopNav } from "@/components/layout/top-nav";
+import { ThemeBootstrap } from "@/components/settings/theme-choice";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -18,7 +19,10 @@ export const metadata: Metadata = {
  * 具体页面各自决定内部布局 —— 模块页要三栏铺满、首页要居中留白，
  * 把这些差异收进 layout 会让两者互相牵制。
  *
- * 顶栏是唯一的例外：它是全站常驻的，必须在这里。
+ * 两个例外，都是「全站常驻、与当前页面无关」的东西：
+ * - `<TopNav>`：导航；
+ * - `<ThemeBootstrap>`：把已保存的主题应用到 `<html>`。它必须挂在全站每一页上，
+ *   否则「设置里选了深色、进别的页面又变浅色」。它渲染 `null`，不占布局。
  */
 export default function RootLayout({
   children,
@@ -26,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang={siteConfig.locale}>
       <body className="flex min-h-dvh flex-col antialiased">
+        <ThemeBootstrap />
         <TopNav />
         {children}
       </body>
