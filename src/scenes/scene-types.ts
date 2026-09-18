@@ -81,6 +81,14 @@ export interface SceneDefinition {
 export interface SceneProps {
   /** 当前处于第几步（0 基）。场景需要自己处理 `stepIndex >= steps.length`。 */
   stepIndex: number;
+  /**
+   * 当前步骤的标题，由舞台从目录里取好传下来。
+   *
+   * 为什么不给场景整份 `steps`：场景要显示的只有「当前这一步叫什么」，
+   * 而步骤列表已经在播放器面板上完整列出了。给整份数据会让场景有机会
+   * 自己算「第几步」，与播放器的推进出现两份判断。
+   */
+  caption: string;
   params: SceneParams;
   setParam: (key: string, value: SceneParamValue) => void;
 }

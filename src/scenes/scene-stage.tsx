@@ -84,6 +84,7 @@ export function SceneStage() {
         <Renderer
           key={scene.id}
           stepIndex={stepIndex}
+          caption={step?.title ?? "播放已结束"}
           params={params}
           setParam={setParam}
         />
