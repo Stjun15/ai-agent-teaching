@@ -30,6 +30,7 @@
     "test:teaching-grade": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/teaching-grade-spec.ts",
     "test:trace": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/trace-spec.ts",
     "test:prompt-budget": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/prompt-budget-spec.ts",
+    "test:security": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/security-spec.ts",
     "test:theme": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/theme-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
     "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"

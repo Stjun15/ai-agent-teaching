@@ -59,6 +59,7 @@ const SUITES = [
     file: "scripts/prompt-budget-spec.ts",
     model: false,
   },
+  { name: "安全过滤", file: "scripts/security-spec.ts", model: false },
   {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
