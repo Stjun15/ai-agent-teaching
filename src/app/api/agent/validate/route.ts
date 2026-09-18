@@ -22,7 +22,7 @@
 
 import { resolveStudent } from "@/lib/api-auth";
 import { jsonError } from "@/lib/api-error";
-import { sessionDb } from "@/lib/db";
+import { sessionDb, validationResultDb } from "@/lib/db";
 import { findModule } from "@/lib/modules";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
 import { ValidateSchema, type ValidateInput } from "@/schemas";
@@ -74,6 +74,26 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     const review = result.review;
+
+    // 持久化点评结果（副作用）：此前 /api/agent/validate 跑完直接丢弃，
+    // 导致 validation_results 表在真实库里恒为 0 行。这里补上写入，
+    // 使每一次点评被真实记录。单独 try/catch：持久化失败不应阻断给学生的点评反馈。
+    try {
+      await validationResultDb.create({
+        studentId: auth.student.id,
+        sessionId: body.sessionId,
+        taskType: body.taskType,
+        totalScore: review.total_score,
+        level: review.level,
+        isCorrect: review.is_correct,
+        dimensions: review.dimensions,
+        issues: review.issues,
+        suggestions: review.suggestions,
+      });
+    } catch (dbError) {
+      console.error("[validate] 持久化校验结果失败：", dbError);
+    }
+
     return Response.json({
       totalScore: review.total_score,
       level: review.level,
