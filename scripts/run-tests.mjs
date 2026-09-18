@@ -53,6 +53,7 @@ const SUITES = [
     file: "scripts/teaching-grade-spec.ts",
     model: false,
   },
+  { name: "Trace 接线 DB", file: "scripts/trace-spec.ts", model: false },
   {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
