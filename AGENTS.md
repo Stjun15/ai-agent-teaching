@@ -18,10 +18,10 @@
 | 项         | 事实                                                                          |
 | ---------- | ----------------------------------------------------------------------------- |
 | 当前分支   | `dev`（`main` 已合并到 `ba30e06`，**不是工作分支**）；已打标签 `v0.1.0`       |
-| 提交总数   | 242（`git rev-list --count HEAD`）                                            |
+| 提交总数   | 263（`git rev-list --count HEAD`）                                            |
 | Phase 0–6  | 已完成（9/9 可视化场景，场景断言 17 例）                                      |
 | Phase 7    | **9/12 完成**（安全 3 + 文档 3 + 提示词预算 + 跨浏览器测试 + 标签；见第八节） |
-| 质量门禁   | `npm run check` 全绿；`npm test` 16 组（14 纯函数 + 2 真模型）全绿            |
+| 质量门禁   | `npm run check` 全绿；`npm test` 18 组（16 纯函数 + 2 真模型）全绿            |
 | 仓库完整性 | `git fsck` missing 0；`git write-tree` == `HEAD^{tree}`                       |
 | 教学循环   | **已在真实数据库上跑通**（`agent_traces` 等已有真实流量行，见第八节）         |
 
@@ -67,6 +67,7 @@ pnpm test                                         # 16 组（14 纯函数 + 2 �
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build        # 生产构建（开关只作用于本条命令）
 pnpm start                                        # 另开受管后台任务，不要用 (cmd &)
 node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A8
+node scripts/report-details-spec.mjs              # 报告页明细 R0–R7（断言文本取自数据库真行）
 ```
 
 **只有第 4 级能证明客户端真的能跑。** 曾发生 SSR 返回 200、HTML 齐全、`pnpm check` 全绿，但浏览器整页白屏的事故（zustand v5 派生 selector 引用不稳定 → React #185）。HTTP 层验证全是假绿灯。
@@ -109,9 +110,11 @@ node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A
    断言的文本是从 SQLite 当次读出的真实行，不是写死的常量。
    仍开放的小口子：教学状态机接入后 attemptNumber 要从会话状态读；订正与复习调度
    （is_corrected / next_review_at）没有实现路径。
-3. **两张表没有真实用途**：`agent_events` 建了表但无任何读写代码；`citations` 是**预留表**
-   （引用的唯一存储是 `messages.citations` 这一列，2026-09-18 已裁定并记载于
-   `references/data-models.md` 与 `db/messages.ts` 文件头）。
+3. **两张表是预留表（2026-09-18 已裁定并记载）**：`citations` —— 引用的唯一存储是
+   `messages.citations` 这一列；`agent_events` —— 逐步事件由 SSE 实时推给前端不落库，
+   调用级汇总落在 `agent_traces`。两表的启用条件都写在
+   `references/data-models.md` 的建表 SQL 注释里（`agent_events` 的启用条件是
+   出现「回放历史会话」这类消费方）。别把「表在却没写入」读成疏漏。
 4. **~~知识库仍有 3 个目录为空~~（2026-09-18 已补齐）** —— `patterns/` 9 页（每模块一个设计模式，
    与 9 个反模式交叉引用）、`assessments/` 9 份（每模块一份测验，含判分要点）、
    `agents/` 4 页（共同约定 + 讲解/点评/出题三个 Agent 的实测失败模式）。

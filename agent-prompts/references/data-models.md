@@ -383,7 +383,14 @@ CREATE TABLE citations (
   snippet TEXT,
   relevance FLOAT DEFAULT 0
 );
--- Agent 事件
+-- Agent 事件（**预留表**，2026-09-18 裁定）
+-- 当前**没有任何写入方与消费方**：逐步事件（思考、工具调用、输出片段）由 SSE
+-- 实时推给前端，不落库；一次调用的汇总（token、耗时、模型、是否兜底）落在
+-- `agent_traces`。两者粒度不同，不是同一份数据的两份拷贝，所以在出现明确
+-- 消费方之前**不预先双写** —— 与 `citations` 那条裁定同一理由：同一份数据
+-- 写两处而不定义同步规则，比只写一处更危险。
+-- 启用条件：出现「回放某次历史会话的逐步过程」这类消费方（例如历史会话
+-- 时间线回放页）时，在 SSE 推流的同时补一行写入，并在本注释里改掉「预留」字样。
 CREATE TABLE agent_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID REFERENCES sessions(id),
