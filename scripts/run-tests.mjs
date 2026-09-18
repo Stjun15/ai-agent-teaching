@@ -40,6 +40,7 @@ const SUITES = [
   { name: "分数量纲", file: "scripts/scores-spec.ts", model: false },
   { name: "主题偏好", file: "scripts/theme-spec.ts", model: false },
   { name: "沙箱清单", file: "scripts/playground-spec.ts", model: false },
+  { name: "可视化场景", file: "scripts/scene-spec.ts", model: false },
   {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
