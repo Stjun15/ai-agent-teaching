@@ -277,6 +277,42 @@ export const SCENE_CATALOG = {
       focused: "",
     },
   },
+  "scene-rag-vs-wiki": {
+    steps: [
+      {
+        id: "rag-side",
+        title: "左边：传统 RAG",
+        description: "解释器模式 —— 每次查询都从零检索一遍全部资料，查完即弃。",
+        durationMs: 1800,
+      },
+      {
+        id: "wiki-side",
+        title: "右边：LLM Wiki",
+        description:
+          "编译器模式 —— 资料先编译进 Wiki，树随资料增多长出节点，之后直接读。",
+        durationMs: 2000,
+      },
+      {
+        id: "contrast",
+        title: "两栏对比",
+        description:
+          "模式、每次查询、积累、成本四行逐条对照：差别不在快慢，在「有没有积累」。",
+        durationMs: 2200,
+      },
+      {
+        id: "compound",
+        title: "复利效应",
+        description:
+          "左边每次查询要读的量随资料线性增长，右边恒定 —— 第 100 份资料的价值建立在前面 99 份的结构上。",
+        durationMs: 2400,
+      },
+    ],
+    defaultParams: {
+      documents: 20,
+      view: "both",
+      node: "llm-wiki",
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
