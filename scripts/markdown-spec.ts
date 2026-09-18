@@ -17,8 +17,11 @@
  */
 
 import assert from "node:assert/strict";
+import test from "node:test";
 
 import {
+  isSafeHref,
+  parseMarkdown,
   type InlineToken,
   type MarkdownBlock,
 } from "@/lib/markdown";
@@ -140,4 +143,127 @@ function collectLinks(blocks: MarkdownBlock[]): { href: string }[] {
 
   return links;
 }
+
+// ---------------------------------------------------------------------------
+// 一、注入面
+// ---------------------------------------------------------------------------
+
+test("原始 HTML 一律当纯文本，不产生任何 HTML token", () => {
+  const source = "<script>alert(1)</script>";
+  const blocks = assertWhitelisted(source);
+  assert.equal(flattenText(blocks), source, "内容应原样保留为文本");
+  assert.equal(
+    collectTypes(blocks).has("html"),
+    false,
+    "不应存在 html token —— 存在即意味着有原始串能直通 DOM",
+  );
+});
+
+test("img onerror 这类事件属性不会被解释", () => {
+  const source = '<img src=x onerror="alert(1)">';
+  const blocks = assertWhitelisted(source);
+  assert.equal(flattenText(blocks), source);
+});
+
+test("javascript: 链接被降级为纯文本，正文不丢", () => {
+  const blocks = parseMarkdown("[点我看提示](javascript:alert(1))");
+  assert.equal(collectLinks(blocks).length, 0, "不应产生链接 token");
+  assert.ok(
+    flattenText(blocks).includes("点我看提示"),
+    "标签文字必须保留，不能整段消失",
+  );
+});
+
+test("大小写与空白混淆的 javascript: 同样被拒", () => {
+  for (const source of [
+    "[x](JaVaScRiPt:alert(1))",
+    "[x](java\tscript:alert(1))",
+    "[x](java\nscript:alert(1))",
+    "[x]( javascript:alert(1) )",
+  ]) {
+    const blocks = parseMarkdown(source);
+    assert.equal(
+      collectLinks(blocks).length,
+      0,
+      `未拒绝不安全链接: ${JSON.stringify(source)}`,
+    );
+  }
+});
+
+test("data: 链接被拒（能承载完整 HTML 文档）", () => {
+  const blocks = parseMarkdown(
+    "[x](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)",
+  );
+  assert.equal(collectLinks(blocks).length, 0);
+});
+
+test("http / https / mailto / 站内相对路径被保留", () => {
+  const cases: [string, string][] = [
+    ["[文档](https://example.com/a?b=1)", "https://example.com/a?b=1"],
+    ["[站内](/wiki/query)", "/wiki/query"],
+    ["[锚点](#steps)", "#steps"],
+    ["[邮箱](mailto:a@b.com)", "mailto:a@b.com"],
+  ];
+  for (const [source, href] of cases) {
+    const links = collectLinks(parseMarkdown(source));
+    assert.equal(links.length, 1, `应解析出一条链接: ${source}`);
+    assert.equal(links[0].href, href);
+  }
+});
+
+test("isSafeHref：协议白名单与相对路径判定", () => {
+  const safe = [
+    "https://a.com",
+    "http://a.com",
+    "HTTPS://A.COM",
+    "#x",
+    "/x",
+    "./x",
+    "../x",
+    "wiki/x",
+  ];
+  const unsafe = [
+    "",
+    "   ",
+    "javascript:alert(1)",
+    "vbscript:x",
+    "blob:https://a.com/x",
+    "file:///etc/passwd",
+    "data:text/html,x",
+    "//evil.com",
+  ];
+  for (const value of safe) {
+    assert.equal(
+      isSafeHref(value),
+      true,
+      `应判定为安全: ${JSON.stringify(value)}`,
+    );
+  }
+  for (const value of unsafe) {
+    assert.equal(
+      isSafeHref(value),
+      false,
+      `应判定为不安全: ${JSON.stringify(value)}`,
+    );
+  }
+});
+
+test("混合恶意输入下 token 类型仍在白名单内", () => {
+  // 一段「什么坏东西都往里塞」的输入，模拟模型被提示注入后的输出。
+  assertWhitelisted(
+    [
+      "# 教程 <script>alert(1)</script>",
+      "",
+      "- 看 [这个](javascript:alert(document.cookie))",
+      "- ![追踪](https://evil.com/pixel.png)",
+      "- <iframe src=//evil.com></iframe>",
+      "",
+      "```html",
+      "<img src=x onerror=alert(1)>",
+      "```",
+      "",
+      '> 引用 <b>粗体</b> <a href="javascript:1">链接</a>',
+    ].join("\n"),
+  );
+});
 
