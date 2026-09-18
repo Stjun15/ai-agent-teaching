@@ -25,6 +25,7 @@ import {
   promptHistoryDb,
   questionResultDb,
 } from "@/lib/db";
+import { summarizeDimensions } from "@/lib/report-dimensions";
 import type { ReportResponse } from "@/schemas";
 
 export const runtime = "nodejs";
@@ -108,6 +109,10 @@ export async function GET(request: Request): Promise<Response> {
         issue: `错题 ${count} 次`,
       }));
 
+    // 真实评分维度：从历次点评的 dimensions 汇总（见 `report-dimensions.ts`
+    // 文件头，这里不做「维度名 → 六项子能力」的映射，映射就是编数据）。
+    const promptDimensions = summarizeDimensions(prompts);
+
     const recommendations = weaknesses.length
       ? weaknesses.map(
           (weak) =>
@@ -125,6 +130,7 @@ export async function GET(request: Request): Promise<Response> {
         averagePromptScore,
       },
       subAbilities,
+      promptDimensions,
       masteryTrend,
       weaknesses,
       recommendations,
