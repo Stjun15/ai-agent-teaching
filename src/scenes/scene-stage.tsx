@@ -37,6 +37,7 @@ import { SceneRoleFilter } from "./scene-role-filter";
 import { SceneRagVsWiki } from "./scene-rag-vs-wiki";
 import { SceneRetrieveGenerate } from "./scene-retrieve-generate";
 import { SceneOrchestration } from "./scene-orchestration";
+import { SceneMcpFlow } from "./scene-mcp-flow";
 import { SceneToolChain } from "./scene-tool-chain";
 import type { SceneId } from "@/lib/agent/scene-ids";
 import type { SceneProps } from "./scene-types";
@@ -50,6 +51,7 @@ export const SCENE_COMPONENTS = {
   "scene-retrieve-generate": SceneRetrieveGenerate,
   "scene-rag-vs-wiki": SceneRagVsWiki,
   "scene-orchestration": SceneOrchestration,
+  "scene-mcp-flow": SceneMcpFlow,
 } satisfies Record<keyof typeof SCENE_CATALOG, ComponentType<SceneProps>>;
 
 /**

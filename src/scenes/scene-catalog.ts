@@ -363,6 +363,50 @@ export const SCENE_CATALOG = {
       passed: true,
     },
   },
+  "scene-mcp-flow": {
+    steps: [
+      {
+        id: "intent",
+        title: "Agent 说出它需要什么",
+        description:
+          "「我需要搜索最新资料」—— 它只说想要什么，不指定用哪个工具。选工具是下一步的事。",
+        durationMs: 1700,
+      },
+      {
+        id: "tools",
+        title: "MCP Client 出现，工具列表展开",
+        description:
+          "listTools() 拿到这台 server 暴露的全部工具 —— Agent 不必预先知道有什么可用，这就是「工具发现」。",
+        durationMs: 2100,
+      },
+      {
+        id: "call",
+        title: "选中一个工具，请求飞向 MCP Server",
+        description:
+          "选中的依据是工具描述，不是名字。把描述清空试试 —— 模型只能猜，这条链在这里就断了。",
+        durationMs: 2000,
+      },
+      {
+        id: "execute",
+        title: "Server 转成一次真实的外部调用",
+        description:
+          "Server 不是那个数据库，它只是通往数据库的那道门：换台 Server，门后的东西就换了。",
+        durationMs: 1900,
+      },
+      {
+        id: "return",
+        title: "结果流回 Agent",
+        description:
+          "Agent 拿到的是内容，看不到中间经过了谁 —— 这也是为什么工具描述与错误处理都得由配置的人负责。",
+        durationMs: 1900,
+      },
+    ],
+    defaultParams: {
+      server: "search",
+      tool: "webSearch",
+      blank: false,
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
