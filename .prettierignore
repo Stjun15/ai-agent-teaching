@@ -1,0 +1,19 @@
+# Prettier 忽略清单
+
+node_modules
+.next
+out
+build
+dist
+coverage
+
+# 锁文件由包管理器维护
+pnpm-lock.yaml
+
+# 设计文档自成体系，不做格式化，避免产生无意义的整篇 diff
+agent-prompts
+
+# 临时与备份目录
+_backup
+_day0_test
+.workbuddy

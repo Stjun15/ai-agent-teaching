@@ -1,0 +1,35 @@
+# pnpm 工作区与配置
+#
+# 为什么用 hoisted 而不是 pnpm 默认的 isolated 链接器？
+#   pnpm 默认链接器需要在 node_modules 顶层创建符号链接（symlink）。
+#   Windows 上创建符号链接要求「管理员权限」或「已开启开发者模式」；
+#   普通用户身份下创建会失败，且 pnpm 不报错，只在 node_modules 顶层
+#   留下空目录，表现为 node_modules/next 为空、require 报 MODULE_NOT_FOUND。
+#   hoisted 链接器把依赖以实体文件（硬链接）平铺到 node_modules，
+#   不依赖符号链接，等价于 npm 的扁平结构。
+#
+# 注意：pnpm 10 起，pnpm 专有配置以 pnpm-workspace.yaml 为准，
+#       写在 .npmrc 里的 node-linker 不会被识别。
+#
+# 排障提示：若 node_modules 已损坏，不要直接 rm -rf（会触发批量删除保护），
+#   先把整个目录改名移走再重装：
+#     mv node_modules node_modules.broken && pnpm install
+nodeLinker: hoisted
+
+# pnpm 12 默认拦截依赖的构建脚本（供应链安全）。
+# unrs-resolver 是 eslint-plugin-import-x 使用的原生模块解析器，其
+# postinstall 仅做自检；预编译二进制已通过可选依赖
+# @unrs/resolver-binding-<platform> 随包安装，跳过脚本不影响功能。
+# 设为 false 表示「已知并接受跳过」，避免 pnpm install 以
+# ERR_PNPM_IGNORED_BUILDS 报错。
+allowBuilds:
+  # 只有 prepare（开发期脚本），作为依赖安装时不需要运行；
+  # 本项目走火山方舟的 OpenAI 兼容端点，不使用 Gemini provider。
+  "@google/genai": false
+  # postinstall 把平台二进制从可选依赖链接进包目录 —— 必须运行，
+  # 否则 esbuild 会报「为其他平台安装」并在构建期失败。
+  esbuild: true
+  # postinstall 生成本地构建产物；@aws-sdk 的 EventStream 编解码会用到。
+  protobufjs: true
+  # postinstall 仅做自检；预编译二进制已由可选依赖提供，跳过不影响功能。
+  unrs-resolver: false
