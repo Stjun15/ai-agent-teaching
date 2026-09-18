@@ -228,6 +228,55 @@ export const SCENE_CATALOG = {
       selectedTool: "getWeather",
     },
   },
+  "scene-retrieve-generate": {
+    steps: [
+      {
+        id: "ask",
+        title: "用户提问",
+        description:
+          "「作业提交截止日期是什么？」—— 这个问题课程资料里有答案。",
+        durationMs: 1500,
+      },
+      {
+        id: "vectorize",
+        title: "问题变成向量",
+        description:
+          "检索比对的是数字而不是字面，所以同一句话换个说法也找得到。",
+        durationMs: 1700,
+      },
+      {
+        id: "to-index",
+        title: "向量飞向知识库",
+        description: "拿这段向量去知识库里比相似度，取最接近的几条。",
+        durationMs: 1400,
+      },
+      {
+        id: "chunks",
+        title: "片段依次亮起",
+        description:
+          "取几条由 topK 决定：太少会缺要点，太多会把低相关的噪声一起拖进来。",
+        durationMs: 2000,
+      },
+      {
+        id: "assemble",
+        title: "拼成新的 Prompt",
+        description:
+          "发给模型的不是原问题，而是「资料 + 问题」拼成的一个新请求。",
+        durationMs: 1900,
+      },
+      {
+        id: "answer",
+        title: "生成回答并标注引用",
+        description:
+          "回答里的每一句都要能点回原文 —— 这正是 RAG 与「直接问模型」的差别。",
+        durationMs: 2400,
+      },
+    ],
+    defaultParams: {
+      topK: 3,
+      focused: "",
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
