@@ -15,15 +15,15 @@
 
 ## 二、现在到哪一步（2026-09-18 实测）
 
-| 项         | 事实                                                      |
-| ---------- | --------------------------------------------------------- |
-| 当前分支   | `dev`（`main` 已合并到 `ba30e06`，**不是工作分支**）      |
-| 提交总数   | 202（`git rev-list --count HEAD`）                        |
-| Phase 0–6  | 已完成（9/9 可视化场景，场景断言 17 例）                  |
-| Phase 7    | **未启动 0/12**                                           |
-| 质量门禁   | `pnpm check` 全绿；`pnpm test` 8 组全绿（含真实模型调用） |
-| 仓库完整性 | `git fsck` missing 0；`git write-tree` == `HEAD^{tree}`   |
-| 教学循环   | **从未在真实数据库上跑通**（见第六节）                    |
+| 项         | 事实                                                                    |
+| ---------- | ----------------------------------------------------------------------- |
+| 当前分支   | `dev`（`main` 已合并到 `ba30e06`，**不是工作分支**）                    |
+| 提交总数   | 232（`git rev-list --count HEAD`）                                      |
+| Phase 0–6  | 已完成（9/9 可视化场景，场景断言 17 例）                                |
+| Phase 7    | **进行中 7/12**（安全加固 3 项 + 技术文档 3 项 + 提示词预算；见第八节） |
+| 质量门禁   | `npm run check` 全绿；`npm test` 16 组（14 纯函数 + 2 真模型）全绿      |
+| 仓库完整性 | `git fsck` missing 0；`git write-tree` == `HEAD^{tree}`                 |
+| 教学循环   | **已在真实数据库上跑通**（`agent_traces` 等已有真实流量行，见第八节）   |
 
 ## 三、四条铁律（改代码前先读）
 
@@ -63,7 +63,7 @@ pi SDK 的 **provider id 必须是 `ark`**（SDK 由 provider id 推导环境变
 
 ```bash
 pnpm check                                        # eslint + prettier --check + tsc
-pnpm test                                         # 8 组，含真实模型回归
+pnpm test                                         # 16 组（14 纯函数 + 2 真模型回归）
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build        # 生产构建（开关只作用于本条命令）
 pnpm start                                        # 另开受管后台任务，不要用 (cmd &)
 node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A8
@@ -77,8 +77,9 @@ node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A
 | --------------------------- | ---------------------------------------------------------------------------------------------- |
 | `agent-prompts/`            | 设计文档与执行计划。**开工前必读 `00-MASTER.md` 与 `06-execution-plan.md`**                    |
 | `agent-prompts/references/` | 契约层：`api-spec.md` / `data-models.md` / `module-specs.md` / `rubrics.md` / `wiki-schema.md` |
+| `docs/`                     | 技术文档三件：`architecture.md` / `ai-technical.md` / `deployment.md`                          |
 | `llm-wiki/`                 | 知识库（页面类型由 `SCHEMA.md` 现读决定，不写死在代码里）                                      |
-| `src/lib/agent/`            | 4 个 Agent（teacher/reviewer/examiner/assistant）+ 3 个编排循环 + Trace                        |
+| `src/lib/agent/`            | 4 个 Agent（teacher/reviewer/examiner/assistant）+ 4 个编排循环 + Trace                        |
 | `src/lib/db/`               | 数据层（SQLite ↔ PG 双形态；驱动名只允许出现在 `sqlite.ts`）                                   |
 | `src/wiki/`                 | 知识库读写（路径拼接只出现在 `paths.ts`）                                                      |
 | `src/scenes/`               | 9 个可视化场景（`.ts` 放数据供测试 import，`.tsx` 放视觉）                                     |
@@ -87,14 +88,30 @@ node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A
 
 ## 八、已知缺口（开工前先看，别以为全绿就没问题）
 
-1. **Phase 7 未启动 0/12** —— 无真实安全加固（限流与输入/输出过滤只有演示场景）、无 e2e 测试、无技术文档、**无任何部署配置**（`next.config.mjs` 仅有 `reactStrictMode`）、无 `v0.1.0` 标签。
-2. **`/api/project/template/[id]` 仍返回 404 占位** —— `project_templates` 表从未建立，前端目前未调用它。
-3. **知识库 19 页未建且无提交点归属** —— `patterns/` 0/5、`projects/` 0/9、`assessments/` 0/1、`agents/` 0/4。8 个 Phase、121 个提交点里没有任何一个承接它们。
-4. **教学循环从未在真实数据库上跑通** —— dev.db 里 `learning_paths` / `questions` / `question_results` / `validation_results` / `agent_traces` / `citations` / `errors` / `projects` 全 0 行。Phase 6 验收标准「9 个模块能完整跑通教学流程」目前无事实支撑。
+1. **Phase 7 是 7/12** —— 已完成：输入过滤、输出打码、限流、提示词预算、技术文档三件（`docs/`）。
+   未完成：`test(e2e): add cross-browser tests`、`chore: deploy to edgeone pages`（只交付了指南与
+   `edgeone.json`，未真实部署）、`chore: tag v0.1.0`。
+   另两项 `perf(ui)`（懒加载 / 代码分割）**已实测后放弃**：`next/dynamic` 在
+   Next 16 + Turbopack 下 `ssr: true` 仍进首屏 `<script>`，实测 chunk 数 17→26、总量 +62KB，
+   净负收益，已整体回退。别再重做一遍，除非换了 Next 版本。
+2. **`errors` 与 `prompt_history` 没有写入方法** —— 两张表有查询端点（`/report`、
+   `/api/student/errors`、`/api/student/prompts`）与仓库层，但**没有任何代码往里写**
+   （`db/errors.ts`、`db/prompt-history.ts` 只有 list 类方法）。后果是报告页的错题本与
+   提示词历史恒为空。这是当前最实的一处功能缺口。
+3. **两张表没有真实用途**：`agent_events` 建了表但无任何读写代码；`citations` 是**预留表**
+   （引用的唯一存储是 `messages.citations` 这一列，2026-09-18 已裁定并记载于
+   `references/data-models.md` 与 `db/messages.ts` 文件头）。
+4. **知识库仍有 3 个目录为空** —— `patterns/`、`assessments/`、`agents/`（`projects/` 9 页已补齐，
+   `anti-patterns/` 9 页）。8 个 Phase、121 个提交点里没有任何一个承接它们。
 5. **`agent-prompts/` 有 8 份文档的 Markdown 表格被空行拆散**（`01` / `02` / `03` / `05` / `references/anti-patterns` / `references/api-spec` / `references/git-conventions` / `references/rubrics`）。属**原始素材形态**（首次入库即如此，非回归），阅读时把每个 `|` 行当成独立一行。
-6. **`SCHEMA.md` 缺 `project` 页面类型**，而 `index.md` 专设「项目模板（projects/）」分节列 9 页 —— 文档间不一致，未裁定。
-7. **README 状态过期** —— 写着「Phase 0（项目初始化）进行中」，实为 Phase 6 已完成；`<待填写>` 占位 3 处。
-8. **PG 未落地** —— `src/lib/cloudbase.ts` 不存在，`knowledge_embeddings` 表任何环境都没建过，但计划声明「RAG 上线前必须切 CloudBase PG + pgvector」。
+6. **PG 未落地** —— `src/lib/cloudbase.ts` 不存在，`knowledge_embeddings` 表任何环境都没建过（迁移里也没有它）。
+   检索目前是**本地加权关键词**，不是向量检索；换 CloudBase PG + pgvector 是代码工作，
+   不是配置工作。`docs/deployment.md` 已把它列为上线前置。
+7. **部署形态未定** —— Serverless（EdgeOne Makers）上数据库这条腿是断的，运行期读
+   `llm-wiki/` 的路径也读不到内容（构建期预渲染的页面不受影响）。两条路径的取舍见 `docs/deployment.md`。
+8. **`api-auth.ts` 不是真鉴权** —— 它自述「挡住假冒属于 Phase 7 打磨与提交（含安全加固）」，
+   但 Phase 7 的 12 个提交点里**没有「认证」这一项**：文档与计划不一致，未裁定。
+   当前限流按学生 id 计数，而 id 来自请求头、可伪造。
 
 ## 九、不要做的事
 
