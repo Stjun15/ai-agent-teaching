@@ -1,11 +1,12 @@
 /**
  * 安全过滤测试（不调模型）
  *
- * 守三件事
+ * 守四件事
  * -------
- * 1. **规则真的拦得住** —— 三条危险词（规格原文）+ 补充的注入模式；
- * 2. **规则不误伤正常输入** —— 只拦得住的过滤器才有用，见下方「误伤」用例；
- * 3. **场景与真实端点同源** —— 刻意演示的那套必须是系统在跑的那套。
+ * 1. **输入规则真的拦得住** —— 三条危险词（规格原文）+ 补充的注入模式；
+ * 2. **输入规则不误伤正常输入** —— 只拦得住的过滤器才有用，见下方「误伤」用例；
+ * 3. **输出规则真的打码** —— 文本与嵌套结构里的凭据都要被替换掉；
+ * 4. **场景与真实端点同源** —— 刻意演示的那套必须是系统在跑的那套。
  *    这条最容易在重构里悄悄失效：把规则抄一份进场景，界面上照样「演得像」，
  *    但真实端点已经不受它约束了。所以用**引用相等**钉住，而不是比对内容。
  *
@@ -23,6 +24,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { DANGEROUS, screenInput } from "@/lib/security/input-filter";
+import { redactSecrets, screenOutput } from "@/lib/security/output-filter";
 import {
   ATTACK,
   DANGEROUS as SCENE_DANGEROUS,
@@ -109,4 +111,51 @@ test("场景视图的开关只影响「拦不拦」，不影响「命中了什�
     on.hits,
     "关掉开关时命中项仍要算出来，否则界面无法解释「放行了什么」",
   );
+});
+
+test("输出过滤打码凭据，关掉时原样放行", () => {
+  const leaked =
+    "系统密码在生产环境变量里，下面是可直接使用的密钥：sk-live9f2a7c41b8。";
+
+  const on = screenOutput(leaked, true);
+  assert.equal(on.redacted, 1, "应打码一处");
+  assert.ok(!on.text.includes("sk-live9f2a7c41b8"), "原密钥不该留在文本里");
+  assert.ok(on.text.includes("[REDACTED]"));
+
+  const off = screenOutput(leaked, false);
+  assert.equal(off.redacted, 0);
+  assert.equal(
+    off.text,
+    leaked,
+    "关掉时原样放行（界面要能展示「没打码会怎样」）",
+  );
+
+  const bearer = screenOutput("Authorization: Bearer abcdef123456", true);
+  assert.equal(bearer.redacted, 1, "Bearer 令牌也算凭据");
+});
+
+test("无凭据的文本经输出过滤后不变", () => {
+  const normal = "今天多云，18 到 24 度，出门带件外套就行。";
+  assert.equal(screenOutput(normal, true).text, normal);
+  assert.equal(redactSecrets(normal), normal);
+});
+
+test("深度打码覆盖嵌套结构里的每一处字符串", () => {
+  const payload = {
+    content: "密钥 sk-aaa111",
+    feedback: "见 http://x 的 Bearer bbbbbbbb2222",
+    score: 82,
+    passed: true,
+    nested: { note: "还有一个 sk-ccc333", list: ["sk-ddd444", 7, null] },
+  };
+
+  const cleaned = redactSecrets(payload);
+
+  assert.ok(!JSON.stringify(cleaned).includes("sk-"), "不该有任何 sk- 残留");
+  assert.equal(cleaned.score, 82, "数字原样保留");
+  assert.equal(cleaned.passed, true, "布尔原样保留");
+  assert.equal(cleaned.nested.list[1], 7, "数组里的非字符串原样保留");
+  assert.equal(cleaned.nested.list[2], null, "null 原样保留");
+  assert.ok(cleaned.content.includes("[REDACTED]"));
+  assert.ok(cleaned.nested.note.includes("[REDACTED]"));
 });
