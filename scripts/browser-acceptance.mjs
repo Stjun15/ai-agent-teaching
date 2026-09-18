@@ -23,6 +23,15 @@
  *   A6 掌握度卡显示「尚未测评」（诚实空态，不显示伪造的 0%）
  *   A7 全程无页面级未捕获异常
  *   A8 工具调用结果正确（断言模型算出的乘积 —— 证明工具链真的通了）
+ *   AX1 Markdown 结构渲染：标题 / 列表 / 行内代码 / 粗体都生成了对应元素
+ *   AX2 可见文本里没有未解析的 `**`（这就是要修的「满屏星号」现象本身）
+ *   AX3 模型输出里的原始 HTML 没被当标签解释（消息内不存在 script/img/iframe）
+ *
+ * 为什么要加 AX 这三条
+ * ------------------
+ * Markdown 渲染是**前端行为**，脚本与单测都够不到：解析器的单测能证明
+ * 「解析成什么 token」，证明不了「浏览器里长成什么样」。而这次要修的恰恰是
+ * 呈现结果，所以必须在真实浏览器里断言真实 DOM。
  *
  * 为什么必须有这一层
  * ----------------
@@ -51,13 +60,19 @@ import { join } from "node:path";
 
 const EDGE =
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const APP_URL = "http://localhost:3311/learn/llm-api";
+// 默认打在 3311；用 APP_URL 可指向别的实例（例如 dev server 占着 3311 时，
+// 把生产构建起在 3312 上跑验收，不必先去关别人的服务）。
+const APP_URL =
+  process.env.APP_URL ?? "http://localhost:3311/learn/llm-api";
 const CDP_PORT = 9333;
 // 要求长输出：短答案几百毫秒就吐完，400ms 的采样抓不到中间态，
 // 会把「流式渲染」误判成「一次性出现」。同时保留工具调用（断言乘积）。
+// 末尾显式要求 Markdown 结构：AX 系列断言的是渲染结果，不能靠「期望模型碰巧
+// 用了粗体」，得明确要求标题 / 列表 / 行内代码 / 粗体各出现一次。
 const QUESTION =
   "请先用工具计算 1234 * 5678 的结果，然后分五行说明：结果是多少、两个乘数各是多少、" +
-  "你是怎么算出来的、这个数量级大致相当于什么、如果换成 1234 * 5679 会相差多少。";
+  "你是怎么算出来的、这个数量级大致相当于什么、如果换成 1234 * 5679 会相差多少。" +
+  "请用 Markdown 排版：一个二级标题、一个至少三点的无序列表、一处行内代码、一处加粗。";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- Edge 启动（ATTACH=1 时不启动，附加已有实例） ----------
@@ -146,6 +161,15 @@ function connect(wsUrl) {
       throw new Error(
         r.exceptionDetails.exception?.description ?? "evaluate failed",
       );
+    }
+    // ⚠️ 这里踩过一个坑：`awaitPromise` 下**代码体内抛出的异常**不会出现在
+    // `exceptionDetails`，CDP 把它当成一个 rejected promise 的结果返回 ——
+    // 也就是 `result` 是一个 error 对象，而 `returnByValue` 对它取不到 value，
+    // 于是返回 `undefined`。只检查 exceptionDetails 的话，代码体里的异常会被
+    // 静默变成「没返回东西」，表现为「采样 90 秒全空、所有断言 undefined」。
+    // 所以必须显式把 error 结果识别成异常抛出去。
+    if (r.result?.subtype === "error") {
+      throw new Error(`evaluate 代码体抛出: ${r.result.description ?? "unknown"}`);
     }
     return r.result.value;
   }
@@ -236,7 +260,7 @@ try {
       const t = await findTarget(
         (x) =>
           x.type !== "page" &&
-          x.url.startsWith("http://localhost:3311") &&
+          x.url.startsWith(new URL(APP_URL).origin) &&
           x.webSocketDebuggerUrl,
       );
       if (t) {
@@ -311,6 +335,8 @@ try {
   const startedAt = Date.now();
   let done = false;
   let finalState = null;
+  /** 第一次采样失败的原因，只报一次（避免 450 次刷屏）。 */
+  let sampleFailure = null;
   for (let i = 0; i < 450; i++) {
     const raw = await app
       .evaluate(
@@ -333,13 +359,60 @@ try {
           // 模型可能写成 7,006,652：先去掉千分位与空白再匹配
           answered: (assistant[assistant.length - 1]?.innerText ?? '').replace(/[,\\s]/g, '').includes('7006652'),
           answer: (assistant[assistant.length - 1]?.innerText ?? '').slice(0, 200),
+          // AX1：Markdown 结构是否真的变成了元素（不是留在文本里的符号）
+          markdown: (() => {
+            const el = assistant[assistant.length - 1];
+            if (!el) return null;
+            return {
+              headings: el.querySelectorAll('h1,h2,h3,h4,h5,h6').length,
+              listItems: el.querySelectorAll('li').length,
+              codes: el.querySelectorAll('code').length,
+              strongs: el.querySelectorAll('strong').length,
+              // AX2：数正文里未解析的星号。遍历文本节点、跳过代码块与脚本 ——
+              // 代码里的星号是正当内容。
+              // 不用 innerText：脱离文档的克隆节点上它的语义不可靠，实测会返回
+              // 与字符串长度自相矛盾的匹配数（94 个字符里数出 95 处），
+              // 而 innerText 又会把 script 的文字算进去。
+              // ⚠️ 这段注释里不能出现反引号：整块处在一个模板字符串里，
+              // 一个反引号就会提前闭合它（见文件末尾的踩坑记录）。
+              rawStars: (() => {
+                let text = '';
+                const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+                let node = walker.nextNode();
+                while (node !== null) {
+                  const parent = node.parentElement;
+                  if (!(parent && parent.closest('code,pre,script,style'))) {
+                    text += node.nodeValue;
+                  }
+                  node = walker.nextNode();
+                }
+                const hits = text.match(/\\*\\*/g);
+                return hits ? hits.length : 0;
+              })(),
+              // AX3：模型输出里的原始 HTML 若被当标签解释，这里就会出现元素。
+              injectedTags: el.querySelectorAll('script,iframe,img,style,object,embed').length,
+            };
+          })(),
         };
       })());
     `,
       )
-      .catch(() => null);
+      // 采样期间页面可能正在导航（reload / 跳转），单次失败是正常的，
+      // 所以吞掉异常继续采样。但**必须报一次**：否则一旦表达式本身有错，
+      // 表现就是「采样 90 秒全空、所有断言 undefined」，完全看不出原因。
+      .catch((error) => {
+        if (!sampleFailure) {
+          sampleFailure = `evaluate 抛异常: ${error.message}`;
+          console.log("⚠️", sampleFailure);
+        }
+        return null;
+      });
     const state = raw ? JSON.parse(raw) : null;
     if (!state) {
+      if (!sampleFailure) {
+        sampleFailure = `evaluate 返回空值: ${JSON.stringify(raw)}`;
+        console.log("⚠️", sampleFailure);
+      }
       await sleep(200);
       continue;
     }
@@ -394,6 +467,22 @@ try {
   );
   console.log("   答案原文:", JSON.stringify(finalState?.answer));
 
+  const md = finalState?.markdown;
+  console.log(
+    "AX1 Markdown 结构渲染:",
+    `标题=${md?.headings} 列表项=${md?.listItems} 行内代码=${md?.codes} 粗体=${md?.strongs}`,
+  );
+  console.log(
+    "AX2 正文裸星号(应为 0):",
+    md?.rawStars,
+    md?.rawStars === 0 ? "PASS" : "FAIL",
+  );
+  console.log(
+    "AX3 被解释的原始 HTML 元素(应为 0):",
+    md?.injectedTags,
+    md?.injectedTags === 0 ? "PASS" : "FAIL",
+  );
+
   const ok =
     done &&
     samples.length >= 3 && // 内容长度至少增长两次 → 增量渲染
@@ -401,10 +490,38 @@ try {
     finalState?.timelineDetails > 0 &&
     finalState?.tokenText?.[0] > 0 &&
     finalState?.answered === true &&
-    app.pageErrors.length === 0;
+    app.pageErrors.length === 0 &&
+    // AX：Markdown 真的渲染成了元素，且没有残留的未解析星号与原始 HTML
+    md?.headings > 0 &&
+    md?.listItems >= 3 &&
+    md?.codes > 0 &&
+    md?.strongs > 0 &&
+    md?.rawStars === 0 &&
+    md?.injectedTags === 0;
   console.log(ok ? "\n=== 浏览器验收 PASS ===" : "\n=== 浏览器验收 FAIL ===");
 
   app.close();
 } finally {
   edge?.kill();
 }
+
+/* ---------------------------------------------------------------------------
+ * 踩坑记录（改这个脚本前请先看，两条都会让失败表现为「静默 + 全 undefined」）
+ * ---------------------------------------------------------------------------
+ *
+ * 1) 模板字符串里的反引号
+ *    采样表达式整块处在一个模板字符串里。若在它内部的注释里写反引号
+ *    （比如想举例 markdown 的粗体标记），那个反引号会**提前闭合模板字符串**。
+ *    更坏的是：剩下的文本常常仍是**合法 JS**，于是脚本不报错、node --check
+ *    也放行 —— 实测被解析成「字符串 ** 模板字符串 ** 模板字符串」（字符串
+ *    幂运算，求值为 NaN），浏览器收到的代码体就是 `NaN` 这个合法表达式，
+ *    没有 return，promise 解析成 undefined。
+ *    症状：采样 90 秒全空、所有断言 undefined、A1 打印 (undefined)。
+ *    对策：这段表达式里的注释不要出现反引号。
+ *
+ * 2) CDP 的 error 结果
+ *    代码体里抛出的异常，在 awaitPromise 下不一定出现在 exceptionDetails，
+ *    CDP 会把它当成 rejected promise 的结果返回 —— 即 result 是一个 error
+ *    对象，returnByValue 取不到 value，于是变成 undefined。
+ *    所以 evaluate() 里必须同时检查 exceptionDetails 与 result.subtype。
+ * ------------------------------------------------------------------------- */
