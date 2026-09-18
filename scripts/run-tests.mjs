@@ -72,6 +72,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "讲解步骤身份层",
+    file: "scripts/teaching-step-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
