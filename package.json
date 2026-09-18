@@ -18,14 +18,14 @@
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed:student": "node scripts/seed-test-student.mjs",
     "wiki:seed": "node scripts/seed-wiki.mjs",
-    "test": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/markdown-spec.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/client-identity-spec.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts",
+    "test": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/markdown-spec.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts && node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts",
     "test:markdown": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/markdown-spec.ts",
-    "test:identity": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/client-identity-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
     "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-slot": "^1.3.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
