@@ -67,7 +67,8 @@ pnpm test                                         # 16 组（14 纯函数 + 2 �
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build        # 生产构建（开关只作用于本条命令）
 pnpm start                                        # 另开受管后台任务，不要用 (cmd &)
 node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A8
-node scripts/report-details-spec.mjs              # 报告页明细 R0–R7（断言文本取自数据库真行）
+pnpm test:report-details                          # 报告页明细 R0–R7（断言文本取自数据库真行）
+pnpm test:mastery                                 # 掌握度卡 M0–M3（store hydrate 真的生效了）
 ```
 
 **只有第 4 级能证明客户端真的能跑。** 曾发生 SSR 返回 200、HTML 齐全、`pnpm check` 全绿，但浏览器整页白屏的事故（zustand v5 派生 selector 引用不稳定 → React #185）。HTTP 层验证全是假绿灯。
@@ -110,6 +111,11 @@ node scripts/report-details-spec.mjs              # 报告页明细 R0–R7（�
    断言的文本是从 SQLite 当次读出的真实行，不是写死的常量。
    仍开放的小口子：教学状态机接入后 attemptNumber 要从会话状态读；订正与复习调度
    （is_corrected / next_review_at）没有实现路径。
+   2b. **~~`StudentStore.hydrate` 没有调用方~~（2026-09-18 已接线）** —— 学习页掌握度卡
+   读的是 store 而不是接口，而 store 从来没被灌过数据，卡片恒显示「尚未测评」
+   （库里明明有记录）。现在 `StudentBootstrap`（挂在 `layout.tsx`，渲染 `null`，
+   与 `ThemeBootstrap` 同构）拉 `profile` / `mastery` / `learning-path` 三个端点
+   并 hydrate。验收 `scripts/mastery-hydrate-spec.ts`（4/4：显示真实 80% / 优秀）。
 3. **两张表是预留表（2026-09-18 已裁定并记载）**：`citations` —— 引用的唯一存储是
    `messages.citations` 这一列；`agent_events` —— 逐步事件由 SSE 实时推给前端不落库，
    调用级汇总落在 `agent_traces`。两表的启用条件都写在
