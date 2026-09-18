@@ -57,7 +57,12 @@ import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import type { ArkEnv } from "./ark";
 import { calculatorTool } from "./tools/calculator";
 import { createSession, type AgentSessionHandle } from "./session";
-import { createSSEStream, sseResponse, type SSEStream } from "../sse-server";
+import {
+  createSSEStream,
+  sseResponse,
+  type SSEEvent,
+  type SSEStream,
+} from "../sse-server";
 
 /**
  * 临时系统提示词。见文件头「系统提示词是临时版」。身份层的正式内容在 B 阶段补。
@@ -135,6 +140,49 @@ export function composeUserPrompt(options: {
   ].join("\n");
 }
 
+/**
+ * 多轮历史里的一轮。
+ *
+ * 只用 `student` / `assistant` 两种角色：`Message.role` 还有 teacher /
+ * reviewer / examiner 等，但那些是**编排层**里多个 Agent 各说各话时才出现的；
+ * 到了模型眼里它们都是「助手说过的话」，区分开只会让模型以为有四个说话人。
+ */
+export interface AgentHistoryTurn {
+  role: "student" | "assistant";
+  content: string;
+}
+
+/**
+ * 把历史轮次渲染成模型能读到的文本块。历史为空时返回空串，调用方直接拼接即可。
+ *
+ * 为什么是「塞进 prompt」而不是用 SDK 的多轮消息
+ * ---------------------------------------
+ * `session.ts` 用的是 `SessionManager.inMemory()`，一轮一建，本来就不保留上下文。
+ * 要真多轮得改会话持久化（并顺带处理压缩 / token 上限 / 工具调用在历史里的表示），
+ * 那是另一个量级的改动。教学场景一轮对话通常十几条消息以内，拼文本够用且可解释：
+ * 「模型看到了什么」就是这段字符串，出问题能直接打出来看。
+ *
+ * 代价写在明处：历史是**全文**进 prompt 的，长会话会线性吃 token。
+ * 调用方（`/api/session/[id]/message`）负责截断到最近 N 条。
+ */
+export function composeHistory(history: readonly AgentHistoryTurn[]): string {
+  if (history.length === 0) return "";
+
+  const lines = history.map((turn) => {
+    const label = turn.role === "student" ? "学生" : "助手";
+    return `${label}：${turn.content}`;
+  });
+
+  return [
+    "以下是本次会话此前的对话，用于理解上下文，不要在回答里复述它：",
+    "",
+    ...lines,
+    "",
+    "---",
+    "",
+  ].join("\n");
+}
+
 export interface AgentLoopOptions {
   /** 学生输入的一轮内容 */
   prompt: string;
@@ -144,6 +192,19 @@ export interface AgentLoopOptions {
   language?: AgentCodeLanguage;
   /** Agent 标识，用于 SSE 的 thinking 事件。默认 `DEFAULT_AGENT_ID`。 */
   agent?: string;
+  /**
+   * 本轮之前的历史，按时间升序。会在模型调用前拼进 prompt（见 `composeHistory`），
+   * **不参与** token 统计里的「本轮输入」概念 —— 计费口径由调用方自行决定。
+   */
+  history?: readonly AgentHistoryTurn[];
+  /**
+   * 流建立后、模型调用前先发出的事件。
+   *
+   * 给「检索到的引用」这类**先于模型输出就该到达前端**的事件用：学生在等答案时
+   * 就能看到「本次参考了哪几页」。放在这里而不是让调用方自己再建一条流，
+   * 是为了保证事件顺序严格 —— 两条流在浏览器侧的到达顺序是没有保证的。
+   */
+  preludeEvents?: readonly SSEEvent[];
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
   env?: ArkEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */
@@ -294,14 +355,23 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
     code,
     language,
     agent = DEFAULT_AGENT_ID,
+    history,
+    preludeEvents,
     env,
     signal,
   } = options;
   // 组装一次、全程用组装后的值：后续若要记录「模型到底看到了什么」（审计、
   // 复现一次失败），必须能拿到同一个字符串，不能在两处各拼一次。
-  const userMessage = composeUserPrompt({ prompt, code, language });
+  const userMessage =
+    composeHistory(history ?? []) +
+    composeUserPrompt({ prompt, code, language });
   const stream = createSSEStream();
   const translator = createEventTranslator(stream, agent);
+
+  // 先发前置事件（引用等），再进模型。顺序见 AgentLoopOptions.preludeEvents 的说明。
+  for (const event of preludeEvents ?? []) {
+    stream.send(event);
+  }
 
   const completed = (async (): Promise<AgentLoopSummary> => {
     let handle: AgentSessionHandle | undefined;
