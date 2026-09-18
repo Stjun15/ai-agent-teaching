@@ -22,6 +22,7 @@
     "test:markdown": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/markdown-spec.ts",
     "test:identity": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/client-identity-spec.ts",
     "test:playground": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/playground-spec.ts",
+    "test:scores": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/scores-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
     "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"
   },
