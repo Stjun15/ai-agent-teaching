@@ -18,6 +18,7 @@ import { runValidationLoop } from "./validation-loop";
 import type { ArkEnv } from "../ark";
 import type { TraceContext } from "../trace";
 import type { ValidationTaskType } from "./validation-loop";
+import type { ReviewerOutput } from "../outputs";
 
 /** 评分结论。 */
 export interface Assessment {
@@ -26,6 +27,16 @@ export interface Assessment {
   feedback: string;
   /** 判分来源：规则（客观题）或模型（主观题）。 */
   gradedBy: "rule" | "model";
+  /**
+   * 兜底结论：这不是模型的真实判断（`fallback.ts` 的 0 分只是「没有分数」），
+   * 调用方**不得**据此写 question_results 或 errors —— 编的失败不是学生的失败。
+   */
+  usedFallback: boolean;
+  /**
+   * 主观题时携带点评任务类型与完整点评输出，供调用方写错题（problems、
+   * correct_example 这些字段只有点评输出里有）；客观题走规则，为 undefined。
+   */
+  review?: { taskType: ValidationTaskType; output: ReviewerOutput };
 }
 
 /** 评分所需的题目最小信息（来自题库行或出题输出）。 */
@@ -80,6 +91,7 @@ export function gradeObjective(
       ? `回答正确。${question.explanation}`
       : `回答有误。正确答案：${question.correctAnswer}。${question.explanation}`,
     gradedBy: "rule",
+    usedFallback: false,
   };
 }
 
@@ -128,5 +140,9 @@ export async function runAssessLoop(
       review.progress_note ??
       `${review.level}：评分 ${review.total_score} / 100`,
     gradedBy: "model",
+    usedFallback: result.usedFallback,
+    // 兜底时不携带 review：调用方靠它区分「真判不通过」与「没评出来」，
+    // 只有前者才该写错题。
+    ...(result.usedFallback ? {} : { review: { taskType, output: review } }),
   };
 }
