@@ -68,15 +68,15 @@ last_updated: 2026-09-17
 
 | 页面                                                       | 名称          | 状态 |
 | ---------------------------------------------------------- | ------------- | ---- |
-| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 待建 |
-| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 待建 |
-| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 待建 |
-| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 待建 |
-| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 待建 |
-| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 待建 |
-| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 待建 |
-| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 待建 |
-| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 待建 |
+| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 已建 |
+| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 已建 |
+| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 已建 |
+| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 已建 |
+| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 已建 |
+| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 已建 |
+| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 已建 |
+| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 已建 |
+| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 已建 |
 
 ## 测验（assessments/）
 
