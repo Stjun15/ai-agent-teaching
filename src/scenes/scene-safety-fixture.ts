@@ -25,6 +25,15 @@ import {
   screenInput as screenRealInput,
   type InputScreenResult,
 } from "@/lib/security/input-filter";
+import { screenOutput, type OutputScreen } from "@/lib/security/output-filter";
+
+/**
+ * 输出过滤与结果类型：规则本体在 `@/lib/security/output-filter`，此处转出。
+ *
+ * 真实 Agent 输出走的是同一份模式 —— `runAgent` 出口处对整个输出对象做深度
+ * 打码。所以界面上演示的「打码」与系统实际的「打码」是同一套规则。
+ */
+export { screenOutput, type OutputScreen };
 
 /** 危险词表：规则本体在 `@/lib/security/input-filter`（真实端点用同一份）。 */
 export { DANGEROUS } from "@/lib/security/input-filter";
@@ -60,23 +69,6 @@ export const INDUCED_OUTPUT =
 
 /** 兜底话术，与规格里那一句一致。 */
 export const FALLBACK = "抱歉，我无法处理这个请求。";
-
-/** 输出过滤的结果。 */
-export interface OutputScreen {
-  text: string;
-  /** 打码了几处；0 表示这条回复里没有需要处理的秘密。 */
-  redacted: number;
-}
-
-/** 输出过滤：把 `sk-` 开头的密钥打码。与输入过滤独立 —— 它是第二道防线。 */
-export function screenOutput(text: string, enabled: boolean): OutputScreen {
-  const matches = text.match(/sk-[a-zA-Z0-9]+/g) ?? [];
-  if (!enabled || matches.length === 0) return { text, redacted: 0 };
-  return {
-    text: text.replace(/sk-[a-zA-Z0-9]+/g, "[REDACTED]"),
-    redacted: matches.length,
-  };
-}
 
 /** 输入无害时的正常回答。它的作用是**对照**：过滤规则不该把正常请求一起拦下。 */
 export const SAFE_OUTPUT = "今天多云，18 到 24 度，出门带件外套就行。";

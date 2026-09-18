@@ -43,6 +43,7 @@ import {
   type TraceRecordResult,
 } from "./trace";
 import type { AgentId, SkillId } from "./types";
+import { redactSecrets } from "@/lib/security/output-filter";
 import type { Expect } from "@/lib/type-assert";
 
 /**
@@ -219,7 +220,7 @@ export function composeAgentPrompt(options: {
 export async function runAgent<Id extends AgentId>(
   options: RunAgentOptions<Id>,
 ): Promise<AgentRunResult<AgentOutputMap[Id]>> {
-  const result = await executeAgent(options);
+  const result = redactOutput(await executeAgent(options));
   const traceContext = options.trace;
 
   if (!traceContext) return result;
@@ -239,6 +240,22 @@ export async function runAgent<Id extends AgentId>(
   });
 
   return { ...result, trace: recorded };
+}
+
+/**
+ * 对 Agent 输出做一次深度打码（输出过滤的第二道防线）。
+ *
+ * 为什么在出口而不是各端点逐字段调用：这里是「每次 Agent 输出」唯一的必经
+ * 之处，覆盖面是**结构上**的 —— 而逐字段调用必然漏，漏掉的那个字段照样会
+ * 落库、照样会显示给学生。与 trace 记录同一思路（见 trace.ts 文件头）。
+ *
+ * 打码发生在 trace 之前，所以观测数据里也不留凭据。
+ */
+function redactOutput<Id extends AgentId>(
+  result: AgentRunResult<AgentOutputMap[Id]>,
+): AgentRunResult<AgentOutputMap[Id]> {
+  if (result.data === undefined) return result;
+  return { ...result, data: redactSecrets(result.data) };
 }
 
 /**
