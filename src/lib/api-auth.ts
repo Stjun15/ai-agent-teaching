@@ -27,12 +27,15 @@
 import { jsonError } from "./api-error";
 import { studentDb } from "./db";
 import type { Student } from "./db/types";
+import { STUDENT_ID_HEADER, STUDENT_ID_QUERY } from "./student-id";
 
-/** 学生身份的请求头。 */
-export const STUDENT_ID_HEADER = "x-student-id";
-
-/** query 参数名（SSE 端点用，因为 `EventSource` 发不出自定义 header）。 */
-export const STUDENT_ID_QUERY = "studentId";
+/**
+ * 身份常量定义在 `student-id.ts`（叶子模块），这里按原样导出。
+ *
+ * 为什么搬走：本文件 import 了数据层，浏览器组件引用它会拖进 `node:sqlite`。
+ * 常量留在叶子模块后，客户端用的是同一份字面量，不存在两处口径漂移的可能。
+ */
+export { STUDENT_ID_HEADER, STUDENT_ID_QUERY };
 
 /** 解析结果：要么拿到学生，要么拿到一个可以直接返回的响应。 */
 export type StudentLookup =

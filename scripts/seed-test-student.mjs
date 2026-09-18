@@ -20,13 +20,29 @@
  * 同样是 UUID，所以种子数据用固定 UUID 与生产保持同形。
  *
  * 幂等：重复执行不会产生重复行，只会把画像与掌握度刷成同一状态。
+ *
+ * 学生 id 从哪来
+ * ------------
+ * 从 `src/lib/demo-student.json` 读，不在这里写第二份。浏览器侧
+ * （`src/lib/client-identity.ts`）在没有登录/引导流程之前也要用同一个 id
+ * 发请求 —— 两处各写一份固定 UUID，改一处忘另一处，现象是「接口全报
+ * 学生不存在」，而两边代码看上去都对。
  */
 
+import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 
+/** 与浏览器侧共用的种子学生身份。 */
+const DEMO_STUDENT = JSON.parse(
+  readFileSync(
+    new URL("../src/lib/demo-student.json", import.meta.url),
+    "utf8",
+  ),
+);
+
 /** 固定 UUID，方便在 curl / 浏览器里手写。npm script 名见文件尾。 */
-export const TEST_STUDENT_ID = "00000000-0000-4000-8000-000000000001";
+export const TEST_STUDENT_ID = DEMO_STUDENT.studentId;
 
 function resolveDbPath() {
   const raw = process.env.DATABASE_URL?.trim();
