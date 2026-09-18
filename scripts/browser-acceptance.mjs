@@ -62,8 +62,7 @@ const EDGE =
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 // 默认打在 3311；用 APP_URL 可指向别的实例（例如 dev server 占着 3311 时，
 // 把生产构建起在 3312 上跑验收，不必先去关别人的服务）。
-const APP_URL =
-  process.env.APP_URL ?? "http://localhost:3311/learn/llm-api";
+const APP_URL = process.env.APP_URL ?? "http://localhost:3311/learn/llm-api";
 const CDP_PORT = 9333;
 // 要求长输出：短答案几百毫秒就吐完，400ms 的采样抓不到中间态，
 // 会把「流式渲染」误判成「一次性出现」。同时保留工具调用（断言乘积）。
@@ -169,7 +168,9 @@ function connect(wsUrl) {
     // 静默变成「没返回东西」，表现为「采样 90 秒全空、所有断言 undefined」。
     // 所以必须显式把 error 结果识别成异常抛出去。
     if (r.result?.subtype === "error") {
-      throw new Error(`evaluate 代码体抛出: ${r.result.description ?? "unknown"}`);
+      throw new Error(
+        `evaluate 代码体抛出: ${r.result.description ?? "unknown"}`,
+      );
     }
     return r.result.value;
   }
