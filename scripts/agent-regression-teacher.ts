@@ -15,7 +15,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isSceneId } from "@/lib/agent/scene-ids";
+import { isSceneId, SCENE_IDS } from "@/lib/agent/scene-ids";
+import { SCENE_ID_MESSAGE } from "@/lib/agent/outputs";
 import { runAgent } from "@/lib/agent/runtime";
 
 /**
@@ -38,6 +39,22 @@ test("isSceneId：未注册的场景返回 false（不能让前端静默空白�
   assert.equal(isSceneId("scene-tool-chains"), false);
   assert.equal(isSceneId("scene-"), false);
   assert.equal(isSceneId(""), false);
+});
+
+test("场景 ID 校验消息：列全 9 个合法值（否则重试只能瞎猜）", () => {
+  // 模型编造场景 ID 时，这条消息会被 runtime 原文回喂重试。
+  // 少列一个，模型就少一个可能被选中的正确答案。
+  for (const id of SCENE_IDS) {
+    assert.ok(
+      SCENE_ID_MESSAGE.includes(id),
+      `校验消息缺少合法场景 ${id}：${SCENE_ID_MESSAGE}`,
+    );
+  }
+  assert.equal(
+    SCENE_IDS.length,
+    9,
+    "场景总数应为 9（见 01-teaching-system.md）",
+  );
 });
 
 // ---------------------------------------------------------------------------
