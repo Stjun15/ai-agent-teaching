@@ -33,6 +33,7 @@
     "test:security": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/security-spec.ts",
     "test:rate-limit": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/rate-limit-spec.ts",
     "test:theme": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/theme-spec.ts",
+    "test:cross-browser": "node scripts/cross-browser-spec.mjs",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
     "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"
   },
