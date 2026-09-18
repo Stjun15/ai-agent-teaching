@@ -26,6 +26,12 @@
 
 import type { ErrorRecord, PromptHistory } from "@/lib/db/types";
 
+/**
+ * 行类型一并出口：消费方（报告页）只从 `@/schemas` 取类型，
+ * 不必知道它们住在 `src/lib/db/`。这是 re-export，不是第二份声明。
+ */
+export type { ErrorRecord, PromptHistory };
+
 /** `GET /api/student/errors` 的响应。 */
 export interface StudentErrorsResponse {
   /** 按 `created_at` 倒序。`?uncorrected=1` 时只含未订正的。 */
