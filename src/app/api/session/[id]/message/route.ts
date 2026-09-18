@@ -51,6 +51,7 @@ import { jsonError } from "@/lib/api-error";
 import { messageDb, sessionDb } from "@/lib/db";
 import { newId } from "@/lib/db/helpers";
 import type { Citation } from "@/lib/db/types";
+import { screenInput } from "@/lib/security/input-filter";
 import {
   DEFAULT_AGENT_ID,
   runAgentLoop,
@@ -130,6 +131,21 @@ export async function POST(
   }
   if (!session || session.studentId !== auth.student.id) {
     return jsonError("NOT_FOUND", `会话 ${id} 不存在。`);
+  }
+
+  // 2.5 输入过滤：提示注入拦在模型之前。
+  //
+  // 为什么只拦「对话路径」，不拦「提交作业路径」（validate / answer-grade）：
+  // 那两条是「把内容交给评分器」，而模块 9 的作业本身就是写攻击样例与防护方案，
+  // 拦了学生就没法交作业。这里是「把话交给模型执行」，注入才真正有意义。
+  //
+  // 拦下的输入不落库：否则它会进入历史，之后每一轮都被重新喂给模型。
+  const screened = screenInput(body.content);
+  if (screened.blocked) {
+    return jsonError(
+      "FORBIDDEN",
+      `输入被安全过滤拦下（命中：${screened.hits.join("、")}），本次未调用模型。规则与模块 9「AI 安全」的演示一致。`,
+    );
   }
 
   // 3. 读历史（最近 N 条，跳过系统消息）
