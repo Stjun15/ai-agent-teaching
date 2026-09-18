@@ -25,6 +25,7 @@
     "test:scores": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/scores-spec.ts",
     "test:scenes": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/scene-spec.ts",
     "test:projects": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/project-templates-spec.ts",
+    "test:teaching-loop": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/teaching-loop-spec.ts",
     "test:theme": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/theme-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
     "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"

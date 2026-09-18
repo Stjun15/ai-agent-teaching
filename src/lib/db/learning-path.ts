@@ -94,6 +94,47 @@ export const learningPathDb = {
   },
 
   /**
+   * 新建（或重置）某学生的学习路径。
+   *
+   * 这是 `updateModule` / `addAdjustment` 的前置：那两个方法要求路径行已存在，
+   * 否则会抛「尚无学习路径记录」。此前系统内**没有任何代码**创建这行
+   * （种子脚本只建 students / student_profiles / mastery，GET 端点无路径时返回
+   * null），导致 learning_paths 表永远 0 行、updateModule 永远抛错。
+   * 本方法补齐这个写入入口，使学习路径真正可被持久化。
+   *
+   * 用 upsert：重复调用幂等，不会因「已存在」而静默失败；重置 adjustments
+   * 让「重建路径」语义干净。正常业务不会在已有路径上反复 create。
+   */
+  async create(
+    studentId: string,
+    seed: {
+      currentModule: string;
+      nextModule?: string | null;
+      modules: LearningPathModule[];
+    },
+  ): Promise<void> {
+    getDb()
+      .prepare(
+        `INSERT INTO learning_paths (
+           student_id, current_module, next_module, modules, adjustments, updated_at
+         ) VALUES (?, ?, ?, ?, '[]', ?)
+         ON CONFLICT(student_id) DO UPDATE SET
+           current_module = excluded.current_module,
+           next_module = excluded.next_module,
+           modules = excluded.modules,
+           adjustments = '[]',
+           updated_at = excluded.updated_at`,
+      )
+      .run(
+        studentId,
+        seed.currentModule,
+        seed.nextModule ?? null,
+        toJson(seed.modules),
+        nowIso(),
+      );
+  },
+
+  /**
    * 更新某个模块的状态（见文件头的时间戳规则说明）。
    *
    * 模块 id 不在路径内时抛错：这通常意味着调用了错的 moduleId，

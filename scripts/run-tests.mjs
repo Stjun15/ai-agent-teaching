@@ -42,6 +42,7 @@ const SUITES = [
   { name: "沙箱清单", file: "scripts/playground-spec.ts", model: false },
   { name: "可视化场景", file: "scripts/scene-spec.ts", model: false },
   { name: "项目模板", file: "scripts/project-templates-spec.ts", model: false },
+  { name: "教学循环 DB", file: "scripts/teaching-loop-spec.ts", model: false },
   {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
