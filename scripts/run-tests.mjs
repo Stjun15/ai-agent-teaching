@@ -62,6 +62,11 @@ const SUITES = [
   { name: "安全过滤", file: "scripts/security-spec.ts", model: false },
   { name: "限流", file: "scripts/rate-limit-spec.ts", model: false },
   {
+    name: "学生记录写入",
+    file: "scripts/student-records-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
