@@ -49,6 +49,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "教学闭环 DB",
+    file: "scripts/teaching-grade-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
