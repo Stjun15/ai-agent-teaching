@@ -101,13 +101,21 @@ node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A
    errors 不通过时）与 `/api/agent/answer-grade`（主观题判分不通过写 errors，conceptId 取题库行）。
    兜底输出一律不写（编的失败不是学生的失败）。报告页「薄弱点」与「Prompt 平均分」已由真实
    点评流量点亮（端到端验证：交一份弱作业 → errors/problems 带真实点评、报告 weaknesses 出现）。
+   客观题答错**已写**（2026-09-18 改：题库自带 `explanation` / `correctAnswer`，
+   problems 带「解析：」前缀标明出处不是点评 Agent）。
+   **前端已消费**：报告页新增「错题本」与「Prompt 历史」两块明细（此前两个端点
+   建好了却没有调用方），另有「评分维度」区块显示真实维度分 —— 六项子能力仍是占位
+   且**界面明说不画假进度条**。验收脚本 `scripts/report-details-spec.mjs`（8/8）：
+   断言的文本是从 SQLite 当次读出的真实行，不是写死的常量。
    仍开放的小口子：教学状态机接入后 attemptNumber 要从会话状态读；订正与复习调度
-   （is_corrected / next_review_at）没有实现路径；客观题答错不进错题本（只有 question_results）。
+   （is_corrected / next_review_at）没有实现路径。
 3. **两张表没有真实用途**：`agent_events` 建了表但无任何读写代码；`citations` 是**预留表**
    （引用的唯一存储是 `messages.citations` 这一列，2026-09-18 已裁定并记载于
    `references/data-models.md` 与 `db/messages.ts` 文件头）。
-4. **知识库仍有 3 个目录为空** —— `patterns/`、`assessments/`、`agents/`（`projects/` 9 页已补齐，
-   `anti-patterns/` 9 页）。8 个 Phase、121 个提交点里没有任何一个承接它们。
+4. **~~知识库仍有 3 个目录为空~~（2026-09-18 已补齐）** —— `patterns/` 9 页（每模块一个设计模式，
+   与 9 个反模式交叉引用）、`assessments/` 9 份（每模块一份测验，含判分要点）、
+   `agents/` 4 页（共同约定 + 讲解/点评/出题三个 Agent 的实测失败模式）。
+   `pnpm wiki:seed` 报告：8 个声明目录全部有页面，共 66 个 markdown 文件。
 5. **`agent-prompts/` 有 8 份文档的 Markdown 表格被空行拆散**（`01` / `02` / `03` / `05` / `references/anti-patterns` / `references/api-spec` / `references/git-conventions` / `references/rubrics`）。属**原始素材形态**（首次入库即如此，非回归），阅读时把每个 `|` 行当成独立一行。
 6. **PG 未落地** —— `src/lib/cloudbase.ts` 不存在，`knowledge_embeddings` 表任何环境都没建过（迁移里也没有它）。
    检索目前是**本地加权关键词**，不是向量检索；换 CloudBase PG + pgvector 是代码工作，
