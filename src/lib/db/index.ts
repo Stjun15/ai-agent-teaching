@@ -20,11 +20,13 @@ export { learningPathDb } from "./learning-path";
 export { sessionDb } from "./sessions";
 export { messageDb } from "./messages";
 export { traceDb } from "./traces";
-// 这三张表（errors / prompt_history / projects）的 repository 文档未定义签名，
-// 按同层风格补齐，供 Phase 5 的学生类端点使用。只有读 —— 写入点在编排层。
+// 这四张表（errors / prompt_history / projects / question_results）的 repository
+// 文档未定义签名，按同层风格补齐，供 Phase 5 的学生类端点使用。只有读 ——
+// 写入点在编排层。
 export { errorDb } from "./errors";
 export { promptHistoryDb } from "./prompt-history";
 export { projectDb } from "./projects";
+export { questionResultDb } from "./question-results";
 
 // 健康检查。与 repository 一样走本出口，让路由不必碰 ./sqlite。
 export { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "./health";
