@@ -30,6 +30,14 @@ import {
   getSceneDefinition,
   listSceneDefinitions,
 } from "@/scenes/scene-catalog";
+import { TEAM } from "@/scenes/scene-orchestration-fixture";
+import { SERVERS } from "@/scenes/scene-mcp-fixture";
+import {
+  ATTACK,
+  auditLog,
+  replyOf,
+  screenInput,
+} from "@/scenes/scene-safety-fixture";
 import { useVisualizationStore } from "@/stores/visualization";
 import type { SceneStep } from "@/scenes/scene-types";
 
@@ -195,4 +203,112 @@ test("步骤定义里的字段名与播放器读的一致", () => {
       assert.equal(typeof step.description, "string");
     }
   }
+});
+
+test("多 Agent：三个角色的分工真的分开了", () => {
+  // 「三段 Prompt 抄成同一段」在画面上看不出来：三张卡都在、动画照跑。但那样
+  // 这一场一个知识点都没讲 —— 分工全靠 Prompt 的差别承载。
+  const prompts = TEAM.map((agent) => agent.systemPrompt);
+  assert.equal(
+    new Set(prompts).size,
+    prompts.length,
+    "有两个角色用了同一段 System Prompt，分工就没立住",
+  );
+  for (const agent of TEAM) {
+    assert.match(agent.systemPrompt, /^你是/, `${agent.name} 没定角色`);
+    // 边界句：分工立不立得住靠的是限定，不是头衔，「只做什么」和「不做什么」都算。
+    // 这一段最初只认「不」，把评审那句「只指出缺少的…」误判成没写边界。
+    assert.match(
+      agent.systemPrompt,
+      /只|不/,
+      `${agent.name} 的 Prompt 只写了头衔，没写边界`,
+    );
+    assert.notEqual(agent.duty.trim(), "", `${agent.name} 缺一句职责说明`);
+  }
+});
+
+test("MCP：每个工具都有描述，工具名在同一台 server 内不重复", () => {
+  assert.ok(SERVERS.length >= 1, "一台 server 都没有，这条等于没测");
+  const ids = SERVERS.map((server) => server.id);
+  assert.equal(new Set(ids).size, ids.length, "有两台 server 用了同一个 id");
+  for (const server of SERVERS) {
+    assert.ok(server.tools.length > 0, `${server.name} 一个工具都没有`);
+    const names = server.tools.map((tool) => tool.name);
+    assert.equal(
+      new Set(names).size,
+      names.length,
+      `${server.name} 有重名工具`,
+    );
+    for (const tool of server.tools) {
+      // 描述为空时模型只能靠名字猜 —— 校验规则里「工具描述」占 25 分，
+      // 而它在界面上只是一行灰字，很容易被写成空串。
+      assert.notEqual(
+        tool.description.trim(),
+        "",
+        `${server.name}/${tool.name} 没有描述`,
+      );
+      assert.notEqual(
+        tool.result.trim(),
+        "",
+        `${server.name}/${tool.name} 缺返回值`,
+      );
+    }
+  }
+});
+
+test("安全：输入过滤的开关拨到两边，结果真的不一样", () => {
+  const on = screenInput(ATTACK, true);
+  assert.equal(on.blocked, true, "默认攻击句必须被拦下");
+  assert.ok(on.hits.length > 0);
+
+  // 关掉开关时命中项照算：界面上要显示「本来会命中这几条，现在它直接进去了」。
+  const off = screenInput(ATTACK, false);
+  assert.equal(off.blocked, false);
+  assert.deepEqual(
+    off.hits,
+    on.hits,
+    "关掉开关后命中项丢了，界面就没法解释放行了什么",
+  );
+
+  // 正常请求不该被误伤 —— 只有一边有反应才是可用的过滤器。
+  assert.equal(screenInput("今天天气怎么样", true).blocked, false);
+});
+
+test("安全：输出过滤是第二道防线，输入漏了它还能打码", () => {
+  const induced = { blocked: false, hits: ["系统密码"] };
+
+  const leaked = replyOf(induced, false);
+  assert.equal(leaked.redacted, 0);
+  assert.match(
+    leaked.text,
+    /sk-/,
+    "没打码时密钥应原样出现，否则演示不出漏的样子",
+  );
+
+  const saved = replyOf(induced, true);
+  assert.equal(saved.redacted, 1);
+  assert.doesNotMatch(
+    saved.text,
+    /sk-[a-zA-Z0-9]+/,
+    "打码后不该还能看到完整密钥",
+  );
+  assert.match(saved.text, /\[REDACTED\]/);
+});
+
+test("安全：拦下时日志写明模型未被调用，放行时不写", () => {
+  const blocked = screenInput(ATTACK, true);
+  const blockedLog = auditLog(blocked, replyOf(blocked, true), true, true)
+    .map((entry) => entry.text)
+    .join("\n");
+  assert.match(blockedLog, /拦下/);
+  assert.match(blockedLog, /未调用模型/);
+  // 两句话同时出现说明分支写反了 —— 拦下了却还进了模型，那这个拦截是假的。
+  assert.doesNotMatch(blockedLog, /进入模型/);
+
+  const passed = screenInput(ATTACK, false);
+  const passedLog = auditLog(passed, replyOf(passed, true), false, true)
+    .map((entry) => entry.text)
+    .join("\n");
+  assert.match(passedLog, /进入模型/);
+  assert.doesNotMatch(passedLog, /拦下/);
 });
