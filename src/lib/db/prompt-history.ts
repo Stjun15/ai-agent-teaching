@@ -4,11 +4,27 @@
  * 与 `errors.ts` 同理：签名不在 `data-models.md` 的 repository 清单里，
  * 按同层风格补齐，供 Phase 5 的 `/api/student/prompts` 使用。
  *
- * 同样**只有读**：写入点是点评 Agent 校验通过/未通过之后（编排层，Phase 6）。
+ * 写入裁定（2026-09-18）
+ * --------------------
+ * 记录**每一次真实（非兜底）的点评提交**，写入点在 `/api/agent/validate`
+ * 路由 —— 学生自主提交作业后点评 Agent 给出的 rubric 评分历史。
+ * 两种提交都不丢：tool / code 类作业同样经点评 Agent 评分，表上的
+ * `task_type` 列本就为区分它们而设。
+ *
+ * `answer-grade` 的主观题判分**不写**这张表：那是答题评分，已有
+ * `question_results` 记录，混进来会把报告页的「Prompt 平均分」稀释成
+ * 「所有提交的平均分」—— 名实不符。
+ *
+ * **兜底输出不写**：兜底的 0 分是编的，写进去平均分就成了假的 ——
+ * 与「兜底不更新掌握度」（`fallback.ts`）是同一条规则。
+ *
+ * `suggestions` 存 `action` 文本数组（表结构如此）：完整对象
+ * （priority / action / example）在 `validation_results.issues` 旁的
+ * suggestions 列里另有全文，这里只留学生看得见的行动项。
  */
 
 import { getDb } from "./sqlite";
-import { asNumber, asString, parseJson, type Row } from "./helpers";
+import { newId, asNumber, asString, parseJson, type Row } from "./helpers";
 import type { PromptDimension, PromptHistory, PromptIssue } from "./types";
 
 function mapPrompt(row: Row): PromptHistory {
@@ -29,6 +45,41 @@ function mapPrompt(row: Row): PromptHistory {
 }
 
 export const promptHistoryDb = {
+  /** 写入一条点评历史（写入时机与范围见文件头「写入裁定」）。 */
+  async create(input: {
+    studentId: string;
+    moduleId: string;
+    taskType: PromptHistory["taskType"];
+    content: string;
+    score: number;
+    dimensions: PromptDimension[];
+    issues: PromptIssue[];
+    suggestions: string[];
+    attemptNumber: number;
+    isPassed: boolean;
+  }): Promise<void> {
+    getDb()
+      .prepare(
+        `INSERT INTO prompt_history (
+           id, student_id, module_id, task_type, content, score,
+           dimensions, issues, suggestions, attempt_number, is_passed
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        newId(),
+        input.studentId,
+        input.moduleId,
+        input.taskType,
+        input.content,
+        input.score,
+        JSON.stringify(input.dimensions),
+        JSON.stringify(input.issues),
+        JSON.stringify(input.suggestions),
+        input.attemptNumber,
+        input.isPassed ? 1 : 0,
+      );
+  },
+
   /** 某学生的 Prompt 历史，按时间倒序。 */
   async listByStudent(studentId: string, limit = 50): Promise<PromptHistory[]> {
     const rows = getDb()
