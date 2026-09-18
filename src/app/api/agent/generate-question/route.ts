@@ -21,6 +21,7 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { findModule } from "@/lib/modules";
 import { questionDb } from "@/lib/db";
@@ -33,6 +34,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡（理由同 explain 路由）。
+  const limited = enforceRateLimit(auth.student.id, "generate-question");
+  if (limited) return limited;
 
   let body: GenerateQuestionInput;
   try {

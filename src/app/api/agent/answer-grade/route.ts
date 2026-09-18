@@ -15,6 +15,7 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { questionDb, questionResultDb, sessionDb } from "@/lib/db";
 import { newId } from "@/lib/db/helpers";
@@ -27,6 +28,11 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡（理由同 explain 路由）。本端点额度更宽 ——
+  // 客观题走规则判分、不消耗 token。
+  const limited = enforceRateLimit(auth.student.id, "answer-grade");
+  if (limited) return limited;
 
   let body: AnswerGradeInput;
   try {

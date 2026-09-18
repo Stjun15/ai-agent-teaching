@@ -35,6 +35,7 @@
 import { ARK_API_KEY_ENV, isArkApiKeyConfigured } from "@/lib/agent/ark-config";
 import { runAgentLoop } from "@/lib/agent/loop";
 import { jsonError } from "@/lib/api-error";
+import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 import { ChatRequestSchema } from "@/schemas";
 
 // Agent 内核依赖 node:sqlite 与 pi SDK，不能跑在 Edge Runtime。
@@ -56,6 +57,12 @@ function describeIssues(error: {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  // 限流放在第一行：本端点没有身份（见文件头「不做鉴权」），只能按客户端 IP
+  // 计数，所以它是整条路由里唯一必须在「知道这是谁」之前就拦的地方。
+  // 取不到转发头时会归入同一个桶 —— 那是刻意的降级，理由见 rate-limit.ts。
+  const limited = enforceRateLimit(clientKeyFrom(req), "chat");
+  if (limited) return limited;
+
   let raw: unknown;
   try {
     raw = await req.json();

@@ -47,6 +47,7 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { messageDb, sessionDb } from "@/lib/db";
 import { newId } from "@/lib/db/helpers";
@@ -102,6 +103,12 @@ export async function POST(
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
+
+  // 限流：身份一确定就挡，早于解析请求体与读库。
+  // 这一条对 SSE 端点格外重要 —— 一次请求会跑完一整轮 Agent（真花钱），
+  // 而且响应头一交出就没法再用状态码拒绝，只能在流开始之前拦。
+  const limited = enforceRateLimit(auth.student.id, "message");
+  if (limited) return limited;
 
   // 1. 解析并校验请求体（流开始前失败才能回 JSON 而非污染流）
   let body: SendMessageInput;
