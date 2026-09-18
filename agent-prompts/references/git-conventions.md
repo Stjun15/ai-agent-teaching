@@ -357,12 +357,12 @@ coverage
 
 ```bash
 # .env.example
-DEEPSEEK_API_KEY=your-deepseek-api-key
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+ARK_API_KEY=your-ark-api-key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 CLOUDBASE_ENV_ID=your-env-id
 CLOUDBASE_SECRET_ID=your-secret-id
 CLOUDBASE_SECRET_KEY=your-secret-key
-DATABASE_URL=postgresql://...
+DATABASE_URL=file:./dev.db
 ```
 
 ### 如果误提交密钥
