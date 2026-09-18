@@ -85,6 +85,50 @@ export const SCENE_CATALOG = {
       stream: true,
     },
   },
+  "scene-role-filter": {
+    steps: [
+      {
+        id: "left-only",
+        title: "左边：无 System Prompt",
+        description:
+          "同一个问题，模型按最常见的方式回答 —— 直接把答案说了出来。",
+        durationMs: 1500,
+      },
+      {
+        id: "right-only",
+        title: "右边：有 System Prompt",
+        description:
+          "换成苏格拉底式提问：先反问你觉得哪里有问题，再顺着给提示。",
+        durationMs: 1500,
+      },
+      {
+        id: "filter-in",
+        title: "中间出现「滤镜」",
+        description:
+          "两栏之间多出一个滤镜 —— 它就是那段 system 消息的形象说法。",
+        durationMs: 1200,
+      },
+      {
+        id: "filter-applied",
+        title: "滤镜滑过去",
+        description:
+          "滤镜滑到左边，左边那一栏也被过滤了一遍 —— 变的不是模型，是它看问题的方式。",
+        durationMs: 1600,
+      },
+      {
+        id: "highlight",
+        title: "高亮 System Prompt",
+        description:
+          "滤镜的本体就是那几行字。换掉它，右边那栏的回答方式就跟着换掉。",
+        durationMs: 1800,
+      },
+    ],
+    defaultParams: {
+      system:
+        '你是一个代码评审员。\n规则：\n1. 不直接给完整答案\n2. 先问学生"你觉得哪里可能有问题"\n3. 给分级提示：方向 → 具体 → 伪代码\n4. 语气鼓励，不打击信心',
+      filterOn: true,
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
