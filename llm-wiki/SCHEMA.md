@@ -16,6 +16,9 @@
 | student-projects      | students/{id}/projects.md      | 项目进度       |
 | assessment            | assessments/                   | 测验           |
 | agent-memory          | agents/                        | Agent 共享记忆 |
+| project               | projects/                      | 项目模板       |
+
+项目模板（`projects/`）承载「实践步骤」的起步工程：每个模板对应一个教学模块，给出可粘贴的 Prompt、检查清单与验收要点。它不进入 `students/{id}/` 目录，而是被 `[[wiki-link]]` 由对应概念页引用，并被 `/api/project/template/[id]` 直接读出（无需新建数据表——与 `concepts/` 现读同源）。
 
 ## 命名规范
 
