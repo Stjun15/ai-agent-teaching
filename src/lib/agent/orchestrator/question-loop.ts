@@ -44,6 +44,8 @@ export interface QuestionLoopResult {
   questions: ExaminerOutput["questions"];
   /** 被去重逻辑剔除的题目数。非 0 说明模型重复出题了。 */
   duplicatesRemoved: number;
+  /** 出题 Agent 估计的总耗时（来自其输出）。 */
+  estimatedTime: string;
   attempts: number;
   usedFallback: boolean;
   tokens: { input: number; output: number };
@@ -114,6 +116,7 @@ export async function runQuestionLoop(
   return {
     questions: kept,
     duplicatesRemoved,
+    estimatedTime: output.estimated_time,
     attempts: result.attempts,
     usedFallback: result.usedFallback,
     tokens: result.tokens,
