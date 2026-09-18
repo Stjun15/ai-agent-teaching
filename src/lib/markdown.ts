@@ -244,3 +244,188 @@ export function parseInline(source: string): InlineToken[] {
   return tokens;
 }
 
+// ---------------------------------------------------------------------------
+// 块级解析
+// ---------------------------------------------------------------------------
+
+const FENCE = /^\s*(`{3,}|~{3,})\s*([^\s`]*)\s*$/;
+const FENCE_CLOSE = /^\s*(`{3,}|~{3,})\s*$/;
+const HEADING = /^\s{0,3}(#{1,6})\s+(.*)$/;
+const UNORDERED_ITEM = /^\s*([-*+])\s+(.+)$/;
+const ORDERED_ITEM = /^\s*(\d{1,9})[.)]\s+(.+)$/;
+const QUOTE = /^\s*>\s?(.*)$/;
+const RULE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
+
+/** 是否是一个块级结构的开头（段落遇到它就得收尾）。 */
+function startsBlock(line: string): boolean {
+  return (
+    FENCE.test(line) ||
+    HEADING.test(line) ||
+    UNORDERED_ITEM.test(line) ||
+    ORDERED_ITEM.test(line) ||
+    QUOTE.test(line) ||
+    RULE.test(line)
+  );
+}
+
+/** 解析 `>` 块：剥掉标记后递归解析内部（引用里可以有列表和代码块）。 */
+function parseQuote(
+  lines: string[],
+  start: number,
+): { block: MarkdownBlock; end: number } {
+  const inner: string[] = [];
+  let i = start;
+  while (i < lines.length) {
+    const match = QUOTE.exec(lines[i]);
+    if (match === null) break;
+    inner.push(match[1]);
+    i += 1;
+  }
+  return {
+    block: { type: "quote", children: parseMarkdown(inner.join("\n")) },
+    end: i,
+  };
+}
+
+/**
+ * 解析列表。
+ *
+ * 只用「同一类标记的连续行」判定一个列表，空行即结束 —— 不做松/紧列表、
+ * 缩进嵌套那些规则。模型输出里 99% 是平铺列表，为剩下的 1% 引入状态机会
+ * 让「半截输入下会怎样」变得难以推理。
+ */
+function parseList(
+  lines: string[],
+  start: number,
+): { block: MarkdownBlock; end: number } {
+  const unordered = UNORDERED_ITEM.test(lines[start]);
+  const items: InlineToken[][] = [];
+  let orderedStart = 1;
+  let i = start;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = unordered
+      ? UNORDERED_ITEM.exec(line)
+      : ORDERED_ITEM.exec(line);
+    if (match === null) break;
+
+    if (!unordered && items.length === 0) {
+      orderedStart = Number.parseInt(match[1], 10);
+    }
+
+    // 续行：紧跟在条目后、不缩进也不算新条目或新块的行，并入当前条目。
+    const parts = [match[2]];
+    i += 1;
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !startsBlock(lines[i])
+    ) {
+      parts.push(lines[i].trim());
+      i += 1;
+    }
+    items.push(parseInline(parts.join("\n")));
+  }
+
+  return {
+    block: {
+      type: "list",
+      ordered: !unordered,
+      start: Number.isNaN(orderedStart) ? 1 : orderedStart,
+      items,
+    },
+    end: i,
+  };
+}
+
+/**
+ * 把 Markdown 源码解析成块级 token 数组。
+ *
+ * 输入永远是「当前已知的全部文本」，包括流式过程中的半成品。
+ */
+export function parseMarkdown(source: string): MarkdownBlock[] {
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const blocks: MarkdownBlock[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === "") {
+      i += 1;
+      continue;
+    }
+
+    const fence = FENCE.exec(line);
+    if (fence !== null) {
+      const marker = fence[1];
+      const language = fence[2] === "" ? null : fence[2];
+      const body: string[] = [];
+      let closed = false;
+      i += 1;
+      while (i < lines.length) {
+        const closing = FENCE_CLOSE.exec(lines[i]);
+        // 关闭围栏必须与开围栏同种字符（``` 不能用 ~~~ 关）。
+        if (closing !== null && closing[1].startsWith(marker.charAt(0))) {
+          closed = true;
+          i += 1;
+          break;
+        }
+        body.push(lines[i]);
+        i += 1;
+      }
+      blocks.push({ type: "code", language, value: body.join("\n"), closed });
+      continue;
+    }
+
+    // 分割线要排在列表之前判断：`***` 同时满足两者的字面条件。
+    if (RULE.test(line)) {
+      blocks.push({ type: "rule" });
+      i += 1;
+      continue;
+    }
+
+    const heading = HEADING.exec(line);
+    if (heading !== null) {
+      blocks.push({
+        type: "heading",
+        level: heading[1].length,
+        children: parseInline(heading[2].trim()),
+      });
+      i += 1;
+      continue;
+    }
+
+    if (QUOTE.test(line)) {
+      const quoted = parseQuote(lines, i);
+      blocks.push(quoted.block);
+      i = quoted.end;
+      continue;
+    }
+
+    if (UNORDERED_ITEM.test(line) || ORDERED_ITEM.test(line)) {
+      const list = parseList(lines, i);
+      blocks.push(list.block);
+      i = list.end;
+      continue;
+    }
+
+    // 段落：吃到空行或下一个块级开头为止。
+    const paragraph: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      (paragraph.length === 0 || !startsBlock(lines[i]))
+    ) {
+      paragraph.push(lines[i]);
+      i += 1;
+    }
+    blocks.push({
+      type: "paragraph",
+      children: parseInline(paragraph.join("\n")),
+    });
+  }
+
+  return blocks;
+}
