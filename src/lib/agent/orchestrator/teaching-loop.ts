@@ -68,6 +68,8 @@ export interface TeachingStepResult {
   state: TeachingState;
   /** 讲解阶段：讲解 Agent 的输出。 */
   teaching?: TeacherOutput;
+  /** 讲解是否动用了兜底（模型输出未通过校验）。 */
+  usedFallback?: boolean;
   /** 练习阶段：生成的题目。 */
   questions?: QuestionLoopResult;
   /** 校验阶段：点评结果。 */
@@ -122,6 +124,7 @@ export async function runExplainStep(options: {
   return {
     state: { ...state, phase: "check" },
     teaching,
+    usedFallback: result.usedFallback,
   };
 }
 
