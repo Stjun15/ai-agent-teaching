@@ -17,6 +17,7 @@ import {
   useVisualizationStore,
   type PlaybackSpeed,
 } from "@/stores";
+import { getSceneDefinition } from "@/scenes/scene-catalog";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,33 +26,39 @@ import { cn } from "@/lib/utils";
  * 依据 `04-frontend.md`「9 个可视化场景」：每个场景包含动画步骤定义、
  * 播放控制（播放/暂停/前进/后退/重置/变速）、交互（可修改参数看变化）。
  *
- * 本阶段交付的是**播放器**，场景内容在 Phase 6
- * -----------------------------------------
- * 9 个场景组件依赖的能力（Agent 编排、RAG、MCP、多 Agent）要到 Phase 4 / 5
- * 才具备，所以执行计划把场景排在 Phase 6。但播放器不必等 —— 它只是一套
- * 「按步骤推进 + 控制条」的通用壳子。这样切的实际收益：Phase 6 每写完一个
- * 场景，调 `registerScene` 注册步骤定义就能播，不用回头改这里。
+ * 本组件是**控制台**，不是场景本身
+ * -----------------------------
+ * 它只负责三件事：把本讲的场景 id 灌进 Store、渲染控制条与步骤列表、
+ * 把步骤列表之外的地方留给舞台。场景的视觉在 `src/scenes/scene-<id>.tsx`，
+ * 由 `src/scenes/scene-catalog.ts` 按 id 索引 —— 面板不认识任何具体场景，
+ * 所以新增场景不需要改这里。
  *
- * 场景的权威口径只有 Store 一处
- * --------------------------
- * 面板从 props 拿到的是「本讲**配了**哪个场景」（来自概念页 → `MODULE_SCENE_IDS`），
- * 那是初始值；真正在播的是 Store 的 `sceneId`。两者若各留一套，
- * 控制条推进的步数会和面板显示的步骤列表对不上（`nextStep` 读的是 Store）。
- * 所以挂载时把 prop 灌进 Store 一次，之后一切听 Store 的 ——
- * `visualization` 事件也是往 Store 写，天然一致。
+ * 场景的权威口径只有 Store 一处（就「在播什么、第几步」而言）
+ * -------------------------------------------------------
+ * 面板从 props 拿到的是「本讲**配了**哪个场景」（来自概念页 →
+ * `MODULE_SCENE_IDS`），那是初始值；真正在播的是 Store 的 `sceneId`。
+ * 两者若各留一套，控制条推进的步数会和面板显示的步骤列表对不上
+ * （`nextStep` 读的是 Store）。所以挂载时把 prop 灌进 Store 一次，
+ * 之后一切听 Store 的 —— `visualization` 事件也是往 Store 写，天然一致。
  *
- * 场景未注册时的显示是诚实的
+ * 场景未交付时的显示是诚实的
  * ------------------------
- * 显示「本讲对应哪个场景 id + 由哪个阶段交付」，而不是给一个能点但没反应的
+ * 显示「本讲对应哪个场景 id + 由哪个提交点交付」，而不是给一个能点但没反应的
  * 播放按钮。可点却没反应比不可点更让人困惑。
  *
- * 变速为什么放在播放器而不是场景里
+ * 为什么没有「切换到别的场景」的入口
+ * ------------------------------
+ * Phase 5 时这里有一排场景按钮，那是为了在只有一个场景时也能试播放器。但
+ * `MODULE_SCENE_IDS` 定的是**一一对应**：每个概念只有一个场景。放一排全部
+ * 场景的按钮，学生会在学 LLM API 时点开 RAG 的动画 —— 与那一讲的讲解、
+ * 校验、练习全不搭。需要「场景库」是另一件事，不在本阶段。
+ *
+ * 变速为什么放在面板而不是场景里
  * ----------------------------
  * 「速度」是播放器的控制维度，与场景内容无关。若让每个场景各自实现，
  * 9 个场景会有 9 种对速度的处理，学生切换场景时手感会不一致。
  */
 export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
-  const scenes = useVisualizationStore((state) => state.scenes);
   const activeId = useVisualizationStore((state) => state.sceneId);
   const stepIndex = useVisualizationStore((state) => state.stepIndex);
   const status = useVisualizationStore((state) => state.status);
@@ -81,7 +88,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
     );
   }
 
-  const scene = activeId === null ? undefined : scenes[activeId];
+  const scene = getSceneDefinition(activeId);
   const registered = scene !== undefined;
   const total = scene?.steps.length ?? 0;
 
@@ -95,11 +102,11 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
         {registered ? (
           <span className="text-sm font-medium">{scene.title}</span>
         ) : (
-          <Badge variant="levelMid">场景待交付（Phase 6）</Badge>
+          <Badge variant="levelMid">场景待交付</Badge>
         )}
       </div>
 
-      {/* 控制条。场景未注册时禁用 —— 可点但没反应比不可点更让人困惑。 */}
+      {/* 控制条。场景尚未交付时禁用 —— 可点但没反应比不可点更让人困惑。 */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Button
           type="button"
@@ -206,30 +213,11 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
         </div>
       ) : (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          场景组件由 Phase 6 的提交点
-          <code className="mx-1 rounded bg-muted px-1 py-0.5">
-            feat(scenes): add {activeId}
-          </code>
-          交付。播放器（步骤推进、变速、参数覆盖）已就绪，场景注册后即可播放。
+          本讲对应的场景
+          <code className="mx-1 rounded bg-muted px-1 py-0.5">{activeId}</code>
+          尚未交付。控制条已就绪，场景的视觉与步骤定义补齐后即可播放。
         </p>
       )}
-
-      {/* 场景切换入口：仅在已注册多个场景时才出现 */}
-      {Object.keys(scenes).length > 1 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {Object.values(scenes).map((item) => (
-            <Button
-              key={item.id}
-              type="button"
-              size="sm"
-              variant={item.id === activeId ? "secondary" : "outline"}
-              onClick={() => selectScene(item.id)}
-            >
-              {item.title}
-            </Button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

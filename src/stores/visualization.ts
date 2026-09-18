@@ -8,54 +8,37 @@
  * - 「9 个可视化场景」：每个场景包含「动画步骤定义、播放控制
  *   （播放/暂停/前进/后退/重置/变速）、交互（可修改参数看变化）」。
  *
- * 场景本身在 Phase 6 交付
- * ---------------------
- * 9 个场景组件（`src/scenes/scene-*`）依赖的能力要到 Phase 4 / 5 才具备
- * （Agent 编排、RAG、MCP、多 Agent），所以 `04-frontend.md` 把它们列在
- * 模块表里、而执行计划把它们排在 Phase 6。本阶段交付的是**播放器骨架**：
- * 场景注册（`registerScene`）、步骤推进、播放控制、变速、参数覆盖。
+ * 场景定义不放在本 Store 里
+ * -----------------------
+ * Phase 5 时这里存着一张 `scenes` 表，靠 `registerScene` 在运行时填。那套做法
+ * 有个时序坑：`selectScene` 读不到「还没注册」的场景，参数只能给空对象，
+ * 等场景注册上来又要回头补一次 —— 而补的时机由调用顺序决定，谁先谁后都能
+ * 写出「参数是空的但界面正常」的状态。
  *
- * 这样切的好处是明确的：Phase 6 每写完一个场景，只要调 `registerScene`
- * 注册它的步骤定义即可播放，不必回头改播放器。模块页现在就能显示
- * 「本讲对应 scene-xxx」，而不是一块空白。
+ * 场景定义是**静态数据**（`src/scenes/scene-catalog.ts`），不需要运行时注册。
+ * 于是改成查目录：`selectScene` 当场就能拿到参数初值，步骤数也随查随有。
+ * 「晚注册」这类问题不是被修好了，而是不存在了。
+ *
+ * 这样切还有个副作用是好的：Store 只持有**播放状态**（第几步、在播没有、
+ * 多快、参数被改成了什么），场景内容与它无关。播放器要复用同一套控制语义，
+ * 靠的正是「内容在外面、状态在里面」。
  *
  * 为什么播放位置是「步骤索引」而不是「时间轴秒数」
  * --------------------------------------------
  * 场景的动画步骤是**离散**的（第几步做什么），不是连续时间轴。
  * 用索引做状态意味着暂停/前进/后退都是精确的、可断言的整数运算；
  * 用秒数则要处理步长边界与浮点误差，而变速只是乘一个系数。
- * 真实的时间推进由场景组件自己的计时器负责，它读 `speed` 决定间隔。
+ * 真实的时间推进由舞台的计时器负责，它读 `speed` 决定间隔。
  */
 
 import { create } from "zustand";
 
-/** 一个场景的动画步骤定义（由 `src/scenes/` 下的场景组件提供）。 */
-export interface SceneStep {
-  id: string;
-  /** 该步在界面上显示的标题。 */
-  title: string;
-  /** 该步的解说文案。 */
-  description: string;
-  /** 该步的时长（毫秒，按 `speed: 1` 计算），播放器据此推进。 */
-  durationMs: number;
-}
-
-/** 场景的静态定义。 */
-export interface SceneDefinition {
-  id: string;
-  title: string;
-  /** 该场景属于哪个模块（概念 id）。 */
-  moduleId: string;
-  steps: SceneStep[];
-  /**
-   * 可交互参数的默认值。
-   *
-   * `04-frontend.md` 要求场景「可修改参数看变化」，参数值由播放器统一持有，
-   * 场景组件只读不写 —— 这样「重置」能回到同一份初值，不必让每个场景
-   * 自己实现一遍。
-   */
-  defaultParams: Record<string, string | number | boolean>;
-}
+import { getSceneDefinition } from "@/scenes/scene-catalog";
+import type {
+  SceneDefinition,
+  SceneParams,
+  SceneParamValue,
+} from "@/scenes/scene-types";
 
 export type PlaybackStatus = "idle" | "playing" | "paused" | "finished";
 
@@ -64,8 +47,6 @@ export const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2] as const;
 export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 
 export interface VisualizationState {
-  /** 已注册的场景，键为场景 id。 */
-  scenes: Record<string, SceneDefinition>;
   /** 当前场景 id；未选场景时为 `null`。 */
   sceneId: string | null;
   /** 当前处于第几步（0 基）。 */
@@ -73,9 +54,8 @@ export interface VisualizationState {
   status: PlaybackStatus;
   speed: PlaybackSpeed;
   /** 用户改过的参数（覆盖场景的 `defaultParams`）。 */
-  params: Record<string, string | number | boolean>;
+  params: SceneParams;
 
-  registerScene: (scene: SceneDefinition) => void;
   selectScene: (sceneId: string | null) => void;
   play: () => void;
   pause: () => void;
@@ -84,27 +64,23 @@ export interface VisualizationState {
   /** 回到第 0 步并把参数恢复为场景默认值。 */
   reset: () => void;
   setSpeed: (speed: PlaybackSpeed) => void;
-  setParam: (key: string, value: string | number | boolean) => void;
+  setParam: (key: string, value: SceneParamValue) => void;
 }
 
 export const useVisualizationStore = create<VisualizationState>((set, get) => ({
-  scenes: {},
   sceneId: null,
   stepIndex: 0,
   status: "idle",
   speed: 1,
   params: {},
 
-  registerScene: (scene) =>
-    set((state) => ({
-      scenes: { ...state.scenes, [scene.id]: scene },
-    })),
-
   selectScene: (sceneId) => {
-    const scene = sceneId === null ? undefined : get().scenes[sceneId];
+    const scene = getSceneDefinition(sceneId);
     set({
       sceneId,
       stepIndex: 0,
+      // 场景没有定义（还没交付、或模型给了一个不认识的 id）时停在 `idle`：
+      // 控制条据此变成不可点，而不是给一个点了没反应的播放按钮。
       status: scene === undefined ? "idle" : "paused",
       params: scene === undefined ? {} : { ...scene.defaultParams },
     });
@@ -151,11 +127,11 @@ export const useVisualizationStore = create<VisualizationState>((set, get) => ({
     set((state) => ({ params: { ...state.params, [key]: value } })),
 }));
 
-/** 当前场景定义。 */
+/** 当前场景定义；未选场景、或该场景尚未交付时为 `undefined`。 */
 export function currentScene(
   state: VisualizationState,
 ): SceneDefinition | undefined {
-  return state.sceneId === null ? undefined : state.scenes[state.sceneId];
+  return getSceneDefinition(state.sceneId);
 }
 
 /** 当前场景的步骤总数；无场景时为 0。 */
