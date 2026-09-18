@@ -125,7 +125,10 @@ pnpm test:mastery                                 # 掌握度卡 M0–M3（store
    与 9 个反模式交叉引用）、`assessments/` 9 份（每模块一份测验，含判分要点）、
    `agents/` 4 页（共同约定 + 讲解/点评/出题三个 Agent 的实测失败模式）。
    `pnpm wiki:seed` 报告：8 个声明目录全部有页面，共 66 个 markdown 文件。
-5. **`agent-prompts/` 有 8 份文档的 Markdown 表格被空行拆散**（`01` / `02` / `03` / `05` / `references/anti-patterns` / `references/api-spec` / `references/git-conventions` / `references/rubrics`）。属**原始素材形态**（首次入库即如此，非回归），阅读时把每个 `|` 行当成独立一行。
+5. **~~`agent-prompts/` 有 8 份文档的 Markdown 表格被空行拆散~~（2026-09-18 已修复）**
+   —— `01` / `02` / `03` / `05` / `references/anti-patterns` / `references/api-spec` /
+   `references/git-conventions` / `references/rubrics`，共删掉 194 个表格内的空行
+   （纯删除、无内容改动；`agent-prompts` 在 `.prettierignore` 里，不会被重排）。
 6. **PG 未落地** —— `src/lib/cloudbase.ts` 不存在，`knowledge_embeddings` 表任何环境都没建过（迁移里也没有它）。
    检索目前是**本地加权关键词**，不是向量检索；换 CloudBase PG + pgvector 是代码工作，
    不是配置工作。`docs/deployment.md` 已把它列为上线前置。
