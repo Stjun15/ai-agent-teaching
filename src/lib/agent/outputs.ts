@@ -22,7 +22,7 @@ import { z } from "zod";
 
 import type { Expect } from "@/lib/type-assert";
 
-import { isSceneId } from "./scene-ids";
+import { isSceneId, SCENE_IDS } from "./scene-ids";
 import type { AgentId } from "./types";
 
 /**
@@ -33,6 +33,28 @@ import type { AgentId } from "./types";
  * 或「把 25 当成 0.25 之外又写错」这类真错误。
  */
 const WEIGHT_SUM_TOLERANCE = 0.02;
+
+/**
+ * 场景 ID 校验失败时的错误消息。
+ *
+ * 为什么要把 9 个合法值列全
+ * -----------------------
+ * 这条消息不只是给人看的：`runtime.ts` 会把它原文回喂给模型重试
+ * （重试消息里的「错误：Zod 校验失败：visualize_scene …」就是它）。
+ * 只写「不是已注册的可视化场景 ID」，模型拿不到正确答案，三次重试全是瞎猜 ——
+ * 回归测试因此偶发失败（同一用例重跑又过）。列出候选值，重试才有意义。
+ *
+ * 为什么模型一开始会编造场景 ID
+ * --------------------------
+ * 讲解 Agent 的 System Prompt 里只写了 `"visualize_scene": "场景 ID"`，
+ * 9 个场景的映射表在 `trigger-visualization` 技能里；而讲解 Agent 跑的是
+ * `explain-concept` 技能，看不到那张表。这是提示词层面的缺口（源头在
+ * `agent-prompts-lib.md`），消息表是运行时这一侧能补上的一半。
+ *
+ * 用 `SCENE_IDS` 拼而不是写死字符串：口径已经有三处（设计文档 / 技能表 /
+ * 前端映射），错误消息不该成为第四处。
+ */
+export const SCENE_ID_MESSAGE = `不是已注册的可视化场景 ID；可选：${SCENE_IDS.join("、")}`;
 
 /**
  * 校验评分维度权重之和。
@@ -64,7 +86,7 @@ export const TeacherOutputSchema = z.object({
   concept_id: z.string(),
   visualize_scene: z
     .string()
-    .refine(isSceneId, { message: "不是已注册的可视化场景 ID" })
+    .refine(isSceneId, { message: SCENE_ID_MESSAGE })
     .optional(),
   check_question: z
     .object({
@@ -195,7 +217,7 @@ export type AssistantOutput = z.infer<typeof AssistantOutputSchema>;
  */
 export const VisualizationOutputSchema = z.object({
   scene_id: z.string().refine(isSceneId, {
-    message: "不是已注册的可视化场景 ID",
+    message: SCENE_ID_MESSAGE,
   }),
   initial_params: z.record(z.string(), z.unknown()).optional(),
 });
