@@ -18,7 +18,7 @@
 | 项         | 事实                                                                          |
 | ---------- | ----------------------------------------------------------------------------- |
 | 当前分支   | `dev`（`main` 已合并到 `ba30e06`，**不是工作分支**）；已打标签 `v0.1.0`       |
-| 提交总数   | 237（`git rev-list --count HEAD`）                                            |
+| 提交总数   | 242（`git rev-list --count HEAD`）                                            |
 | Phase 0–6  | 已完成（9/9 可视化场景，场景断言 17 例）                                      |
 | Phase 7    | **9/12 完成**（安全 3 + 文档 3 + 提示词预算 + 跨浏览器测试 + 标签；见第八节） |
 | 质量门禁   | `npm run check` 全绿；`npm test` 16 组（14 纯函数 + 2 真模型）全绿            |
@@ -96,10 +96,13 @@ node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A
    另两项 `perf(ui)`（懒加载 / 代码分割）**已实测后放弃**：`next/dynamic` 在
    Next 16 + Turbopack 下 `ssr: true` 仍进首屏 `<script>`，实测 chunk 数 17→26、总量 +62KB，
    净负收益，已整体回退。别再重做一遍，除非换了 Next 版本。
-2. **`errors` 与 `prompt_history` 没有写入方法** —— 两张表有查询端点（`/report`、
-   `/api/student/errors`、`/api/student/prompts`）与仓库层，但**没有任何代码往里写**
-   （`db/errors.ts`、`db/prompt-history.ts` 只有 list 类方法）。后果是报告页的错题本与
-   提示词历史恒为空。这是当前最实的一处功能缺口。
+2. **~~`errors` 与 `prompt_history` 没有写入方法~~（2026-09-18 已关闭）** —— 两个仓库补了
+   `create`，接线在点评路径的路由层：`/api/agent/validate`（prompt_history 每次真实点评一行、
+   errors 不通过时）与 `/api/agent/answer-grade`（主观题判分不通过写 errors，conceptId 取题库行）。
+   兜底输出一律不写（编的失败不是学生的失败）。报告页「薄弱点」与「Prompt 平均分」已由真实
+   点评流量点亮（端到端验证：交一份弱作业 → errors/problems 带真实点评、报告 weaknesses 出现）。
+   仍开放的小口子：教学状态机接入后 attemptNumber 要从会话状态读；订正与复习调度
+   （is_corrected / next_review_at）没有实现路径；客观题答错不进错题本（只有 question_results）。
 3. **两张表没有真实用途**：`agent_events` 建了表但无任何读写代码；`citations` 是**预留表**
    （引用的唯一存储是 `messages.citations` 这一列，2026-09-18 已裁定并记载于
    `references/data-models.md` 与 `db/messages.ts` 文件头）。
