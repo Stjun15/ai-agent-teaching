@@ -260,7 +260,11 @@ export interface AgentTrace {
   traceId: string;
   timestamp: string;
   studentId: string;
-  sessionId: string;
+  /**
+   * 会话归属。**模块级调用没有会话上下文时为 null**（如出题：按模块生成练习，
+   * 不隶属某个会话），与表里 `session_id` 可空一致 —— 不为记录方便编造会话 id。
+   */
+  sessionId: string | null;
   agent: "teacher" | "reviewer" | "examiner" | "assistant";
   skill: string;
   input: object;

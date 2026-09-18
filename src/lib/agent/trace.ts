@@ -19,6 +19,12 @@
  * 继续学习，比让整条教学链路挂掉合理得多。但这里**不静默**：返回
  * `recorded: false` 并把原因带回调用方，由调用方决定是否上报。
  * 静默吞掉错误会让「Trace 表里少了一半数据」这种问题长期不被发现。
+ *
+ * 谁传上下文
+ * ---------
+ * 由 HTTP 路由层传（那里才知道学生与会话）。编排层只做透传：
+ * `打路由 → 构造 TraceContext → 编排层透传 → runAgent 落库`。
+ * 编排层不自己编上下文 —— 它拿不到身份，硬凑就会写出错误归属的观测数据。
  */
 
 import { traceDb } from "@/lib/db";
@@ -28,7 +34,13 @@ import type { AgentId, SkillId } from "./types";
 /** 记录一次调用所需的上下文（不含运行结果，那部分由运行时填）。 */
 export interface TraceContext {
   studentId: string;
-  sessionId: string;
+  /**
+   * 会话归属。**模块级调用没有会话，省略即可** —— 如出题（`/api/agent/generate-question`
+   * 按模块生成练习，不隶属某个会话，见该路由文件头）。此时写库为 NULL，
+   * 表里 `session_id` 本就允许为空；不为了「记录字段齐全」编造一个会话 id，
+   * 那会让观测数据指向错误的归属。
+   */
+  sessionId?: string;
   /** 本次调用读过的 wiki 页面。 */
   wikiReads?: readonly string[];
   /** 本次调用写过的 wiki 页面。 */
@@ -80,7 +92,8 @@ export async function recordAgentTrace(
       // 项目约定：时间统一存 ISO 8601 UTC 字符串（`data-models.md`）。
       timestamp: new Date().toISOString(),
       studentId: options.studentId,
-      sessionId: options.sessionId,
+      // 无会话上下文（模块级调用）时写 NULL，不编造会话 id。
+      sessionId: options.sessionId ?? null,
       agent: options.agent,
       skill: options.skill,
       input: toObject(options.input),

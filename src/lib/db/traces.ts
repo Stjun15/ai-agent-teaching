@@ -13,6 +13,7 @@
 import { getDb } from "./sqlite";
 import {
   asBool,
+  asNullableString,
   asNumber,
   asOptionalString,
   asString,
@@ -29,7 +30,8 @@ function mapTrace(row: Row): AgentTrace {
     traceId: asString(row.trace_id),
     timestamp: asString(row.timestamp),
     studentId: asString(row.student_id),
-    sessionId: asString(row.session_id),
+    // 模块级调用（如出题）没有会话上下文，此处为 null —— 见 trace.ts 的 TraceContext。
+    sessionId: asNullableString(row.session_id),
     agent: asString(row.agent) as AgentTrace["agent"],
     skill: asString(row.skill),
     input: parseJson<object>(row.input, {}),
