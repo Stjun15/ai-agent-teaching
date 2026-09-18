@@ -39,7 +39,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     icon: FlaskConical,
     status: "ready",
   },
-  { href: "/report", label: "学习报告", icon: LineChart, status: "planned" },
+  { href: "/report", label: "学习报告", icon: LineChart, status: "ready" },
   { href: "/settings", label: "设置", icon: Settings, status: "planned" },
 ];
 
