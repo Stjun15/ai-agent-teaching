@@ -5,10 +5,28 @@ import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  ErrorBookSection,
+  PromptHistorySection,
+} from "@/components/report/record-details";
 import { ReportSections } from "@/components/report/report-sections";
 import { ApiError, apiGet } from "@/lib/client-api";
 import { isAbortError } from "@/lib/sse";
-import type { ReportResponse } from "@/schemas";
+import type {
+  ErrorRecord,
+  PromptHistory,
+  ReportResponse,
+  StudentErrorsResponse,
+  StudentPromptsResponse,
+} from "@/schemas";
+
+/**
+ * 明细一次取多少条。
+ *
+ * 取小一点不是省流量：报告页的明细是「最近做了什么」，
+ * 一屏放 50 条等于没有明细，只是把列表变长了。
+ */
+const DETAIL_LIMIT = 20;
 
 /**
  * 学习报告的取数与状态机。
@@ -30,6 +48,14 @@ import type { ReportResponse } from "@/schemas";
  * ----------------
  * 报告按学生身份聚合，而身份在浏览器里（`localStorage` / 种子身份，
  * 见 `client-identity.ts`）。服务端渲染阶段拿不到它，硬做只能先渲染一份错的数据。
+ *
+ * 三个请求为什么分开成败
+ * ------------------
+ * 汇总（`/api/report`）失败 = 这一页没法看，整页进 error。
+ * 明细（`errors` / `prompts`）失败 = 只少两块，报告主体照常显示 ——
+ * 把「明细没取到」升级成整页失败，等于让一个次要数据源决定主内容能不能看。
+ * 所以明细用 `settle` 包住：失败记成 `null`（取不到），空数组是「真的没有」，
+ * 两者在界面上是两句不同的话。
  */
 export function ReportView() {
   const [state, setState] = React.useState<ViewState>({ status: "loading" });
@@ -42,8 +68,26 @@ export function ReportView() {
    * 状态只由 promise 的回调改写。
    */
   const run = React.useCallback((signal: AbortSignal): Promise<void> => {
-    return apiGet<ReportResponse>("/api/report", signal).then(
-      (report) => setState({ status: "ready", report }),
+    return Promise.all([
+      apiGet<ReportResponse>("/api/report", signal),
+      settle<StudentErrorsResponse>(
+        `/api/student/errors?limit=${DETAIL_LIMIT}`,
+        signal,
+      ),
+      settle<StudentPromptsResponse>(
+        `/api/student/prompts?limit=${DETAIL_LIMIT}`,
+        signal,
+      ),
+    ]).then(
+      ([report, errors, prompts]) =>
+        setState({
+          status: "ready",
+          report,
+          details: {
+            errors: errors?.errors ?? null,
+            history: prompts?.history ?? null,
+          },
+        }),
       (cause: unknown) => {
         if (isAbortError(cause)) return;
         setState({
@@ -55,6 +99,11 @@ export function ReportView() {
         });
       },
     );
+  }, []);
+
+  const retry = React.useCallback(() => {
+    setState({ status: "loading" });
+    setAttempt((value) => value + 1);
   }, []);
 
   React.useEffect(() => {
@@ -84,10 +133,7 @@ export function ReportView() {
             variant="outline"
             size="sm"
             className="w-fit"
-            onClick={() => {
-              setState({ status: "loading" });
-              setAttempt((value) => value + 1);
-            }}
+            onClick={retry}
           >
             <RefreshCw className="size-4" />
             重试
@@ -101,11 +147,13 @@ export function ReportView() {
     );
   }
 
-  const { report } = state;
+  const { report, details } = state;
   const hasAnything =
     report.masteryTrend.length > 0 ||
     report.overview.totalQuestions > 0 ||
-    report.weaknesses.length > 0;
+    report.weaknesses.length > 0 ||
+    (details.errors?.length ?? 0) > 0 ||
+    (details.history?.length ?? 0) > 0;
 
   if (!hasAnything) {
     return (
@@ -123,12 +171,84 @@ export function ReportView() {
     );
   }
 
-  return <ReportSections report={report} />;
+  return (
+    <div className="flex flex-col gap-8">
+      <ReportSections report={report} />
+
+      <div className="flex flex-col gap-8 border-t pt-6">
+        {details.errors ? (
+          <ErrorBookSection errors={details.errors} />
+        ) : (
+          <DegradedNotice label="错题本" onRetry={retry} />
+        )}
+        {details.history ? (
+          <PromptHistorySection history={details.history} />
+        ) : (
+          <DegradedNotice label="Prompt 历史" onRetry={retry} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 明细取不到时的说明条。
+ *
+ * 只给一句状态和一个重试按钮，不显示任何数字 —— 取不到就是取不到，
+ * 用 0 或占位文案顶上去会比留白更像真的。
+ */
+function DegradedNotice({
+  label,
+  onRetry,
+}: {
+  label: string;
+  onRetry: () => void;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-semibold">{label}</h2>
+      <p className="rounded-lg border border-dashed px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+        {label}这次没取到，不影响上面的报告内容。
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        onClick={onRetry}
+      >
+        <RefreshCw className="size-4" />
+        重新加载明细
+      </Button>
+    </section>
+  );
 }
 
 /** 页面状态。用可辨识联合而不是三个独立 `useState`：三者互斥，分开写会出现
  * 「既 loading 又有 error」这种表达得出来却不该存在的组合。 */
 type ViewState =
   | { status: "loading" }
-  | { status: "ready"; report: ReportResponse }
+  | {
+      status: "ready";
+      report: ReportResponse;
+      /** `null` = 这次没取到（与空数组「真的没有」是两回事）。 */
+      details: {
+        errors: ErrorRecord[] | null;
+        history: PromptHistory[] | null;
+      };
+    }
   | { status: "error"; error: ApiError };
+
+/**
+ * 明细请求的包装：失败返回 `null`，但**主动 abort 要继续往外抛** ——
+ * 否则离开页面时的一次 abort 会被记成「明细取不到」，
+ * 用户回到这一页就看见一条并不存在的失败。
+ */
+async function settle<T>(path: string, signal: AbortSignal): Promise<T | null> {
+  try {
+    return await apiGet<T>(path, signal);
+  } catch (cause) {
+    if (isAbortError(cause)) throw cause;
+    return null;
+  }
+}

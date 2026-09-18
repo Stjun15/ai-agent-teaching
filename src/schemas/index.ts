@@ -13,3 +13,4 @@ export * from "./api";
 export * from "./error";
 export * from "./report";
 export * from "./sse";
+export * from "./student-records";

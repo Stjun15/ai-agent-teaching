@@ -29,13 +29,20 @@ last_updated: 2026-09-17
 
 ## 设计模式（patterns/）
 
-| 页面                                                     | 名称        | 状态 |
-| -------------------------------------------------------- | ----------- | ---- |
-| [prompt-structure](./patterns/prompt-structure.md)       | Prompt 结构 | 待建 |
-| [tool-definition](./patterns/tool-definition.md)         | 工具定义    | 待建 |
-| [agent-orchestration](./patterns/agent-orchestration.md) | Agent 编排  | 待建 |
-| [rag-pipeline](./patterns/rag-pipeline.md)               | RAG 流水线  | 待建 |
-| [safety-layer](./patterns/safety-layer.md)               | 安全层      | 待建 |
+> 一个模块一个模式，与 `concepts/` 的 9 页一一对应，每页都交叉引用了至少一个
+> 反模式 —— 模式与反模式是同一件事的两面，分开看都不完整。
+
+| 页面                                                         | 名称             | 对应模块      | 状态 |
+| ------------------------------------------------------------ | ---------------- | ------------- | ---- |
+| [request-skeleton](./patterns/request-skeleton.md)           | 最小请求骨架     | llm-api       | 已建 |
+| [role-contract](./patterns/role-contract.md)                 | 角色契约四段     | system-prompt | 已建 |
+| [stop-condition](./patterns/stop-condition.md)               | 显式停止条件     | agent-loop    | 已建 |
+| [schema-first-tool](./patterns/schema-first-tool.md)         | 先定契约再写工具 | tool-calling  | 已建 |
+| [cite-then-answer](./patterns/cite-then-answer.md)           | 先引用后作答     | rag           | 已建 |
+| [write-back](./patterns/write-back.md)                       | 结论回写知识库   | llm-wiki      | 已建 |
+| [single-writer](./patterns/single-writer.md)                 | 单一出口         | multi-agent   | 已建 |
+| [least-privilege-tools](./patterns/least-privilege-tools.md) | 最小权限工具集   | mcp           | 已建 |
+| [two-gate](./patterns/two-gate.md)                           | 输入输出双闸门   | ai-safety     | 已建 |
 
 ## 反模式（anti-patterns/）
 
@@ -68,30 +75,41 @@ last_updated: 2026-09-17
 
 | 页面                                                       | 名称          | 状态 |
 | ---------------------------------------------------------- | ------------- | ---- |
-| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 待建 |
-| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 待建 |
-| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 待建 |
-| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 待建 |
-| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 待建 |
-| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 待建 |
-| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 待建 |
-| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 待建 |
-| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 待建 |
+| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 已建 |
+| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 已建 |
+| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 已建 |
+| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 已建 |
+| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 已建 |
+| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 已建 |
+| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 已建 |
+| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 已建 |
+| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 已建 |
 
 ## 测验（assessments/）
 
-| 页面                                    | 名称     | 状态 |
-| --------------------------------------- | -------- | ---- |
-| [quiz-bank](./assessments/quiz-bank.md) | 测验题库 | 待建 |
+> 一模块一份，含选择 / 填空 / 简答与判分要点。客观题走规则判分，
+> 简答题交给点评 Agent 按维度打分（维度名不固定，见 `agents/reviewer-memory.md`）。
+
+| 页面                                                   | 名称               | 对应模块      | 状态 |
+| ------------------------------------------------------ | ------------------ | ------------- | ---- |
+| [assess-llm-api](./assessments/llm-api.md)             | LLM API 测验       | llm-api       | 已建 |
+| [assess-system-prompt](./assessments/system-prompt.md) | System Prompt 测验 | system-prompt | 已建 |
+| [assess-agent-loop](./assessments/agent-loop.md)       | Agent Loop 测验    | agent-loop    | 已建 |
+| [assess-tool-calling](./assessments/tool-calling.md)   | 工具调用测验       | tool-calling  | 已建 |
+| [assess-rag](./assessments/rag.md)                     | RAG 测验           | rag           | 已建 |
+| [assess-llm-wiki](./assessments/llm-wiki.md)           | LLM Wiki 测验      | llm-wiki      | 已建 |
+| [assess-multi-agent](./assessments/multi-agent.md)     | 多 Agent 测验      | multi-agent   | 已建 |
+| [assess-mcp](./assessments/mcp.md)                     | MCP 测验           | mcp           | 已建 |
+| [assess-ai-safety](./assessments/ai-safety.md)         | AI 安全测验        | ai-safety     | 已建 |
 
 ## Agent 共享记忆（agents/）
 
-| 页面                               | 名称            | 状态 |
-| ---------------------------------- | --------------- | ---- |
-| [teacher](./agents/teacher.md)     | 讲解 Agent 记忆 | 待建 |
-| [reviewer](./agents/reviewer.md)   | 点评 Agent 记忆 | 待建 |
-| [examiner](./agents/examiner.md)   | 出题 Agent 记忆 | 待建 |
-| [assistant](./agents/assistant.md) | 答疑 Agent 记忆 | 待建 |
+| 页面                                                 | 名称                  | 状态 |
+| ---------------------------------------------------- | --------------------- | ---- |
+| [shared-conventions](./agents/shared-conventions.md) | 四个 Agent 的共同约定 | 已建 |
+| [teacher-memory](./agents/teacher-memory.md)         | 讲解 Agent 的观察     | 已建 |
+| [reviewer-memory](./agents/reviewer-memory.md)       | 点评 Agent 的观察     | 已建 |
+| [examiner-memory](./agents/examiner-memory.md)       | 出题 Agent 的观察     | 已建 |
 
 ## 学生（students/）
 

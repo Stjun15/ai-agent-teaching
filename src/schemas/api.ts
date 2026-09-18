@@ -71,6 +71,15 @@ export const AnswerSchema = z.object({
   currentModule: z.string().min(1),
 });
 
+export const AnswerGradeSchema = z.object({
+  studentId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  questionId: z.string().min(1),
+  studentAnswer: z.string().min(1).max(10000),
+  moduleId: z.string().min(1),
+  conceptId: z.string().min(1).optional(),
+});
+
 export const WikiQuerySchema = z.object({
   query: z.string().min(1).max(500),
   options: z
@@ -155,4 +164,5 @@ export type ValidateInput = z.infer<typeof ValidateSchema>;
 export type ExplainInput = z.infer<typeof ExplainSchema>;
 export type GenerateQuestionInput = z.infer<typeof GenerateQuestionSchema>;
 export type AnswerInput = z.infer<typeof AnswerSchema>;
+export type AnswerGradeInput = z.infer<typeof AnswerGradeSchema>;
 export type WikiQueryInput = z.infer<typeof WikiQuerySchema>;

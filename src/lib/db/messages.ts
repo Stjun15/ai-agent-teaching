@@ -3,13 +3,15 @@
  *
  * 接口签名来自 agent-prompts/references/data-models.md「四、数据访问层设计」。
  *
- * ⚠ 一处尚未澄清的设计重叠（需要你裁定时会单独提出）：
- * 引用（Citation）在数据模型里有两种存法 —— messages 表的 citations JSON 列，
- * 以及独立的 citations 表。两者在文档里同时存在，但没说何时写哪一个。
- * 本实现只写 messages.citations 这一份，不写 citations 表。
- * 理由：同一份数据写两处而不定义同步规则，比只写一处更危险；
- * 而 messages.citations 是 Message 类型的直接组成部分，读的时候不需要额外的 join。
- * 等设计明确后（比如 citations 表用于跨消息检索引用来源），再补写入逻辑。
+ * 引用（Citation）的存储裁定（2026-09-18）
+ * -------------------------------------
+ * 数据模型里引用有两种存法：messages 表的 citations JSON 列，以及独立的
+ * citations 表。**已裁定：以 messages.citations 为唯一存储，独立表保持预留。**
+ * 理由：同一份数据写两处而不定义同步规则，比只写一处更危险；而
+ * messages.citations 是 Message 类型的直接组成部分，读取不需要额外 join。
+ * 独立 citations 表留作「跨消息检索引用来源」的预留，出现明确消费方时再补写入。
+ * 该裁定已同步到 `data-models.md`（Citation 接口与 citations 建表 SQL 两处注释），
+ * 避免「表在却永不写入」被读成疏漏。
  *
  * 所有方法都是 async 的，尽管 node:sqlite 是同步 API —— 见 students.ts 的说明。
  */

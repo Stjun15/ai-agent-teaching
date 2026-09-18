@@ -78,28 +78,66 @@ export function ReportSections({ report }: { report: ReportResponse }) {
       <section aria-label="子能力">
         <h2 className="text-sm font-semibold">六项子能力</h2>
         {subAbilityPlaceholder ? (
+          /* 占位时不画六根一模一样的进度条 —— 那看起来像一个测出来的结论，
+             实际是同一个数字复制了六遍。改成一句话 + 指向下面的真实维度。 */
           <p className="mt-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
             这六项目前还没有分项建模：掌握度表是「概念 → 分数」，不是「能力 →
-            分数」，所以接口暂时用总体平均分填这六个字段。
-            六项数值相同就表示它是占位数据，不代表你的六项能力一模一样。
+            分数」。所以这里不画六根进度条 —— 画出来只会是同一个数字复制六遍，
+            看起来像测出来的结论。下面「评分维度」是真实数据。
           </p>
-        ) : null}
-        <ul className="mt-3 flex flex-col gap-2">
-          {SUB_ABILITY_KEYS.map((key) => (
-            <li key={key} className="flex items-center gap-3">
-              <span className="w-32 shrink-0 text-xs">
-                {SUB_ABILITY_LABELS[key]}
-              </span>
-              <Progress
-                value={masteryToPercent(report.subAbilities[key])}
-                label={`${SUB_ABILITY_LABELS[key]} ${report.subAbilities[key]} / ${MASTERY_MAX_SCORE}`}
-              />
-              <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                {report.subAbilities[key]}
-              </span>
-            </li>
-          ))}
-        </ul>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {SUB_ABILITY_KEYS.map((key) => (
+              <li key={key} className="flex items-center gap-3">
+                <span className="w-32 shrink-0 text-xs">
+                  {SUB_ABILITY_LABELS[key]}
+                </span>
+                <Progress
+                  value={masteryToPercent(report.subAbilities[key])}
+                  label={`${SUB_ABILITY_LABELS[key]} ${report.subAbilities[key]} / ${MASTERY_MAX_SCORE}`}
+                />
+                <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                  {report.subAbilities[key]}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ---------- 评分维度（真实） ---------- */}
+      <section aria-label="评分维度">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-sm font-semibold">评分维度</h2>
+          <span className="text-[11px] text-muted-foreground">
+            点评 Agent 实际打过的维度，满分 {PROMPT_SCORE_MAX}
+          </span>
+        </div>
+        {report.promptDimensions.length === 0 ? (
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            还没有点评记录，维度要等点评 Agent 打过分才会出现。
+          </p>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {report.promptDimensions.map((dimension) => (
+              <li key={dimension.name} className="flex items-center gap-3">
+                <span className="w-32 shrink-0 text-xs">{dimension.name}</span>
+                {/* 维度分本身就是 0~100（`ReviewerOutputSchema`），
+                    不再过 `masteryToPercent` —— 那是给 0~5 的掌握度用的。 */}
+                <Progress
+                  value={dimension.averageScore}
+                  label={`${dimension.name} ${dimension.averageScore} / ${PROMPT_SCORE_MAX}`}
+                />
+                <span className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                  {dimension.averageScore} / {PROMPT_SCORE_MAX}
+                </span>
+                <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
+                  {dimension.samples} 次
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* ---------- 趋势 ---------- */}

@@ -83,9 +83,28 @@ export interface ReportWeakness {
   issue: string;
 }
 
+/**
+ * 一个**真实存在**的评分维度的汇总。
+ *
+ * 与 `ReportSubAbilities` 是两回事：那六项是 api-spec 写死的固定能力，
+ * 本项目没有按它建模；这里的维度是点评 Agent 每次实际打出来的
+ * （`prompt_history.dimensions`），名字不固定、有多少显示多少。
+ * 聚合规则见 `src/lib/report-dimensions.ts`。
+ */
+export interface ReportPromptDimension {
+  /** 维度名，直接用模型给的原名。 */
+  name: string;
+  /** 平均分，量纲 **0~100**（与 `averagePromptScore` 同一量纲）。 */
+  averageScore: number;
+  /** 样本数：有多少次点评包含该维度。样本数为 0 的行不会出现。 */
+  samples: number;
+}
+
 export interface ReportResponse {
   overview: ReportOverview;
   subAbilities: ReportSubAbilities;
+  /** 真实评分维度的汇总；一次点评都没有时是空数组。 */
+  promptDimensions: ReportPromptDimension[];
   masteryTrend: ReportTrendPoint[];
   weaknesses: ReportWeakness[];
   recommendations: string[];

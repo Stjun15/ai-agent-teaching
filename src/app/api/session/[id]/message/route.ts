@@ -47,10 +47,12 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { messageDb, sessionDb } from "@/lib/db";
 import { newId } from "@/lib/db/helpers";
 import type { Citation } from "@/lib/db/types";
+import { screenInput } from "@/lib/security/input-filter";
 import {
   DEFAULT_AGENT_ID,
   runAgentLoop,
@@ -102,6 +104,12 @@ export async function POST(
 
   const { id } = await context.params;
 
+  // 限流：身份一确定就挡，早于解析请求体与读库。
+  // 这一条对 SSE 端点格外重要 —— 一次请求会跑完一整轮 Agent（真花钱），
+  // 而且响应头一交出就没法再用状态码拒绝，只能在流开始之前拦。
+  const limited = enforceRateLimit(auth.student.id, "message");
+  if (limited) return limited;
+
   // 1. 解析并校验请求体（流开始前失败才能回 JSON 而非污染流）
   let body: SendMessageInput;
   try {
@@ -130,6 +138,21 @@ export async function POST(
   }
   if (!session || session.studentId !== auth.student.id) {
     return jsonError("NOT_FOUND", `会话 ${id} 不存在。`);
+  }
+
+  // 2.5 输入过滤：提示注入拦在模型之前。
+  //
+  // 为什么只拦「对话路径」，不拦「提交作业路径」（validate / answer-grade）：
+  // 那两条是「把内容交给评分器」，而模块 9 的作业本身就是写攻击样例与防护方案，
+  // 拦了学生就没法交作业。这里是「把话交给模型执行」，注入才真正有意义。
+  //
+  // 拦下的输入不落库：否则它会进入历史，之后每一轮都被重新喂给模型。
+  const screened = screenInput(body.content);
+  if (screened.blocked) {
+    return jsonError(
+      "FORBIDDEN",
+      `输入被安全过滤拦下（命中：${screened.hits.join("、")}），本次未调用模型。规则与模块 9「AI 安全」的演示一致。`,
+    );
   }
 
   // 3. 读历史（最近 N 条，跳过系统消息）

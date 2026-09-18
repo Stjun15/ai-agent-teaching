@@ -158,6 +158,12 @@ interface MessageMetadata {
   duration?: number;
   model?: string;
 }
+/**
+ * 引用。**当前唯一存储与读取路径是 `messages.citations` 这个 JSONB 列**：
+ * 会话消息落库时把引用数组一并写入该列，前端也从消息对象读它。
+ * 独立的 `citations` 表为**预留**（见下方建表 SQL 的注释）—— 尚无写入方与消费方。
+ * 两处同时存在容易读成「双写」，此处的裁定即是消除该歧义。
+ */
 interface Citation {
   id: string;
   messageId: string;
@@ -229,7 +235,12 @@ interface AgentTrace {
   traceId: string;
   timestamp: string;
   studentId: string;
-  sessionId: string;
+  /**
+   * 会话归属。**模块级调用没有会话上下文时为 `null`** —— 如出题（按模块生成
+   * 练习，不隶属某个会话）。下方建表 SQL 的 `session_id` 本就允许为空，二者一致：
+   * 不为「字段齐全」编造会话 id，那会让观测数据指向错误归属。
+   */
+  sessionId: string | null;
   agent: "teacher" | "reviewer" | "examiner" | "assistant";
   skill: string;
   input: object;
@@ -360,7 +371,10 @@ CREATE TABLE messages (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
--- 引用
+-- 引用（**预留表**）：当前实现只写 `messages.citations` 这个 JSONB 列，不写本表。
+-- 两者在文档里同时存在但未说明何时用哪个；裁定（2026-09-18）：以该 JSONB 列为
+-- 唯一存储，本表留作「跨消息检索引用来源」的预留，出现明确消费方时再补写入。
+-- 实现侧说明见 src/lib/db/messages.ts 文件头。
 CREATE TABLE citations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id UUID REFERENCES messages(id),
@@ -369,7 +383,14 @@ CREATE TABLE citations (
   snippet TEXT,
   relevance FLOAT DEFAULT 0
 );
--- Agent 事件
+-- Agent 事件（**预留表**，2026-09-18 裁定）
+-- 当前**没有任何写入方与消费方**：逐步事件（思考、工具调用、输出片段）由 SSE
+-- 实时推给前端，不落库；一次调用的汇总（token、耗时、模型、是否兜底）落在
+-- `agent_traces`。两者粒度不同，不是同一份数据的两份拷贝，所以在出现明确
+-- 消费方之前**不预先双写** —— 与 `citations` 那条裁定同一理由：同一份数据
+-- 写两处而不定义同步规则，比只写一处更危险。
+-- 启用条件：出现「回放某次历史会话的逐步过程」这类消费方（例如历史会话
+-- 时间线回放页）时，在 SSE 推流的同时补一行写入，并在本注释里改掉「预留」字样。
 CREATE TABLE agent_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID REFERENCES sessions(id),

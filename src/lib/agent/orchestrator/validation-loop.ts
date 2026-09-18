@@ -30,6 +30,7 @@ import { runAgent } from "../runtime";
 import type { ReviewerOutput } from "../outputs";
 import type { SkillId } from "../types";
 import type { ArkEnv } from "../ark";
+import type { TraceContext } from "../trace";
 
 /** 通过线。三个校验 Skill 的通过条件一致。 */
 export const PASS_SCORE = 75;
@@ -57,6 +58,8 @@ export interface ValidationLoopInput {
   maxRetries?: number;
   env?: ArkEnv;
   signal?: AbortSignal;
+  /** Trace 上下文。由 HTTP 路由层构造，编排层只透传；见 question-loop.ts 同名参数。 */
+  trace?: TraceContext;
 }
 
 export interface ValidationLoopResult {
@@ -106,6 +109,7 @@ export async function runValidationLoop(
     maxRetries,
     env,
     signal,
+    trace,
   } = input;
 
   const lower = lowerDifficultyInstruction(attemptNumber);
@@ -127,6 +131,7 @@ export async function runValidationLoop(
     fallback: () => reviewerFallback("模型输出未通过校验"),
     env,
     signal,
+    trace,
   });
 
   // 兜底路径下 data 一定存在（fallback 提供了）；非兜底失败时不应发生，

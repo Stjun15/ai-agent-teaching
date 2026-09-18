@@ -18,11 +18,23 @@
  * 状态，不该由客户端自报（学生可以随便填 1）。这里统一按 1 处理：
  * 真正的尝试计数由教学状态机在跨请求时维护，单端点调用视为「首次提交」。
  * 等教学状态机接入后，这里改为从会话状态读。
+ *
+ * 副作用（都是「点评之后」的记录，写入裁定见各仓库文件头）
+ * ----
+ * - validation_results：每次点评一行（含兜底 —— 兜底也是一次真实发生的调用）；
+ * - prompt_history：只记真实点评（报告页「Prompt 平均分」的数据源）；
+ * - errors：真实点评且不通过时写入（报告页「薄弱点」的数据源）。
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
-import { sessionDb } from "@/lib/db";
+import {
+  errorDb,
+  promptHistoryDb,
+  sessionDb,
+  validationResultDb,
+} from "@/lib/db";
 import { findModule } from "@/lib/modules";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
 import { ValidateSchema, type ValidateInput } from "@/schemas";
@@ -33,6 +45,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡（理由同 explain 路由）。
+  const limited = enforceRateLimit(auth.student.id, "validate");
+  if (limited) return limited;
 
   let body: ValidateInput;
   try {
@@ -71,9 +87,78 @@ export async function POST(request: Request): Promise<Response> {
       moduleId: body.moduleId,
       conceptId: body.moduleId,
       attemptNumber: 1,
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const review = result.review;
+
+    // 持久化点评结果（副作用）：此前 /api/agent/validate 跑完直接丢弃，
+    // 导致 validation_results 表在真实库里恒为 0 行。这里补上写入，
+    // 使每一次点评被真实记录。单独 try/catch：持久化失败不应阻断给学生的点评反馈。
+    try {
+      await validationResultDb.create({
+        studentId: auth.student.id,
+        sessionId: body.sessionId,
+        taskType: body.taskType,
+        totalScore: review.total_score,
+        level: review.level,
+        isCorrect: review.is_correct,
+        dimensions: review.dimensions,
+        issues: review.issues,
+        suggestions: review.suggestions,
+      });
+    } catch (dbError) {
+      console.error("[validate] 持久化校验结果失败：", dbError);
+    }
+
+    // 以下两笔只在**真实点评**后写：兜底输出是编的（0 分 + 假 issues），
+    // 写进 Prompt 历史或错题本，等于让学生为一次系统故障背记录。
+    if (!result.usedFallback) {
+      try {
+        await promptHistoryDb.create({
+          studentId: auth.student.id,
+          moduleId: body.moduleId,
+          taskType: body.taskType,
+          content: body.content,
+          score: review.total_score,
+          dimensions: review.dimensions,
+          issues: review.issues.map((i) => ({
+            type: i.type,
+            detail: i.detail,
+            deduction: i.deduction,
+            relatedDimension: i.related_dimension,
+            relatedAntiPattern: i.related_anti_pattern,
+          })),
+          suggestions: review.suggestions.map((s) => s.action),
+          attemptNumber: 1,
+          isPassed: result.success,
+        });
+      } catch (dbError) {
+        console.error("[validate] 持久化 Prompt 历史失败：", dbError);
+      }
+
+      if (!result.success) {
+        try {
+          await errorDb.create({
+            studentId: auth.student.id,
+            moduleId: body.moduleId,
+            // ValidateSchema 没有 conceptId（见上方 attemptNumber 同类问题），
+            // 沿用与 validation_results 相同的 moduleId 兜底。
+            conceptId: body.moduleId,
+            taskType: body.taskType,
+            studentAnswer: body.content,
+            problems: review.issues.map((i) => `${i.type}：${i.detail}`),
+            correctExample: review.suggestions[0]?.example ?? null,
+            relatedAntiPattern:
+              review.issues.find((i) => i.related_anti_pattern)
+                ?.related_anti_pattern ?? null,
+          });
+        } catch (dbError) {
+          console.error("[validate] 持久化错题失败：", dbError);
+        }
+      }
+    }
+
     return Response.json({
       totalScore: review.total_score,
       level: review.level,

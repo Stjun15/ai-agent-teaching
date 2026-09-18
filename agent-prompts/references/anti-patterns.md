@@ -418,48 +418,28 @@ severity: medium
 ## 反模式与模块映射
 
 | 反模式 | 主要关联模块 | 严重程度 |
-
 |---|---|---|
-
 | vague-prompt | system-prompt | 高 |
-
 | weak-role-definition | system-prompt | 高 |
-
 | missing-params | tool-calling | 高 |
-
 | no-error-handling | tool-calling, ai-safety | 中 |
-
 | infinite-loop | agent-loop, ai-safety | 高 |
-
 | token-explosion | llm-api, ai-safety | 中 |
-
 | prompt-injection | ai-safety | 高 |
-
 | over-retrieval | rag | 中 |
-
 | role-overlap | multi-agent | 中 |
 
 ## 反模式与评分标准映射
 
 | 反模式 | 关联评分标准 | 关联维度 |
-
 |---|---|---|
-
 | vague-prompt | prompt-rubric | 简洁性 |
-
 | weak-role-definition | prompt-rubric | 角色定义 |
-
 | missing-params | tool-rubric | 参数 |
-
 | no-error-handling | tool-rubric, safety-rubric | 错误处理、输入过滤 |
-
 | infinite-loop | safety-rubric | 限流 |
-
 | token-explosion | prompt-rubric, safety-rubric | 简洁性、限流 |
-
 | prompt-injection | safety-rubric | 输入过滤 |
-
 | over-retrieval | prompt-rubric | 知识边界 |
-
 | role-overlap | multi-agent-rubric | 角色分工 |
 

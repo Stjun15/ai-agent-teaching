@@ -23,6 +23,7 @@ import { examinerFallback } from "../fallback";
 import type { ExaminerOutput } from "../outputs";
 import { runAgent } from "../runtime";
 import type { ArkEnv } from "../ark";
+import type { TraceContext } from "../trace";
 
 /** 一次生成的题目数量。`02-agent-system.md` 与各 Skill 均按 3 道设计。 */
 export const DEFAULT_QUESTION_COUNT = 3;
@@ -38,6 +39,11 @@ export interface QuestionLoopInput {
   maxRetries?: number;
   env?: ArkEnv;
   signal?: AbortSignal;
+  /**
+   * Trace 上下文。由 HTTP 路由层构造（那里才知道学生身份），编排层只透传。
+   * 传了才会写 `agent_traces`；不传就不记（探针与回归测试不传，避免污染库）。
+   */
+  trace?: TraceContext;
 }
 
 export interface QuestionLoopResult {
@@ -79,6 +85,7 @@ export async function runQuestionLoop(
     maxRetries,
     env,
     signal,
+    trace,
   } = input;
 
   const result = await runAgent({
@@ -96,6 +103,7 @@ export async function runQuestionLoop(
     fallback: examinerFallback,
     env,
     signal,
+    trace,
   });
 
   const output = result.data ?? examinerFallback();

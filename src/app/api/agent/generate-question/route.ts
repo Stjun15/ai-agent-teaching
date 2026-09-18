@@ -21,8 +21,10 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { findModule } from "@/lib/modules";
+import { questionDb } from "@/lib/db";
 import { runQuestionLoop } from "@/lib/agent/orchestrator/question-loop";
 import { GenerateQuestionSchema, type GenerateQuestionInput } from "@/schemas";
 
@@ -32,6 +34,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡（理由同 explain 路由）。
+  const limited = enforceRateLimit(auth.student.id, "generate-question");
+  if (limited) return limited;
 
   let body: GenerateQuestionInput;
   try {
@@ -64,7 +70,30 @@ export async function POST(request: Request): Promise<Response> {
       conceptId: body.moduleId,
       count: body.count,
       ...(body.difficulty === undefined ? {} : { mastery: body.difficulty }),
+      // 出题是模块级操作、不隶属会话（见文件头），故 trace 只带学生不带会话 ——
+      // 写库时 session_id 为 NULL，不编造归属。
+      trace: { studentId: auth.student.id },
     });
+
+    // 把模型出的题写入题库（upsert，按模型给出的 id 幂等）。
+    // 这是 question_results.question_id 外键能指向真实行的前提：不落库，
+    // 后续作答评分就无法落库（外键 NOT NULL）。
+    for (const q of result.questions) {
+      await questionDb.create({
+        id: q.id,
+        moduleId: body.moduleId,
+        conceptId: q.concept_id,
+        type: q.type,
+        difficulty: q.difficulty,
+        scenario: q.scenario,
+        question: q.question,
+        options: q.options ?? [],
+        correctAnswer: q.correct_answer,
+        explanation: q.explanation,
+        hintLevels: q.hint_levels,
+        relatedAntiPattern: q.related_anti_pattern ?? null,
+      });
+    }
 
     return Response.json({
       questions: result.questions,

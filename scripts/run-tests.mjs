@@ -41,6 +41,36 @@ const SUITES = [
   { name: "主题偏好", file: "scripts/theme-spec.ts", model: false },
   { name: "沙箱清单", file: "scripts/playground-spec.ts", model: false },
   { name: "可视化场景", file: "scripts/scene-spec.ts", model: false },
+  { name: "项目模板", file: "scripts/project-templates-spec.ts", model: false },
+  { name: "教学循环 DB", file: "scripts/teaching-loop-spec.ts", model: false },
+  {
+    name: "教学结果表 DB",
+    file: "scripts/teaching-results-spec.ts",
+    model: false,
+  },
+  {
+    name: "教学闭环 DB",
+    file: "scripts/teaching-grade-spec.ts",
+    model: false,
+  },
+  { name: "Trace 接线 DB", file: "scripts/trace-spec.ts", model: false },
+  {
+    name: "提示词预算",
+    file: "scripts/prompt-budget-spec.ts",
+    model: false,
+  },
+  { name: "安全过滤", file: "scripts/security-spec.ts", model: false },
+  { name: "限流", file: "scripts/rate-limit-spec.ts", model: false },
+  {
+    name: "学生记录写入",
+    file: "scripts/student-records-spec.ts",
+    model: false,
+  },
+  {
+    name: "评分维度汇总",
+    file: "scripts/report-dimensions-spec.ts",
+    model: false,
+  },
   {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",

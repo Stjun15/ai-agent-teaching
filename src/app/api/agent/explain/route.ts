@@ -25,6 +25,7 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { masteryDb, sessionDb } from "@/lib/db";
 import { findModule } from "@/lib/modules";
@@ -41,6 +42,13 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡，早于解析请求体与读库。
+  // 放这么靠前有两个理由 —— 它是最便宜的拒绝路径（不再做额外的解析与 IO），
+  // 且统计到的是**全部**请求（请求体畸形也照样计数，不留免检通道）。
+  // 各端点额度与实现边界见 lib/security/rate-limit.ts。
+  const limited = enforceRateLimit(auth.student.id, "explain");
+  if (limited) return limited;
 
   let body: ExplainInput;
   try {
@@ -95,6 +103,8 @@ export async function POST(request: Request): Promise<Response> {
     const result = await runExplainStep({
       state,
       prerequisiteMastery,
+      // 身份只有路由层知道，在这里构造 TraceContext；编排层只透传。
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const teaching = result.teaching;

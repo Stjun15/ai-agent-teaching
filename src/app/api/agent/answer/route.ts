@@ -23,10 +23,12 @@
  */
 
 import { resolveStudent } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import { sessionDb } from "@/lib/db";
 import { runAgent } from "@/lib/agent/runtime";
 import { assistantFallback } from "@/lib/agent/fallback";
+import { screenInput } from "@/lib/security/input-filter";
 import { AnswerSchema, type AnswerInput } from "@/schemas";
 
 export const runtime = "nodejs";
@@ -35,6 +37,10 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const auth = await resolveStudent(request);
   if (!auth.ok) return auth.response;
+
+  // 限流：身份一确定就挡（理由同 explain 路由）。
+  const limited = enforceRateLimit(auth.student.id, "answer");
+  if (limited) return limited;
 
   let body: AnswerInput;
   try {
@@ -56,6 +62,16 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("INVALID_INPUT", "studentId 与请求身份不一致。");
   }
 
+  // 输入过滤：答疑同样是「把话交给模型」，与对话路径同等对待。
+  // 提交作业路径（validate / answer-grade）不过滤 —— 理由见 session/[id]/message 路由。
+  const screened = screenInput(body.question);
+  if (screened.blocked) {
+    return jsonError(
+      "FORBIDDEN",
+      `提问被安全过滤拦下（命中：${screened.hits.join("、")}），本次未调用模型。规则与模块 9「AI 安全」的演示一致。`,
+    );
+  }
+
   try {
     const session = await sessionDb.get(body.sessionId);
     if (!session || session.studentId !== auth.student.id) {
@@ -70,6 +86,7 @@ export async function POST(request: Request): Promise<Response> {
         current_module: body.currentModule,
       },
       fallback: assistantFallback,
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const data = result.data;

@@ -30,6 +30,7 @@ import { teacherFallback } from "../fallback";
 import type { TeacherOutput } from "../outputs";
 import { runAgent } from "../runtime";
 import type { ArkEnv } from "../ark";
+import type { TraceContext } from "../trace";
 
 import { runQuestionLoop, type QuestionLoopResult } from "./question-loop";
 import {
@@ -90,8 +91,10 @@ export async function runExplainStep(options: {
   prerequisiteMastery?: number | null;
   env?: ArkEnv;
   signal?: AbortSignal;
+  /** Trace 上下文。由 HTTP 路由层构造（那里才知道学生身份），编排层只透传。 */
+  trace?: TraceContext;
 }): Promise<TeachingStepResult> {
-  const { state, prerequisiteMastery, env, signal } = options;
+  const { state, prerequisiteMastery, env, signal, trace } = options;
 
   const needsReview =
     prerequisiteMastery !== undefined &&
@@ -117,6 +120,7 @@ export async function runExplainStep(options: {
     fallback: () => teacherFallback(state.conceptId),
     env,
     signal,
+    trace,
   });
 
   const teaching = result.data ?? teacherFallback(state.conceptId);
@@ -167,8 +171,10 @@ export async function runPracticeStep(options: {
   existingQuestions?: readonly string[];
   env?: ArkEnv;
   signal?: AbortSignal;
+  /** Trace 上下文。见 runExplainStep 同名参数。 */
+  trace?: TraceContext;
 }): Promise<TeachingStepResult> {
-  const { state, existingQuestions, env, signal } = options;
+  const { state, existingQuestions, env, signal, trace } = options;
 
   const questions = await runQuestionLoop({
     moduleId: state.moduleId,
@@ -179,6 +185,7 @@ export async function runPracticeStep(options: {
     ...(existingQuestions ? { existingQuestions } : {}),
     env,
     signal,
+    trace,
   });
 
   return { state: { ...state, phase: "validate" }, questions };
@@ -197,8 +204,10 @@ export async function runValidateStep(options: {
   previousAnswer?: string;
   env?: ArkEnv;
   signal?: AbortSignal;
+  /** Trace 上下文。见 runExplainStep 同名参数。 */
+  trace?: TraceContext;
 }): Promise<TeachingStepResult> {
-  const { state, taskType, studentAnswer, previousAnswer, env, signal } =
+  const { state, taskType, studentAnswer, previousAnswer, env, signal, trace } =
     options;
 
   const validation = await runValidationLoop({
@@ -210,6 +219,7 @@ export async function runValidateStep(options: {
     attemptNumber: state.attemptNumber,
     env,
     signal,
+    trace,
   });
 
   if (validation.success) {

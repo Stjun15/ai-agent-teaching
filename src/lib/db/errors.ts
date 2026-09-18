@@ -5,13 +5,35 @@
  * 的 repository），本文件按同层既有风格补齐 —— Phase 5 的
  * `/api/student/errors` 需要它。
  *
- * 只有**读**：错题由点评 Agent 在校验不通过时写入，那个写入点是编排层
- * （`validation-loop`），属 Phase 6 的教学集成。这里不提前发明写入接口 ——
- * 没有调用方的写入方法等于把「谁负责写」这个决定推迟到看不出问题的时候。
+ * 写入裁定（2026-09-18）
+ * --------------------
+ * 写入点是**判为不通过时**（`02-agent-system.md` 异常处理：
+ * 「校验不通过 3 次 → 降难度 + 记录 errors」；`fallback.ts` 同一段落），
+ * 落在 HTTP 路由层：`/api/agent/validate`（自主提交不通过）与
+ * `/api/agent/answer-grade`（作答判分不通过）。
+ *
+ * 客观题也写（2026-09-18 改）
+ * ------------------------
+ * 原先只写主观题，理由是「客观题走规则判分、产不出 problems /
+ * correct_example」。但题库行**自带** `explanation` 与 `correctAnswer`，
+ * 足以填上这两个字段 —— 不写的实际后果是：客观题答错只进
+ * `question_results`，报告页「薄弱点」与「错题本」永远缺这一类错误，
+ * 学生做得最多的那类练习反而在报告里看不见。
+ * 现在两路都写，但**文本上必须分得清**：客观题的 problems 带「解析：」前缀，
+ * 标明它来自题库作者而不是点评 Agent（路由里有同样一段说明）。
+ *
+ * **兜底输出不写**：兜底的 0 分是编的，编的失败不是学生的失败 ——
+ * 与「兜底不更新掌握度」（`fallback.ts`）是同一条规则。
  */
 
 import { getDb } from "./sqlite";
-import { asNullableString, asNumber, asString, type Row } from "./helpers";
+import {
+  newId,
+  asNullableString,
+  asNumber,
+  asString,
+  type Row,
+} from "./helpers";
 import type { ErrorRecord } from "./types";
 
 function mapError(row: Row): ErrorRecord {
@@ -34,6 +56,47 @@ function mapError(row: Row): ErrorRecord {
 }
 
 export const errorDb = {
+  /**
+   * 写入一条错题（点评判为不通过时，见文件头「写入裁定」）。
+   *
+   * `question` 可空：`/api/agent/validate` 是学生自主提交，没有题面；
+   * `answer-grade` 从题库行带入。`is_corrected` / `variant_questions_generated` /
+   * `next_review_at` 固定写初始值 —— 订正与复习调度还没有实现路径，写假状态
+   * 等于谎报。
+   */
+  async create(input: {
+    studentId: string;
+    moduleId: string;
+    conceptId: string;
+    taskType: ErrorRecord["taskType"];
+    question?: string | null;
+    studentAnswer: string;
+    problems: string[];
+    correctExample?: string | null;
+    relatedAntiPattern?: string | null;
+  }): Promise<void> {
+    getDb()
+      .prepare(
+        `INSERT INTO errors (
+           id, student_id, module_id, concept_id, task_type, question,
+           student_answer, problems, correct_example, related_anti_pattern,
+           is_corrected, variant_questions_generated, next_review_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NULL)`,
+      )
+      .run(
+        newId(),
+        input.studentId,
+        input.moduleId,
+        input.conceptId,
+        input.taskType,
+        input.question ?? null,
+        input.studentAnswer,
+        JSON.stringify(input.problems),
+        input.correctExample ?? null,
+        input.relatedAntiPattern ?? null,
+      );
+  },
+
   /** 某学生的全部错题，按时间倒序。 */
   async listByStudent(studentId: string, limit = 50): Promise<ErrorRecord[]> {
     const rows = getDb()

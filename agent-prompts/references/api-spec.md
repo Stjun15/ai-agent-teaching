@@ -3,43 +3,24 @@
 ## 一、API 路由清单
 
 | 路由 | 方法 | 用途 | 认证 |
-
 |---|---|---|---|
-
 | /api/student/profile | GET/PUT | 学生画像 | 是 |
-
 | /api/student/mastery | GET | 掌握度 | 是 |
-
 | /api/student/learning-path | GET | 学习路径 | 是 |
-
 | /api/student/errors | GET | 错题 | 是 |
-
 | /api/student/prompts | GET | Prompt 历史 | 是 |
-
 | /api/student/projects | GET | 项目 | 是 |
-
 | /api/session | POST | 创建会话 | 是 |
-
 | /api/session/[id] | GET/DELETE | 会话详情 | 是 |
-
 | /api/session/[id]/message | POST | 发送消息（SSE） | 是 |
-
 | /api/session/[id]/abort | POST | 中断流式 | 是 |
-
 | /api/agent/explain | POST | 讲解 Agent | 是 |
-
 | /api/agent/validate | POST | 点评 Agent | 是 |
-
 | /api/agent/generate-question | POST | 出题 Agent | 是 |
-
 | /api/agent/answer | POST | 答疑 Agent | 是 |
-
 | /api/visualization/[sceneId] | GET | 获取可视化场景 | 否 |
-
 | /api/project/template/[id] | GET | 项目模板 | 否 |
-
 | /api/report | GET | 学习报告 | 是 |
-
 | /api/wiki/query | POST | 查询 LLM Wiki | 内部 |
 
 ## 二、核心接口详细设计
@@ -522,23 +503,14 @@ export async function POST(req: Request) {
 ## 六、错误码
 
 | 错误码 | HTTP | 说明 | 可恢复 |
-
 |---|---|---|---|
-
 | INVALID_INPUT | 400 | 输入格式错误 | 否 |
-
 | UNAUTHORIZED | 401 | 未登录 | 否 |
-
 | FORBIDDEN | 403 | 无权限（前置未掌握） | 否 |
-
 | NOT_FOUND | 404 | 资源不存在 | 否 |
-
 | RATE_LIMIT | 429 | 请求过于频繁 | 是 |
-
 | LLM_ERROR | 500 | LLM 调用失败 | 是 |
-
 | DB_ERROR | 500 | 数据库错误 | 是 |
-
 | TIMEOUT | 504 | 超时 | 是 |
 
 ## 七、请求限流与成本控制

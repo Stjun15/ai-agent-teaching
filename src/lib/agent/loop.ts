@@ -162,13 +162,54 @@ export interface AgentHistoryTurn {
  * 那是另一个量级的改动。教学场景一轮对话通常十几条消息以内，拼文本够用且可解释：
  * 「模型看到了什么」就是这段字符串，出问题能直接打出来看。
  *
- * 代价写在明处：历史是**全文**进 prompt 的，长会话会线性吃 token。
- * 调用方（`/api/session/[id]/message`）负责截断到最近 N 条。
+ * 边界：调用方（`/api/session/[id]/message`）先截到最近 N 条，本函数再按
+ * `HISTORY_CHAR_BUDGET` 从最旧整条丢弃。**两层都必要** —— token 成本同时受
+ * 「条数」与「单条长度」影响：只限条数时，20 条长讲解（每条数千字）仍能撑到
+ * 十万字符量级，而它们会**每一轮**重复进 prompt。
  */
+
+/**
+ * 历史块的总字符预算（约合数千 token）。
+ *
+ * 取 4000 的依据：一轮正常教学对话（学生几百字 + 助手数千字讲解）大致就是
+ * 1~3 轮的量；再往前的内容，对「理解刚才在说什么」的边际价值下降很快。
+ * 这是**保守**的初始值 —— 宁可少带历史，也不要让每轮 prompt 随会话长度膨胀。
+ */
+export const HISTORY_CHAR_BUDGET = 4000;
+
+/**
+ * 按预算从最新往回保留历史。
+ *
+ * 为什么整条丢、而不是把某一条截断：截断会让模型看到半句话，它无法区分
+ * 「学生没说完」与「系统截的」，可能据此做出错误推断。整条丢弃的语义是
+ * 「这段我不记得了」，干净且可解释。
+ *
+ * 为什么最新一轮无条件保留：它就是「刚才在说什么」，丢了模型会答非所问；
+ * 即便这一轮自身超出预算也留 —— 超长单条应当由调用方的输入长度上限约束，
+ * 不该由「历史裁剪」来承担。
+ */
+function keepRecentWithinBudget(
+  history: readonly AgentHistoryTurn[],
+): AgentHistoryTurn[] {
+  const kept: AgentHistoryTurn[] = [];
+  let used = 0;
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const turn = history[index];
+    if (kept.length > 0 && used + turn.content.length > HISTORY_CHAR_BUDGET) {
+      break;
+    }
+    kept.unshift(turn);
+    used += turn.content.length;
+  }
+
+  return kept;
+}
+
 export function composeHistory(history: readonly AgentHistoryTurn[]): string {
   if (history.length === 0) return "";
 
-  const lines = history.map((turn) => {
+  const lines = keepRecentWithinBudget(history).map((turn) => {
     const label = turn.role === "student" ? "学生" : "助手";
     return `${label}：${turn.content}`;
   });
