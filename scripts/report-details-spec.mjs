@@ -49,8 +49,28 @@ function readExpectedRows() {
       "SELECT score, module_id FROM prompt_history WHERE student_id = ? ORDER BY created_at DESC LIMIT 1",
     )
     .get(sid);
+
+  // 维度名不写死在脚本里：从最近一次**含维度**的点评里取第一个。
+  // 库里存在 dimensions 为空数组的行（早期数据），取第一条会取到空。
+  let dimension = null;
+  for (const row of db
+    .prepare(
+      "SELECT dimensions FROM prompt_history WHERE student_id = ? ORDER BY created_at DESC",
+    )
+    .all(sid)) {
+    try {
+      const parsed = JSON.parse(row.dimensions || "[]");
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.name) {
+        dimension = String(parsed[0].name);
+        break;
+      }
+    } catch {
+      /* 脏 JSON，看下一条 */
+    }
+  }
+
   db.close();
-  return { error, prompt };
+  return { error, prompt, dimension };
 }
 
 /** 读页面可见文本。`body` 尚未创建时返回空串，而不是抛错。 */
@@ -62,7 +82,7 @@ async function readText(session) {
 }
 
 async function main() {
-  const { error, prompt } = readExpectedRows();
+  const { error, prompt, dimension } = readExpectedRows();
   const checks = [];
   const record = (name, ok, detail = "") => checks.push({ name, ok, detail });
 
@@ -130,6 +150,15 @@ async function main() {
 
     // R5 量纲：点评分是 0~100，页面上必须带满分，否则会被读成掌握度的 0~5。
     record("R5 点评分标出满分", text.includes("/ 100"));
+
+    // R7 评分维度区块显示的是**真实维度名**，不是写死在前端的六项能力。
+    // 库里那条点评若无维度（早期数据 / 点评未产出），这条跳过而不是判失败 ——
+    // 那时页面上本就应该显示「还没有点评记录」。
+    if (dimension) {
+      record("R7 评分维度含真实维度名", text.includes(dimension), dimension);
+    } else {
+      console.log("SKIP  R7 评分维度（库里没有含维度的点评记录）");
+    }
 
     const errors = session.pageErrors;
     record(
