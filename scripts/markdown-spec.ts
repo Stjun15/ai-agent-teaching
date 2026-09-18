@@ -20,6 +20,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  isSafeHref,
   parseInline,
   parseMarkdown,
   type InlineToken,
@@ -369,3 +370,99 @@ test("空输入与纯空白输入返回空数组", () => {
   assert.deepEqual(parseMarkdown("\n\n   \n"), []);
 });
 
+// ---------------------------------------------------------------------------
+// 三、流式容错（性质测试）
+// ---------------------------------------------------------------------------
+
+test("未闭合围栏：closed=false，半截内容仍进代码块", () => {
+  const blocks = parseMarkdown("```ts\nconst a = 1");
+  assert.equal(blocks[0].type, "code");
+  if (blocks[0].type !== "code") return;
+  assert.equal(blocks[0].closed, false);
+  assert.equal(blocks[0].value, "const a = 1");
+});
+
+test("未闭合强调符号原样保留，不吃掉后面的正文", () => {
+  const tokens = parseInline("这里有**两个星号还没闭");
+  assert.equal(
+    tokens
+      .map((token) => (token.type === "text" ? token.value : `[${token.type}]`))
+      .join(""),
+    "这里有**两个星号还没闭",
+  );
+});
+
+test("刚打出三个反引号时就是一个空代码块，不抛异常", () => {
+  const blocks = parseMarkdown("```");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "code");
+  if (blocks[0].type !== "code") return;
+  assert.equal(blocks[0].closed, false);
+  assert.equal(blocks[0].value, "");
+});
+
+/** 一段「典型模型输出」，用来做逐字符截断重放。 */
+const STREAM_SAMPLE = [
+  "## 小结",
+  "",
+  "`temperature` 控制随机性，**越高越发散**。",
+  "",
+  "- 0.2：稳定，适合抽取",
+  "- 0.8：发散，适合头脑风暴",
+  "",
+  "```ts",
+  "const t = 0.2; // 建议先用低值",
+  "```",
+  "",
+  "> 想细看可以读 [文档](https://example.com/temp)。",
+  "",
+  "另外这段是[危险链接](javascript:alert(1))，应降级为纯文本。",
+  "",
+  "---",
+  "",
+  "完",
+].join("\n");
+
+test("性质：任意前缀都不抛异常，且始终不产生白名单外 token", () => {
+  for (let end = 0; end <= STREAM_SAMPLE.length; end += 1) {
+    const prefix = STREAM_SAMPLE.slice(0, end);
+    assertWhitelisted(prefix);
+  }
+});
+
+test("性质：任意前缀都不产生不安全链接", () => {
+  for (let end = 0; end <= STREAM_SAMPLE.length; end += 1) {
+    const prefix = STREAM_SAMPLE.slice(0, end);
+    for (const link of collectLinks(parseMarkdown(prefix))) {
+      assert.equal(
+        isSafeHref(link.href),
+        true,
+        `前缀长度为 ${end} 时出现了不安全链接: ${link.href}`,
+      );
+    }
+  }
+});
+
+test("性质：前缀增长时已闭合的代码块内容不会被改写", () => {
+  const source = "```ts\nconst a = 1;\n```";
+  const closedAt = source.length;
+  const before = parseMarkdown(source.slice(0, closedAt - 1));
+  assert.equal(before[0].type, "code");
+  if (before[0].type !== "code") return;
+  assert.equal(before[0].closed, false, "少一个反引号时应仍未闭合");
+
+  const after = parseMarkdown(source);
+  assert.equal(after[0].type === "code" ? after[0].closed : null, true);
+});
+
+test("性质：任意前缀解析的块数不会负增长或凭空膨胀", () => {
+  let previous = 0;
+  for (let end = 0; end <= STREAM_SAMPLE.length; end += 1) {
+    const blocks = parseMarkdown(STREAM_SAMPLE.slice(0, end));
+    assert.ok(
+      blocks.length >= previous || blocks.length <= previous + 1,
+      `前缀 ${end} 处块数从 ${previous} 突变到 ${blocks.length}`,
+    );
+    previous = blocks.length;
+  }
+});
