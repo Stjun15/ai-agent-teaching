@@ -113,3 +113,134 @@ export function isSafeHref(raw: string): boolean {
   return SAFE_PROTOCOLS.has(normalized.slice(0, colon + 1));
 }
 
+// ---------------------------------------------------------------------------
+// 行内解析
+// ---------------------------------------------------------------------------
+
+/** 数出 `start` 处连续重复的 `ch` 个数（用来区分 `*` 与 `**`）。 */
+function countRun(source: string, start: number, ch: string): number {
+  let count = 0;
+  while (start + count < source.length && source[start + count] === ch) {
+    count += 1;
+  }
+  return count;
+}
+
+/** 找强调符号的闭合位置。内容两端是空白则不算闭合（避免 `2 * 3 * 4` 误判）。 */
+function matchEmphasis(
+  source: string,
+  start: number,
+  marker: string,
+): { value: string; end: number } | null {
+  let from = start;
+  while (from <= source.length) {
+    const at = source.indexOf(marker, from);
+    if (at === -1) return null;
+    const value = source.slice(start, at);
+    if (value !== "" && !/^\s/.test(value) && !/\s$/.test(value)) {
+      return { value, end: at + marker.length };
+    }
+    from = at + marker.length;
+  }
+  return null;
+}
+
+/**
+ * 尝试从 `start` 处匹配 `[label](href)`。
+ *
+ * 不安全的目标**不丢弃内容**：降级成纯文本（只留 label、不留链接），
+ * 否则学生看到的就是「话说到一半没了」。
+ */
+function matchLink(
+  source: string,
+  start: number,
+): { tokens: InlineToken[]; end: number } | null {
+  const labelEnd = source.indexOf("]", start + 1);
+  if (labelEnd === -1 || source[labelEnd + 1] !== "(") return null;
+
+  const hrefEnd = source.indexOf(")", labelEnd + 2);
+  if (hrefEnd === -1) return null;
+
+  const label = source.slice(start + 1, labelEnd);
+  const href = source.slice(labelEnd + 2, hrefEnd).trim();
+  const children = parseInline(label);
+
+  if (!isSafeHref(href)) {
+    return { tokens: children, end: hrefEnd + 1 };
+  }
+  return { tokens: [{ type: "link", href, children }], end: hrefEnd + 1 };
+}
+
+/** 解析一行（或一段）里的行内标记。 */
+export function parseInline(source: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  let buffer = "";
+  let i = 0;
+
+  const flush = (): void => {
+    if (buffer !== "") {
+      tokens.push({ type: "text", value: buffer });
+      buffer = "";
+    }
+  };
+
+  while (i < source.length) {
+    const ch = source[i];
+
+    // 行内代码优先级最高：`**` 写在反引号里不该变成粗体。
+    if (ch === "`") {
+      const ticks = countRun(source, i, "`");
+      const marker = "`".repeat(ticks);
+      const end = source.indexOf(marker, i + ticks);
+      if (end === -1) {
+        // 半截（流式常见）：原样保留。
+        buffer += marker;
+        i += ticks;
+        continue;
+      }
+      flush();
+      tokens.push({ type: "code", value: source.slice(i + ticks, end).trim() });
+      i = end + ticks;
+      continue;
+    }
+
+    if (ch === "[") {
+      const link = matchLink(source, i);
+      if (link !== null) {
+        flush();
+        for (const token of link.tokens) tokens.push(token);
+        i = link.end;
+        continue;
+      }
+      buffer += ch;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "*") {
+      const run = countRun(source, i, "*");
+      const strong = run >= 2;
+      const marker = strong ? "**" : "*";
+      const inner = matchEmphasis(source, i + marker.length, marker);
+      if (inner === null) {
+        buffer += marker;
+        i += marker.length;
+        continue;
+      }
+      flush();
+      const children = parseInline(inner.value);
+      tokens.push(
+        strong ? { type: "strong", children } : { type: "emphasis", children },
+      );
+      i = inner.end;
+      continue;
+    }
+
+    buffer += ch;
+    i += 1;
+  }
+
+  flush();
+  return tokens;
+}
+
