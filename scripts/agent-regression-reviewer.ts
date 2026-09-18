@@ -33,7 +33,7 @@ import test from "node:test";
 
 import { extractJson, runAgent } from "@/lib/agent/runtime";
 import { isPassing } from "@/lib/agent/orchestrator/validation-loop";
-import type { ReviewerOutput } from "@/lib/agent/outputs";
+import { ReviewerOutputSchema, type ReviewerOutput } from "@/lib/agent/outputs";
 
 /** 构造一份点评输出，只覆盖用例关心的字段。 */
 function review(overrides: Partial<ReviewerOutput> = {}): ReviewerOutput {
@@ -110,6 +110,40 @@ test("extractJson：能从前后寒暄里取出裸 JSON", () => {
 
 test("extractJson：完全不是 JSON 时返回 null（而不是抛错）", () => {
   assert.equal(extractJson("这个问题我无法回答。"), null);
+});
+
+// ---------------------------------------------------------------------------
+// 纯函数：扣分符号归一
+// ---------------------------------------------------------------------------
+
+test("点评 Schema：扣分写 -10 或 10 都归一成正数（提示词示例就是 -10）", () => {
+  // 这条守的是一个真实存在过的矛盾：点评 Agent 的 System Prompt 里输出示例
+  // 写着 -10（照搬 `agent-prompts-lib.md` 原文），而 Schema 原本要求 >=0 ——
+  // 模型照着自己的提示词写必然被拒，重试也救不了（提示词没变）。
+  // 归一化让两种写法都通过，内部仍只有「正数扣分」一种口径。
+  const issue = (deduction: number) => ({
+    type: "优化建议" as const,
+    detail: "Prompt 太模糊",
+    deduction,
+    related_dimension: "角色定义",
+    related_anti_pattern: null,
+  });
+
+  const negative = ReviewerOutputSchema.safeParse(
+    review({ issues: [issue(-10)] }),
+  );
+  const positive = ReviewerOutputSchema.safeParse(
+    review({ issues: [issue(10)] }),
+  );
+
+  assert.equal(
+    negative.success,
+    true,
+    "负数扣分不该被拒 —— 提示词示例写的就是 -10",
+  );
+  assert.equal(positive.success, true);
+  assert.equal(negative.data?.issues[0]?.deduction, 10);
+  assert.equal(positive.data?.issues[0]?.deduction, 10);
 });
 
 // ---------------------------------------------------------------------------

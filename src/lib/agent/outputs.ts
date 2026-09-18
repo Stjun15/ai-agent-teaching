@@ -22,7 +22,7 @@ import { z } from "zod";
 
 import type { Expect } from "@/lib/type-assert";
 
-import { isSceneId } from "./scene-ids";
+import { isSceneId, SCENE_IDS } from "./scene-ids";
 import type { AgentId } from "./types";
 
 /**
@@ -33,6 +33,28 @@ import type { AgentId } from "./types";
  * 或「把 25 当成 0.25 之外又写错」这类真错误。
  */
 const WEIGHT_SUM_TOLERANCE = 0.02;
+
+/**
+ * 场景 ID 校验失败时的错误消息。
+ *
+ * 为什么要把 9 个合法值列全
+ * -----------------------
+ * 这条消息不只是给人看的：`runtime.ts` 会把它原文回喂给模型重试
+ * （重试消息里的「错误：Zod 校验失败：visualize_scene …」就是它）。
+ * 只写「不是已注册的可视化场景 ID」，模型拿不到正确答案，三次重试全是瞎猜 ——
+ * 回归测试因此偶发失败（同一用例重跑又过）。列出候选值，重试才有意义。
+ *
+ * 为什么模型一开始会编造场景 ID
+ * --------------------------
+ * 讲解 Agent 的 System Prompt 里只写了 `"visualize_scene": "场景 ID"`，
+ * 9 个场景的映射表在 `trigger-visualization` 技能里；而讲解 Agent 跑的是
+ * `explain-concept` 技能，看不到那张表。这是提示词层面的缺口（源头在
+ * `agent-prompts-lib.md`），消息表是运行时这一侧能补上的一半。
+ *
+ * 用 `SCENE_IDS` 拼而不是写死字符串：口径已经有三处（设计文档 / 技能表 /
+ * 前端映射），错误消息不该成为第四处。
+ */
+export const SCENE_ID_MESSAGE = `不是已注册的可视化场景 ID；可选：${SCENE_IDS.join("、")}`;
 
 /**
  * 校验评分维度权重之和。
@@ -64,7 +86,7 @@ export const TeacherOutputSchema = z.object({
   concept_id: z.string(),
   visualize_scene: z
     .string()
-    .refine(isSceneId, { message: "不是已注册的可视化场景 ID" })
+    .refine(isSceneId, { message: SCENE_ID_MESSAGE })
     .optional(),
   check_question: z
     .object({
@@ -84,12 +106,33 @@ export type TeacherOutput = z.infer<typeof TeacherOutputSchema>;
 // ---------------------------------------------------------------------------
 
 /**
+ * 扣分归一化：接受带符号的写法，一律存成**正数**。
+ *
+ * 为什么不写成 `min(0)` 要求模型给正数
+ * ---------------------------------
+ * 原本就是 `min(0)`，模型写 -10 会被 Zod 拒掉。但点评 Agent 的 System Prompt
+ * 里的输出示例写着 `"deduction": -10`（那是 `agent-prompts-lib.md` 的原文，
+ * 本项目对提示词一律照搬不改）—— 于是**提示词与校验规则互相矛盾**：
+ * 模型照着自己的提示词写，必然被拒；而重试也救不了，因为提示词没变，
+ * 下一次它还会写 -10。实测点评回归测试约 1/5 的概率红在这一条上
+ * （只有模型真的给出 `issues` 时才触发，所以是间歇性的）。
+ *
+ * 改提示词是另一条路，但那会让代码与「原文照搬」的文档产生分歧 ——
+ * `prompts/reviewer.ts` 头部明确警告过这种分歧的代价（排查时无法判断哪边权威）。
+ *
+ * 归一化不是妥协，是**无损**的：扣分的符号本身是冗余信息，-10 与 10 都只表示
+ * 「扣 10 分」，不存在需要区分二者的场景。归一之后内部仍然只有一种口径，
+ * `issues` 与 `suggestions` 的原文描述一字不动。
+ */
+const deductionSchema = z.number().transform((value) => Math.abs(value));
+
+/**
  * 点评 Agent 的输出。
  *
  * 相对文档原文收紧两处：
- * 1. `deduction` 用 `max(0)` —— 文档示例是 -10（负数表示扣分）。两种写法混用
- *    会让「总分怎么算出来的」无法复核，这里统一成**正数扣分**，并在
- *    `suggestions` 之外保留 `issues` 的原文描述。
+ * 1. `deduction` 一律存成**正数**（见下方 `deductionSchema`）。文档示例是
+ *    -10（负数表示扣分），归一化之后「总分怎么算出来的」才可复核，同时
+ *    `suggestions` 之外仍保留 `issues` 的原文描述。
  * 2. 维度权重之和必须 ≈1（见 `checkDimensionWeights`）。模型漏报一个维度时，
  *    总分实际上是按残缺的评分标准算的 —— 这种错误不拦，学生会看到一个
  *    看似合理却不可复核的分数。
@@ -113,7 +156,7 @@ export const ReviewerOutputSchema = z
       z.object({
         type: z.enum(["严重错误", "优化建议"]),
         detail: z.string(),
-        deduction: z.number().min(0),
+        deduction: deductionSchema,
         related_dimension: z.string(),
         related_anti_pattern: z.string().nullable(),
       }),
@@ -195,7 +238,7 @@ export type AssistantOutput = z.infer<typeof AssistantOutputSchema>;
  */
 export const VisualizationOutputSchema = z.object({
   scene_id: z.string().refine(isSceneId, {
-    message: "不是已注册的可视化场景 ID",
+    message: SCENE_ID_MESSAGE,
   }),
   initial_params: z.record(z.string(), z.unknown()).optional(),
 });

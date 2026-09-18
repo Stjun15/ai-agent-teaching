@@ -694,15 +694,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
 ```bash
 # .env.example
-# DeepSeek
-DEEPSEEK_API_KEY=sk-xxx
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+# 模型平台：火山方舟 Ark（OpenAI 兼容端点 /api/v3）
+ARK_API_KEY=your-ark-api-key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_TEXT_MODEL=deepseek-v4-flash-ga-260731
+ARK_VISION_MODEL=doubao-seed-2-1-pro-260915
 # CloudBase
 CLOUDBASE_ENV_ID=your-env-id
 CLOUDBASE_SECRET_ID=your-secret-id
 CLOUDBASE_SECRET_KEY=your-secret-key
-# pgvector
-DATABASE_URL=postgresql://...
+# 数据库：开发期 SQLite；Phase 7 部署时改 CloudBase PostgreSQL + pgvector
+DATABASE_URL=file:./dev.db
 # LLM Wiki
 PI_LLM_WIKI_PATH=./llm-wiki
 # 应用

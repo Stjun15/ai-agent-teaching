@@ -25,6 +25,7 @@ import {
   promptHistoryDb,
   questionResultDb,
 } from "@/lib/db";
+import type { ReportResponse } from "@/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -114,7 +115,9 @@ export async function GET(request: Request): Promise<Response> {
         )
       : ["保持当前节奏，继续完成下一模块的学习与练习。"];
 
-    return Response.json({
+    // 返回体用 `ReportResponse` 标注：报告页消费的就是这个类型，
+    // 字段名或层级写错会在这里编译报错，而不是变成页面上的一块空白。
+    const payload: ReportResponse = {
       overview: {
         completedModules,
         averageMastery,
@@ -125,7 +128,9 @@ export async function GET(request: Request): Promise<Response> {
       masteryTrend,
       weaknesses,
       recommendations,
-    });
+    };
+
+    return Response.json(payload);
   } catch (error) {
     return jsonError(
       "DB_ERROR",

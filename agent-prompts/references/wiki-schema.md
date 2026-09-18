@@ -860,8 +860,8 @@ async function updatePage(path: string, content: string): Promise<void>;
   "llm-wiki": {
     "synthesisLanguage": "zh",
     "taskModel": {
-      "provider": "deepseek",
-      "id": "deepseek-chat"
+      "provider": "ark",
+      "id": "deepseek-v4-flash-ga-260731"
     },
     "auto_fix_lint": true,
     "trajectories": false,

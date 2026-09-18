@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Bot, User } from "lucide-react";
 
+import { MarkdownView } from "@/components/chat/markdown-view";
 import { Badge } from "@/components/ui/badge";
 import type { ChatMessage } from "@/stores";
 import { cn } from "@/lib/utils";
@@ -9,16 +10,23 @@ import { cn } from "@/lib/utils";
 /**
  * 单条消息。
  *
- * 不做 Markdown 渲染，这是刻意的
- * ----------------------------
- * 模型输出目前是纯文本。要渲染 Markdown 得再引一个渲染器（`react-markdown`
- * 及其一整条 remark/rehype 依赖链），而本机装包的成本很高（见项目记忆的
- * 依赖安装定式）。更重要的是：**引入 Markdown 渲染同时引入了注入面** ——
- * 模型输出里的 HTML / 链接会成为风险点，那属于 Phase 7 的安全加固
- * （`fix(security): add output filter`）。
+ * 助手消息渲染 Markdown，学生消息保持纯文本
+ * -------------------------------------
+ * 之前两种角色都是 `whitespace-pre-wrap` 原样显示。问题出在助手侧：模型习惯
+ * 用 `**粗体**`、`- 列表`、``` 代码块 ```，原样显示就成了「满屏星号」，学生要
+ * 自己在脑子里解析格式 —— 教学内容本身没问题，呈现方式让它读起来很费劲。
  *
- * 所以现在用 `whitespace-pre-wrap` 原样呈现：换行与空格都保留，
- * 内容是保真的。这不是「还没做」，是一个有理由的取舍。
+ * 所以助手消息交给 `MarkdownView`。**注入面没有因此变大**：那条链上用的是自己
+ * 的解析器，产出的是 token 树而非 HTML 字符串，渲染时由 React 转义文本节点，
+ * 全程不碰 `dangerouslySetInnerHTML`；链接另过协议白名单。理由与边界写在
+ * `src/lib/markdown.ts` 和 `markdown-view.tsx` 的文件头。
+ *
+ * 学生消息**保持原样**，不做 Markdown 解析：学生贴进来的代码里 `*`、`_`、`#`
+ * 满地都是，把用户自己的输入当标记解释，风险是「我打的东西被吃掉了」。
+ * 输入框里打什么、气泡里就显示什么。
+ *
+ * 两者都保留 `whitespace-pre-wrap`：换行与空格照旧保真，Markdown 只是
+ * 在结构上**叠加**（列表、代码块、标题），不是替换原有呈现。
  */
 export function MessageItem({ message }: { message: ChatMessage }) {
   const isStudent = message.role === "student";
@@ -73,7 +81,11 @@ export function MessageItem({ message }: { message: ChatMessage }) {
             isError && "border-destructive/40",
           )}
         >
-          {message.content}
+          {isStudent ? (
+            message.content
+          ) : (
+            <MarkdownView source={message.content} />
+          )}
           {isStreaming ? (
             // 光标用内联块而不是伪元素：它必须在文本流里占据位置，
             // 否则会出现「最后一个字被光标盖住」。

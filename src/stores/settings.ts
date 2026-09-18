@@ -44,10 +44,69 @@ export interface SettingsState {
   setVoiceEnabled: (enabled: boolean) => void;
 }
 
-/** 主题对应的根元素 class；`system` 交给 CSS 的媒体查询处理。 */
-export function themeClassName(theme: ThemeMode): string | null {
-  if (theme === "system") return null;
-  return theme === "dark" ? "dark" : null;
+// ---------------------------------------------------------------------------
+// 主题的持久化
+// ---------------------------------------------------------------------------
+
+/** 浏览器里记主题用的存储键。 */
+export const THEME_STORAGE_KEY = "ai-teaching:theme";
+
+/** 与 `client-identity.ts` 同构的存储抽象：只用到这两个方法，便于在 Node 里断言。 */
+export interface ThemeStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
+
+/** 是否是合法的主题取值。`localStorage` 是学生能手动改的，必须过这一道。 */
+export function isThemeMode(value: string): value is ThemeMode {
+  return (THEME_MODES as readonly string[]).includes(value);
+}
+
+/**
+ * 读取已保存的主题。
+ *
+ * 脏值（手改出来的 `blue`）一律退回 `"system"` 而不是原样采用：否则界面会
+ * 停在一个两不管的状态 —— 既不是深色也不是浅色，而 `resolveDark` 会把它
+ * 当浅色处理，看起来像「设置坏了」。
+ */
+export function loadPersistedTheme(
+  storage: ThemeStorage | null | undefined,
+): ThemeMode {
+  const stored = storage?.getItem(THEME_STORAGE_KEY) ?? null;
+  return stored !== null && isThemeMode(stored) ? stored : "system";
+}
+
+/** 保存主题。非法值不写（宁可下次回到跟随系统，也不留下一个读不懂的值）。 */
+export function persistTheme(
+  theme: ThemeMode,
+  storage: ThemeStorage | null | undefined,
+): void {
+  if (!isThemeMode(theme)) return;
+  try {
+    storage?.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // 隐私模式下 `setItem` 会抛（配额/策略），而「主题没记住」不该让页面崩。
+  }
+}
+
+/**
+ * 当前主题**实际**是不是深色（把 `system` 解析成系统偏好）。
+ *
+ * 为什么要单独一个函数：`applyTheme` 是要改 DOM 的副作用，而有些消费方
+ * 只是想知道「现在是不是深色」—— 比如代码编辑器要据此选 monaco 的
+ * `vs` / `vs-dark`。让它们各自去读 `matchMedia` 会把这个规则复制成多份，
+ * 迟早出现「界面是深色、编辑器还是浅色」。规则只留在这里一处。
+ *
+ * 无 `window`（服务端渲染）时按浅色处理：此时还没有系统偏好可读，
+ * 而 hydration 之后 effect 会立刻把它纠正过来。
+ */
+export function resolveDark(theme: ThemeMode): boolean {
+  if (theme === "dark") return true;
+  if (theme === "light") return false;
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
 /**
@@ -59,12 +118,7 @@ export function themeClassName(theme: ThemeMode): string | null {
  */
 export function applyTheme(theme: ThemeMode): void {
   if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  const prefersDark =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = theme === "dark" || (theme === "system" && prefersDark);
-  root.classList.toggle("dark", dark);
+  document.documentElement.classList.toggle("dark", resolveDark(theme));
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
