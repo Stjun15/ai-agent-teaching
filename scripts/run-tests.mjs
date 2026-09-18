@@ -67,6 +67,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "评分维度汇总",
+    file: "scripts/report-dimensions-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
