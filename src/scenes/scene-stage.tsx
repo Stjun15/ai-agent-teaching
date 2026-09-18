@@ -50,7 +50,14 @@ export const SCENE_COMPONENTS = {
 const RENDERERS: Partial<Record<SceneId, ComponentType<SceneProps>>> =
   SCENE_COMPONENTS;
 
-export function SceneStage() {
+/**
+ * `sceneId` 是**兜底**：Store 里已经有选中的场景时以 Store 为准。
+ *
+ * 为什么需要兜底：`selectScene` 在 effect 里调，而 effect 在服务端不跑。只看
+ * Store 的话，服务端渲染出来的这一屏是空的，到客户端才补上 —— 首帧缺一块。
+ * 播放状态（第几步、在播没有、参数）仍然只认 Store：它们本来就只有客户端才有。
+ */
+export function SceneStage({ sceneId }: { sceneId: string | null }) {
   const activeId = useVisualizationStore((state) => state.sceneId);
   const stepIndex = useVisualizationStore((state) => state.stepIndex);
   const status = useVisualizationStore((state) => state.status);
@@ -59,7 +66,7 @@ export function SceneStage() {
   const setParam = useVisualizationStore((state) => state.setParam);
   const nextStep = useVisualizationStore((state) => state.nextStep);
 
-  const scene = getSceneDefinition(activeId);
+  const scene = getSceneDefinition(activeId ?? sceneId);
   const step = scene?.steps[stepIndex];
 
   useEffect(() => {

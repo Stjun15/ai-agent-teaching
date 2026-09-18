@@ -89,7 +89,16 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
     );
   }
 
-  const scene = getSceneDefinition(activeId);
+  /**
+   * 显示用哪个场景：Store 里选中的，还没有就先用 props 传进来的。
+   *
+   * 为什么不能只看 Store：`selectScene` 在 effect 里调，而 effect 在服务端不跑。
+   * 只看 Store 的话，服务端渲染出来的这一屏会显示「本讲没有配置可视化场景」——
+   * 而 `llm-api` 明明配了场景。学生看到的是「界面先说没有、随后又有了」。
+   * 先按 props 显示，第一帧就是对的；Store 选中之后两者一致，不产生跳变。
+   */
+  const displayId = activeId ?? sceneId;
+  const scene = getSceneDefinition(displayId);
   const registered = scene !== undefined;
   const total = scene?.steps.length ?? 0;
 
@@ -98,7 +107,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="muted">
           <Film />
-          {activeId}
+          {displayId}
         </Badge>
         {registered ? (
           <span className="text-sm font-medium">{scene.title}</span>
@@ -182,7 +191,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
       </div>
 
       {/* 舞台：正在播的场景本体。未交付时它自己渲染 null，面板下方给出说明。 */}
-      <SceneStage />
+      <SceneStage sceneId={displayId} />
 
       {registered ? (
         <div className="flex flex-col gap-1.5">
@@ -218,7 +227,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
       ) : (
         <p className="text-xs leading-relaxed text-muted-foreground">
           本讲对应的场景
-          <code className="mx-1 rounded bg-muted px-1 py-0.5">{activeId}</code>
+          <code className="mx-1 rounded bg-muted px-1 py-0.5">{displayId}</code>
           尚未交付。控制条已就绪，场景的视觉与步骤定义补齐后即可播放。
         </p>
       )}
