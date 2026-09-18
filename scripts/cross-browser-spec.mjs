@@ -52,7 +52,12 @@ async function runSuite(browser, port) {
       await session.send("Page.navigate", { url: `${APP}${page.path}` });
       let text = "";
       for (let i = 0; i < 40 && !text?.includes(page.expect); i++) {
-        text = await session.evaluate("return document.body.innerText");
+        // ⚠ `document.body` 在导航刚发出的那一刻还是 null（新文档尚未创建）：
+        // 直接读 `body.innerText` 会抛在 CDP 那一侧，整轮断言就此中断
+        // （实测在 /learn/llm-api 这一页崩过）。读取必须容错。
+        text = await session.evaluate(
+          "return document.body ? document.body.innerText : ''",
+        );
         if (!text?.includes(page.expect)) await sleep(250);
       }
       const hit = Boolean(text?.includes(page.expect));
