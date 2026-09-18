@@ -23,6 +23,7 @@
 import { resolveStudent } from "@/lib/api-auth";
 import { jsonError } from "@/lib/api-error";
 import { findModule } from "@/lib/modules";
+import { questionDb } from "@/lib/db";
 import { runQuestionLoop } from "@/lib/agent/orchestrator/question-loop";
 import { GenerateQuestionSchema, type GenerateQuestionInput } from "@/schemas";
 
@@ -65,6 +66,26 @@ export async function POST(request: Request): Promise<Response> {
       count: body.count,
       ...(body.difficulty === undefined ? {} : { mastery: body.difficulty }),
     });
+
+    // 把模型出的题写入题库（upsert，按模型给出的 id 幂等）。
+    // 这是 question_results.question_id 外键能指向真实行的前提：不落库，
+    // 后续作答评分就无法落库（外键 NOT NULL）。
+    for (const q of result.questions) {
+      await questionDb.create({
+        id: q.id,
+        moduleId: body.moduleId,
+        conceptId: q.concept_id,
+        type: q.type,
+        difficulty: q.difficulty,
+        scenario: q.scenario,
+        question: q.question,
+        options: q.options ?? [],
+        correctAnswer: q.correct_answer,
+        explanation: q.explanation,
+        hintLevels: q.hint_levels,
+        relatedAntiPattern: q.related_anti_pattern ?? null,
+      });
+    }
 
     return Response.json({
       questions: result.questions,
