@@ -18,6 +18,7 @@ import {
   type PlaybackSpeed,
 } from "@/stores";
 import { getSceneDefinition } from "@/scenes/scene-catalog";
+import { SceneStage } from "@/scenes/scene-stage";
 import { cn } from "@/lib/utils";
 
 /**
@@ -179,6 +180,9 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
           ))}
         </div>
       </div>
+
+      {/* 舞台：正在播的场景本体。未交付时它自己渲染 null，面板下方给出说明。 */}
+      <SceneStage />
 
       {registered ? (
         <div className="flex flex-col gap-1.5">
