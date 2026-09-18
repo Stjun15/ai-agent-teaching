@@ -55,6 +55,11 @@ const SUITES = [
   },
   { name: "Trace 接线 DB", file: "scripts/trace-spec.ts", model: false },
   {
+    name: "提示词预算",
+    file: "scripts/prompt-budget-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
