@@ -31,14 +31,14 @@ import { useEffect, type ComponentType } from "react";
 
 import { useVisualizationStore } from "@/stores";
 import { SCENE_CATALOG, getSceneDefinition } from "./scene-catalog";
+import { SceneRequestResponse } from "./scene-request-response";
 import type { SceneId } from "@/lib/agent/scene-ids";
 import type { SceneProps } from "./scene-types";
 
 /** 场景 id → 组件；键必须与目录里**已注册**的场景一一对应。 */
-export const SCENE_COMPONENTS = {} satisfies Record<
-  keyof typeof SCENE_CATALOG,
-  ComponentType<SceneProps>
->;
+export const SCENE_COMPONENTS = {
+  "scene-request-response": SceneRequestResponse,
+} satisfies Record<keyof typeof SCENE_CATALOG, ComponentType<SceneProps>>;
 
 /**
  * 查组件用的放宽视图。

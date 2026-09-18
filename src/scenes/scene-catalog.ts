@@ -35,9 +35,57 @@ import type { SceneId } from "@/lib/agent/scene-ids";
 import type { SceneContent, SceneDefinition } from "./scene-types";
 
 /** 写入侧视图：键必须是合法场景 id，值必须结构完整。 */
-export const SCENE_CATALOG = {} satisfies Partial<
-  Record<SceneId, SceneContent>
->;
+export const SCENE_CATALOG = {
+  "scene-request-response": {
+    steps: [
+      {
+        id: "typed",
+        title: "用户输入框打字",
+        description:
+          "学生在输入框里敲下一句话 —— 它稍后会变成消息数组里的一条。",
+        durationMs: 1600,
+      },
+      {
+        id: "messages-in",
+        title: "system 从上、user 从下飞入",
+        description:
+          "两张卡片是数组里的两个位置，不是两种说话方式：一个定角色，一个提问题。",
+        durationMs: 1500,
+      },
+      {
+        id: "messages-array",
+        title: "收进消息数组",
+        description:
+          "两段文本被一对中括号括起来，成为这次请求要带上的全部上下文。",
+        durationMs: 1400,
+      },
+      {
+        id: "to-cloud",
+        title: "数据包飞向云端",
+        description: "整份数组一次性发出去；模型在云端算完，再把结果送回来。",
+        durationMs: 1300,
+      },
+      {
+        id: "tokens",
+        title: "Token 计数器滚动",
+        description:
+          "输入 12 个 token、输出 45 个 —— 这一次调用花的账，按这两个数算。",
+        durationMs: 1500,
+      },
+      {
+        id: "reply",
+        title: "打字机显示回复",
+        description:
+          "开了 stream 字是一个一个回来的；关掉就要等整段生成完才看到 —— 这正是两者的差别。",
+        durationMs: 2600,
+      },
+    ],
+    defaultParams: {
+      system: "你是一个友好的编程学习助手。",
+      stream: true,
+    },
+  },
+} satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
 const LOOKUP: Partial<Record<SceneId, SceneContent>> = SCENE_CATALOG;
