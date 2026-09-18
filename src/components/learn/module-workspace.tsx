@@ -7,6 +7,7 @@ import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { CitationPanel } from "@/components/chat/citation-panel";
+import { CodeEditor } from "@/components/code/code-editor";
 import { Composer } from "@/components/chat/composer";
 import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
@@ -146,10 +147,19 @@ export function ModuleWorkspace({
             </CardContent>
           </Card>
 
-          <PlaceholderPanel
-            title="代码编辑区"
-            note="Phase 6 提交点「feat(ui): add code editor with monaco」"
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>动手模仿</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/*
+                编辑器本体（`CodeEditor`）是客户端组件，但卡片与标题留在
+                这个服务端组件里：标题是静态文案，没必要为它把整块中栏
+                变成客户端组件。
+              */}
+              <CodeEditor />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
