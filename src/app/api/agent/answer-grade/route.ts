@@ -71,6 +71,8 @@ export async function POST(request: Request): Promise<Response> {
       studentAnswer: body.studentAnswer,
       moduleId: body.moduleId,
       conceptId: body.conceptId,
+      // 客观题走规则判分、不调模型，此时不会产生 trace；主观题透传给点评 Agent。
+      trace: { studentId: body.studentId, sessionId: body.sessionId },
     });
 
     // 持久化答题结果。持久化失败不应阻断给学生的评分反馈：

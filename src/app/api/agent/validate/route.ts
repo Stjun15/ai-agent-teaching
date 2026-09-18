@@ -71,6 +71,7 @@ export async function POST(request: Request): Promise<Response> {
       moduleId: body.moduleId,
       conceptId: body.moduleId,
       attemptNumber: 1,
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const review = result.review;

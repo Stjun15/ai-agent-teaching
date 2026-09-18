@@ -70,6 +70,7 @@ export async function POST(request: Request): Promise<Response> {
         current_module: body.currentModule,
       },
       fallback: assistantFallback,
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const data = result.data;

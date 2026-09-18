@@ -65,6 +65,9 @@ export async function POST(request: Request): Promise<Response> {
       conceptId: body.moduleId,
       count: body.count,
       ...(body.difficulty === undefined ? {} : { mastery: body.difficulty }),
+      // 出题是模块级操作、不隶属会话（见文件头），故 trace 只带学生不带会话 ——
+      // 写库时 session_id 为 NULL，不编造归属。
+      trace: { studentId: auth.student.id },
     });
 
     // 把模型出的题写入题库（upsert，按模型给出的 id 幂等）。

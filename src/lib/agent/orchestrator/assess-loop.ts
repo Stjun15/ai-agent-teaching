@@ -16,6 +16,7 @@
 
 import { runValidationLoop } from "./validation-loop";
 import type { ArkEnv } from "../ark";
+import type { TraceContext } from "../trace";
 import type { ValidationTaskType } from "./validation-loop";
 
 /** 评分结论。 */
@@ -89,6 +90,8 @@ export interface AssessLoopInput {
   conceptId?: string;
   env?: ArkEnv;
   signal?: AbortSignal;
+  /** Trace 上下文。客观题走规则判分、不调模型，此时无 trace 产生；主观题透传给点评 Agent。 */
+  trace?: TraceContext;
 }
 
 /**
@@ -114,6 +117,7 @@ export async function runAssessLoop(
     attemptNumber: 1,
     env: input.env,
     signal: input.signal,
+    trace: input.trace,
   });
 
   const review = result.review;

@@ -95,6 +95,8 @@ export async function POST(request: Request): Promise<Response> {
     const result = await runExplainStep({
       state,
       prerequisiteMastery,
+      // 身份只有路由层知道，在这里构造 TraceContext；编排层只透传。
+      trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
     const teaching = result.teaching;
