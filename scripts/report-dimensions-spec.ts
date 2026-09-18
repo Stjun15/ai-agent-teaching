@@ -42,7 +42,7 @@ test("脏样本不进统计：缺 score / 非有限数 / 空名字", () => {
       { name: "角色定义", score: 80 },
       { name: "输出格式", score: Number.NaN },
       { name: "   ", score: 50 },
-      // @ts-expect-error 故意构造：模型漏给 score 时库里就是这样的行
+      // 故意漏掉 score：模型漏给字段时库里就是这样的行
       { name: "边界条件" },
       { name: "工具描述", score: Number.POSITIVE_INFINITY },
     ]),
