@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  isSafeHref,
+  parseInline,
   parseMarkdown,
   type InlineToken,
   type MarkdownBlock,
@@ -265,5 +265,107 @@ test("混合恶意输入下 token 类型仍在白名单内", () => {
       '> 引用 <b>粗体</b> <a href="javascript:1">链接</a>',
     ].join("\n"),
   );
+});
+
+// ---------------------------------------------------------------------------
+// 二、结构
+// ---------------------------------------------------------------------------
+
+test("标题解析为 heading 且层级正确", () => {
+  const blocks = parseMarkdown("## 要点");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "heading");
+  assert.equal(blocks[0].type === "heading" ? blocks[0].level : 0, 2);
+});
+
+test("无序列表：连续条目归一个 list", () => {
+  const blocks = parseMarkdown("- 第一点\n- 第二点\n- 第三点");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "list");
+  if (blocks[0].type !== "list") return;
+  assert.equal(blocks[0].ordered, false);
+  assert.equal(blocks[0].items.length, 3);
+});
+
+test("有序列表：保留起始序号", () => {
+  const blocks = parseMarkdown("3. 第三点\n4. 第四点");
+  assert.equal(blocks[0].type, "list");
+  if (blocks[0].type !== "list") return;
+  assert.equal(blocks[0].ordered, true);
+  assert.equal(blocks[0].start, 3);
+  assert.equal(blocks[0].items.length, 2);
+});
+
+test("列表后的段落能正确收尾，不会被吞进列表", () => {
+  const blocks = parseMarkdown("- 要点一\n- 要点二\n\n收尾段落");
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].type, "list");
+  assert.equal(blocks[1].type, "paragraph");
+});
+
+test("围栏代码块：语言、闭合标记与内容保真", () => {
+  const source = "```ts\nconst a: number = 1;\n```";
+  const blocks = parseMarkdown(source);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "code");
+  if (blocks[0].type !== "code") return;
+  assert.equal(blocks[0].language, "ts");
+  assert.equal(blocks[0].closed, true);
+  assert.equal(blocks[0].value, "const a: number = 1;");
+});
+
+test("代码块内的 Markdown 标记不被解释", () => {
+  const blocks = parseMarkdown("```\n**不是粗体** <script>x</script>\n```");
+  assert.equal(blocks[0].type, "code");
+  if (blocks[0].type !== "code") return;
+  assert.equal(blocks[0].value, "**不是粗体** <script>x</script>");
+});
+
+test("行内代码优先级高于强调（代码里的 * 不吃）", () => {
+  const tokens = parseInline("用 `select * from t` 查");
+  assert.equal(tokens.length, 3);
+  assert.deepEqual(tokens[1], { type: "code", value: "select * from t" });
+});
+
+test("粗体与斜体解析", () => {
+  const tokens = parseInline("这是**加粗**和*倾斜*");
+  const types = tokens.map((token) => token.type);
+  assert.deepEqual(types, ["text", "strong", "text", "emphasis"]);
+});
+
+test("snake_case 标识符不被下划线吃掉", () => {
+  const source = "设置 system_prompt 与 max_tokens 两个字段";
+  const tokens = parseInline(source);
+  assert.equal(tokens.length, 1, "应整体是一个文本 token，说明 _ 未被当强调符");
+  assert.equal(tokens[0].type === "text" ? tokens[0].value : "", source);
+});
+
+test("段内单换行保留（breaks 语义），不合并成一行", () => {
+  const blocks = parseMarkdown("第一行\n第二行");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "paragraph");
+  assert.ok(
+    flattenText(blocks).includes("\n"),
+    "换行必须保留：原来就是靠它保持可读的",
+  );
+});
+
+test("引用块递归解析内部的列表", () => {
+  const blocks = parseMarkdown("> 提示：\n> - 先看文档\n> - 再动手");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, "quote");
+  if (blocks[0].type !== "quote") return;
+  assert.equal(blocks[0].children.length, 2);
+  assert.equal(blocks[0].children[1].type, "list");
+});
+
+test("分割线识别为 rule", () => {
+  assert.equal(parseMarkdown("---")[0].type, "rule");
+  assert.equal(parseMarkdown("***")[0].type, "rule");
+});
+
+test("空输入与纯空白输入返回空数组", () => {
+  assert.deepEqual(parseMarkdown(""), []);
+  assert.deepEqual(parseMarkdown("\n\n   \n"), []);
 });
 
