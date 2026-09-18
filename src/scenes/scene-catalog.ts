@@ -313,6 +313,56 @@ export const SCENE_CATALOG = {
       node: "llm-wiki",
     },
   },
+  "scene-orchestration": {
+    steps: [
+      {
+        id: "user-request",
+        title: "用户只说了一句话",
+        description:
+          "「帮我写一个天气 Agent 项目」—— 整个协作只有这一个输入，后面全靠 Agent 之间传递。",
+        durationMs: 1700,
+      },
+      {
+        id: "orchestrator",
+        title: "编排器出现，任务分裂成三份",
+        description:
+          "编排器自己不写代码，它决定谁做、按什么顺序做、什么时候停 —— 这是多 Agent 与「一个 Agent 干三件事」的分界。",
+        durationMs: 1900,
+      },
+      {
+        id: "team",
+        title: "三个 Agent 各就各位",
+        description:
+          "需求、代码、评审三张卡长得一样，区别全在 System Prompt 里：点开看它们各自的边界。",
+        durationMs: 2100,
+      },
+      {
+        id: "to-coder",
+        title: "需求 Agent 的输出交给代码 Agent",
+        description:
+          "上一棒的输出就是下一棒的输入，中间不经过人 —— 信息怎么传是多 Agent 要回答的第二个问题。",
+        durationMs: 2000,
+      },
+      {
+        id: "to-reviewer",
+        title: "代码 Agent 的输出交给评审 Agent",
+        description:
+          "评审拿到的是代码本身，不是「代码写好了」这句话 —— 传的是产物，不是结论。",
+        durationMs: 1900,
+      },
+      {
+        id: "verdict",
+        title: "评审给结论：通过，或打回重做",
+        description:
+          "打回时箭头掉头走回去：这是个循环。只说「不合格就退回」、不说「怎样算合格」，它就不会停。",
+        durationMs: 2300,
+      },
+    ],
+    defaultParams: {
+      focused: "requirement",
+      passed: true,
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
