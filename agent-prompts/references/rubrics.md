@@ -265,25 +265,15 @@ related_concepts: [ai-safety]
 ## 评分标准汇总表
 
 | 模块 | 评分标准 | 权重分布 |
-
 |---|---|---|
-
 | llm-api | prompt-rubric（部分） | 角色定义 40%、风格 30%、输出 20%、简洁 10% |
-
 | system-prompt | prompt-rubric（部分） | 角色 30%、规则 30%、边界 20%、输出 10%、简洁 10% |
-
 | agent-loop | tool-rubric + code-rubric | System Prompt 25%、名称 15%、描述 20%、参数 20%、逻辑 20% |
-
 | tool-calling | tool-rubric | 名称 15%、描述 25%、参数 30%、逻辑 20%、错误 10% |
-
 | rag | prompt-rubric（部分） | 知识边界 30%、不知道 25%、引用 20%、topK 15%、简洁 10% |
-
 | llm-wiki | wiki-page-rubric | 类型 15%、前置 20%、定义 25%、关键点 25%、误解 15% |
-
 | multi-agent | multi-agent-rubric | 分工 30%、Prompt 25%、流程 25%、冲突 10%、简洁 10% |
-
 | mcp | mcp-rubric | 工具选择 25%、描述 25%、Prompt 30%、错误 10%、简洁 10% |
-
 | ai-safety | safety-rubric | 输入 25%、输出 25%、兜底 20%、Prompt 20%、限流 10% |
 
 ## 通用通过条件

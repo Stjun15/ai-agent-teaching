@@ -57,19 +57,12 @@ text
 ## 学生画像 6 个页面
 
 | 页面 | 内容 |
-
 |---|---|
-
 | profile.md | 基本信息、偏好、行为特征 |
-
 | mastery.md | 9 个概念掌握度 + 6 个子能力雷达 |
-
 | learning-path.md | 模块顺序、状态、练习记录、路径调整 |
-
 | errors.md | 错题记录、关联概念、订正状态 |
-
 | prompts.md | Prompt 历史、评分、改进建议 |
-
 | projects.md | 项目进度、检查清单、Prompt 链接、项目链接 |
 
 ## 9 个反模式

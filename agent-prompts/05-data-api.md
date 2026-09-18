@@ -15,43 +15,24 @@ agent_events, validation_results, questions, question_results, agent_traces
 ## API 路由（18 个）
 
 | 路由 | 方法 | 用途 |
-
 |---|---|---|
-
 | /api/student/profile | GET/PUT | 学生画像 |
-
 | /api/student/mastery | GET | 掌握度 |
-
 | /api/student/learning-path | GET | 学习路径 |
-
 | /api/student/errors | GET | 错题 |
-
 | /api/student/prompts | GET | Prompt 历史 |
-
 | /api/student/projects | GET | 项目 |
-
 | /api/session | POST | 创建会话 |
-
 | /api/session/[id] | GET/DELETE | 会话详情 |
-
 | /api/session/[id]/message | POST | 发送消息（SSE） |
-
 | /api/session/[id]/abort | POST | 中断流式 |
-
 | /api/agent/explain | POST | 讲解 Agent |
-
 | /api/agent/validate | POST | 点评 Agent |
-
 | /api/agent/generate-question | POST | 出题 Agent |
-
 | /api/agent/answer | POST | 答疑 Agent |
-
 | /api/visualization/[sceneId] | GET | 获取可视化场景 |
-
 | /api/project/template/[id] | GET | 项目模板 |
-
 | /api/report | GET | 学习报告 |
-
 | /api/wiki/query | POST | 查询 LLM Wiki |
 
 ## 完整数据模型

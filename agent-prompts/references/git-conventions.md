@@ -45,15 +45,10 @@
 ## 三、提交粒度
 
 | 规则 | 说明 |
-
 |---|---|
-
 | 每个提交只做一件事 | 一个提交不要混入多个不相关改动 |
-
 | 一个提交不超过 10 个文件 | 超过就拆 |
-
 | 一个提交不超过 500 行改动 | 超过就拆 |
-
 | 一个提交不超过 200 行新增 | 超过就拆 |
 
 **示例：**
@@ -87,45 +82,27 @@ type(scope): subject
 ### type 选择
 
 | type | 用途 |
-
 |---|---|
-
 | feat | 新功能 |
-
 | fix | 修复 bug |
-
 | docs | 文档 |
-
 | chore | 配置、依赖、构建 |
-
 | test | 测试 |
-
 | perf | 性能优化 |
-
 | refactor | 重构（不改逻辑） |
-
 | style | 格式调整（不改逻辑） |
-
 | ci | CI/CD |
 
 ### scope 选择
 
 | 模块 | scope |
-
 |---|---|
-
 | Agent 系统 | agent, teacher, reviewer, examiner, assistant |
-
 | 知识层 | wiki, rag, mcp |
-
 | 前端 | ui, chat, editor, visualization |
-
 | 数据接口 | api, db, auth |
-
 | 配置 | config, docs |
-
 | 编排 | orchestrator |
-
 | Trace | trace |
 
 ### subject 规则
@@ -175,23 +152,14 @@ fix(ui): resolve chat message overflow on mobile
 ## 五、禁止行为
 
 | 禁止 | 原因 |
-
 |---|---|
-
 | 一次提交所有文件 | 一看就是批量生成 |
-
 | 用 "update" "fix" "add" 等泛化 message | 看不出做了什么 |
-
 | force push 到 main | 破坏历史 |
-
 | squash 历史 | 失去开发过程 |
-
 | 跳过 pre-commit hook | 绕过代码检查 |
-
 | 提交 .env、node_modules、dist | 违反规范 |
-
 | 提交 API 密钥 | 安全事故 |
-
 | 时间戳全部相同 | 不像真实开发 |
 
 ---
@@ -201,19 +169,12 @@ fix(ui): resolve chat message overflow on mobile
 真实开发会有这些痕迹：
 
 | 场景 | 提交类型 |
-
 |---|---|
-
 | 发现前面写错了，修复 | `fix(scope): ...` |
-
 | 代码能跑但结构不好，重构 | `refactor(scope): ...` |
-
 | 补充注释或文档 | `docs(scope): ...` |
-
 | 补测试 | `test(scope): ...` |
-
 | 格式调整 | `style(scope): ...` |
-
 | 性能优化 | `perf(scope): ...` |
 
 **这些提交让历史看起来更真实。**
@@ -233,17 +194,11 @@ docs(ui): add component usage comments
 ## 七、分支策略
 
 | 分支 | 用途 |
-
 |---|---|
-
 | main | 保护分支，只通过 PR 合并，保持可运行 |
-
 | dev | 集成分支，日常合并 |
-
 | feat/xxx | 功能分支 |
-
 | fix/xxx | 修复分支 |
-
 | docs/xxx | 文档分支 |
 
 **规则：**
@@ -271,13 +226,9 @@ docs(ui): add component usage comments
 ### 自然分布
 
 | 场景 | 建议间隔 |
-
 |---|---|
-
 | 同一 Phase 内的提交 | 10-30 分钟 |
-
 | 不同 Phase 之间 | 几小时到几天 |
-
 | 修复型提交 | 立即（发现问题就改） |
 
 ### 命令
