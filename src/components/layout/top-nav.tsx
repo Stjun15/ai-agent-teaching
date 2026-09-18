@@ -37,7 +37,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     href: "/playground",
     label: "沙箱实验室",
     icon: FlaskConical,
-    status: "planned",
+    status: "ready",
   },
   { href: "/report", label: "学习报告", icon: LineChart, status: "planned" },
   { href: "/settings", label: "设置", icon: Settings, status: "planned" },
