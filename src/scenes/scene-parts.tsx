@@ -177,3 +177,77 @@ export function SceneArrow({
     </span>
   );
 }
+
+/**
+ * 工具卡：一个工具的「名称 + 描述」，可点。
+ *
+ * 为什么做成共享零件而不是留在工具调用链那一场
+ * ----------------------------------------
+ * 「工具卡」会出现在两场里（工具调用链、MCP 调用流程），两处要长一个样：
+ * 名称用等宽字、描述灰一档、被选中时加一圈 ring。各写一遍的话，学生在两讲之间
+ * 看到的会是两种「工具」，而这两讲讲的本来就是同一件事的两个层次。
+ *
+ * 描述是给模型看的，所以它在卡片上的位置比名称更显眼 —— 学生最容易犯的错是
+ * 只写名称不写描述，而描述为空时 Agent 根本判断不了该不该用它。
+ *
+ * `onSelect` 给了才可点：没给就渲染成一块静态内容，而不是一个点了没反应的按钮。
+ */
+export function ToolCard({
+  name,
+  description,
+  icon,
+  tone = "idle",
+  selected = false,
+  trouble = false,
+  onSelect,
+}: {
+  name: string;
+  /** 该工具的描述；为空时由调用方给一句显式的占位说明。 */
+  description: string;
+  icon?: ReactNode;
+  tone?: SceneTone;
+  /** 当前是否被选中（选中的那张会在下方展开定义）。 */
+  selected?: boolean;
+  /** 该工具的定义有问题（例如描述为空）时标红。 */
+  trouble?: boolean;
+  onSelect?: () => void;
+}) {
+  const body = (
+    <>
+      <p className="flex items-center gap-1.5 font-mono text-xs font-medium">
+        {icon}
+        {name}
+      </p>
+      <p
+        className={cn(
+          "mt-0.5 text-[11px] leading-relaxed",
+          trouble
+            ? "text-rose-900 dark:text-rose-200"
+            : "text-muted-foreground",
+        )}
+      >
+        {description}
+      </p>
+    </>
+  );
+
+  const skin = cn(
+    "min-w-0 flex-1 rounded-md border px-2.5 py-2 text-left transition-colors",
+    TONE_SURFACE[tone],
+    selected && "ring-1 ring-ring",
+  );
+
+  if (onSelect === undefined) {
+    return <div className={skin}>{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(skin, "hover:border-ring")}
+    >
+      {body}
+    </button>
+  );
+}
