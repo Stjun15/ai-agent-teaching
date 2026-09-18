@@ -51,6 +51,24 @@ export function themeClassName(theme: ThemeMode): string | null {
 }
 
 /**
+ * 当前主题**实际**是不是深色（把 `system` 解析成系统偏好）。
+ *
+ * 为什么要单独一个函数：`applyTheme` 是要改 DOM 的副作用，而有些消费方
+ * 只是想知道「现在是不是深色」—— 比如代码编辑器要据此选 monaco 的
+ * `vs` / `vs-dark`。让它们各自去读 `matchMedia` 会把这个规则复制成多份，
+ * 迟早出现「界面是深色、编辑器还是浅色」。规则只留在这里一处。
+ *
+ * 无 `window`（服务端渲染）时按浅色处理：此时还没有系统偏好可读，
+ * 而 hydration 之后 effect 会立刻把它纠正过来。
+ */
+export function resolveDark(theme: ThemeMode): boolean {
+  if (theme === "dark") return true;
+  if (theme === "light") return false;
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/**
  * 把主题应用到 `<html>` 上。
  *
  * 单独导出而不是写在 store 里：store 是纯状态，副作用（改 DOM）放在动作里
@@ -59,12 +77,7 @@ export function themeClassName(theme: ThemeMode): string | null {
  */
 export function applyTheme(theme: ThemeMode): void {
   if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  const prefersDark =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = theme === "dark" || (theme === "system" && prefersDark);
-  root.classList.toggle("dark", dark);
+  document.documentElement.classList.toggle("dark", resolveDark(theme));
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
