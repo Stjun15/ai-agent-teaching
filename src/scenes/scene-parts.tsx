@@ -25,6 +25,13 @@ import { TONE_LINE, TONE_SURFACE, type SceneTone } from "./scene-canvas";
  * 内容用 `lines: string[]` 而不是 `children`：节点里放的往往是等宽的数据片段
  * （工具入参、返回的 JSON、SQL 原文），交给 `MonoBlock` 统一渲染，比让 9 个
  * 场景各自决定字号与内边距更一致。
+ *
+ * `enter` 是「从哪边进来」：`up` 从下方升上来，`down` 从上方落下来。听着像纯
+ * 装饰，但它是「消息卡片按角色分位摆放」这类步骤的**主要内容** ——
+ * 「system 从上方入、user 从下方入」正是在讲两条消息在数组里的位置关系。
+ * 放在这里而不是让场景自己拼 `slide-in-from-*`：两个方向的类都写在同一个元素
+ * 上时，谁生效取决于 Tailwind 产物的顺序，那是**不可靠**的；由本组件二选一
+ * 拼出来，才保证只有一个方向类存在。
  */
 export function NodeCard({
   title,
@@ -32,6 +39,7 @@ export function NodeCard({
   icon,
   lines,
   tone = "idle",
+  enter = "up",
   className,
 }: {
   title: string;
@@ -41,12 +49,19 @@ export function NodeCard({
   /** 逐行显示的等宽内容。 */
   lines?: readonly string[];
   tone?: SceneTone;
+  /** 进场方向；`none` 用于不该有动画的常驻元素。 */
+  enter?: "up" | "down" | "none";
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "min-w-0 flex-1 animate-in rounded-md border px-2.5 py-2 duration-300 fade-in slide-in-from-bottom-1",
+        "min-w-0 flex-1 animate-in rounded-md border px-2.5 py-2 duration-300 fade-in",
+        enter === "up"
+          ? "slide-in-from-bottom-2"
+          : enter === "down"
+            ? "slide-in-from-top-2"
+            : "",
         TONE_SURFACE[tone],
         className,
       )}
