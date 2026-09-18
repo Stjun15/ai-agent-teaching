@@ -129,6 +129,51 @@ export const SCENE_CATALOG = {
       filterOn: true,
     },
   },
+  "scene-loop-weather": {
+    steps: [
+      {
+        id: "ask",
+        title: "用户提问",
+        description: "「北京今天天气怎么样？」—— 模型手里此刻只有这一句话。",
+        durationMs: 1400,
+      },
+      {
+        id: "loop1-think",
+        title: "Loop 1：先决定要调工具",
+        description: "第一轮的产出不是回答，而是一个决定：我需要 getWeather。",
+        durationMs: 1700,
+      },
+      {
+        id: "loop1-call",
+        title: "Loop 1：发起工具调用",
+        description: "按工具声明的参数传进去：city 是「北京」。",
+        durationMs: 1500,
+      },
+      {
+        id: "loop1-result",
+        title: "Loop 1：拿到工具返回",
+        description:
+          "温度 25、天气晴 —— 这条数据是回答的唯一依据，模型自己并不知道天气。",
+        durationMs: 1600,
+      },
+      {
+        id: "loop2-think",
+        title: "Loop 2：手里多了数据",
+        description:
+          "同一个循环转第二圈，模型这次能给出回答了 —— 这就是为什么要多轮。",
+        durationMs: 1700,
+      },
+      {
+        id: "answer",
+        title: "Loop 2：打字机输出",
+        description: "把工具返回的数据整理成人话，温度用的是返回里的那个数。",
+        durationMs: 2400,
+      },
+    ],
+    defaultParams: {
+      city: "北京",
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */
