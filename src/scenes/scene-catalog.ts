@@ -174,6 +174,60 @@ export const SCENE_CATALOG = {
       city: "北京",
     },
   },
+  "scene-tool-chain": {
+    steps: [
+      {
+        id: "toolbox",
+        title: "工具箱展开",
+        description:
+          "两个工具各带名称、描述、参数 —— 这份定义就是模型看到的全部内容。",
+        durationMs: 1500,
+      },
+      {
+        id: "ask",
+        title: "用户提出需要两步的任务",
+        description:
+          "「查北京天气，再算华氏度」—— 一次请求里要连着用两个工具。",
+        durationMs: 1500,
+      },
+      {
+        id: "call-weather",
+        title: "Agent 选用 getWeather",
+        description:
+          "选它的依据是描述，不是名称 —— 描述为空时 Agent 判断不了什么时候该用它。",
+        durationMs: 1600,
+      },
+      {
+        id: "weather-back",
+        title: "getWeather 返回 25°C",
+        description: "第一环拿到数据，但它还不是答案：任务还要求换算。",
+        durationMs: 1500,
+      },
+      {
+        id: "call-calc",
+        title: "Agent 选用 calculate",
+        description: "把刚拿到的 25 代进换算式 25 * 9 / 5 + 32。",
+        durationMs: 1600,
+      },
+      {
+        id: "calc-back",
+        title: "calculate 返回 77°F",
+        description: "第二环返回结果 —— 两个工具的输出接起来才是完整答案。",
+        durationMs: 1500,
+      },
+      {
+        id: "chain-lit",
+        title: "调用链依次亮起",
+        description:
+          "两环连起来就是「工具链」：Agent 自己决定先调哪个、再把结果传给下一个。",
+        durationMs: 2000,
+      },
+    ],
+    defaultParams: {
+      weatherDescription: "查询指定城市的天气",
+      selectedTool: "getWeather",
+    },
+  },
 } satisfies Partial<Record<SceneId, SceneContent>>;
 
 /** 读取侧视图：查表用，允许任意键查空。 */

@@ -34,6 +34,7 @@ import { SCENE_CATALOG, getSceneDefinition } from "./scene-catalog";
 import { SceneRequestResponse } from "./scene-request-response";
 import { SceneLoopWeather } from "./scene-loop-weather";
 import { SceneRoleFilter } from "./scene-role-filter";
+import { SceneToolChain } from "./scene-tool-chain";
 import type { SceneId } from "@/lib/agent/scene-ids";
 import type { SceneProps } from "./scene-types";
 
@@ -42,6 +43,7 @@ export const SCENE_COMPONENTS = {
   "scene-request-response": SceneRequestResponse,
   "scene-role-filter": SceneRoleFilter,
   "scene-loop-weather": SceneLoopWeather,
+  "scene-tool-chain": SceneToolChain,
 } satisfies Record<keyof typeof SCENE_CATALOG, ComponentType<SceneProps>>;
 
 /**
