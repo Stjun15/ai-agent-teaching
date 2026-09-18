@@ -234,6 +234,15 @@ export interface AgentLoopOptions {
   /** Agent 标识，用于 SSE 的 thinking 事件。默认 `DEFAULT_AGENT_ID`。 */
   agent?: string;
   /**
+   * 身份层提示词。默认 `PROVISIONAL_SYSTEM_PROMPT`（通用答疑口径）。
+   *
+   * 需要传入的场景：学习页处在讲解类步骤时要换成
+   * `TEACHING_CHAT_SYSTEM_PROMPT`（见 `prompts/teaching-chat.ts` 头部，
+   * 那里说明了为什么不能复用讲解 Agent 的 JSON 版提示词）。
+   * 默认留在 loop 内部，是为了让「没传」的调用方行为与改造前完全一致。
+   */
+  systemPrompt?: string;
+  /**
    * 本轮之前的历史，按时间升序。会在模型调用前拼进 prompt（见 `composeHistory`），
    * **不参与** token 统计里的「本轮输入」概念 —— 计费口径由调用方自行决定。
    */
@@ -396,6 +405,7 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
     code,
     language,
     agent = DEFAULT_AGENT_ID,
+    systemPrompt = PROVISIONAL_SYSTEM_PROMPT,
     history,
     preludeEvents,
     env,
@@ -421,7 +431,7 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
       // 会话一律走 `session.ts` 的工厂：资源锁定策略（关掉扩展/技能/提示词模板
       // /上下文文件）只在那儿定义一次，避免流式与非流式两条路径悄悄漂移。
       handle = await createSession({
-        systemPrompt: PROVISIONAL_SYSTEM_PROMPT,
+        systemPrompt,
         // 工具白名单。注意 `tools` 是总白名单，自定义工具必须按名字列进来，
         // 写成空数组会把 calculate 一起挡掉（见文件头「工具白名单」的踩坑记录）。
         tools: [calculatorTool.name],
