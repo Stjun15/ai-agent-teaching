@@ -64,7 +64,7 @@ pi SDK 的 **provider id 必须是 `ark`**（SDK 由 provider id 推导环境变
 
 ```bash
 pnpm check                                        # eslint + prettier --check + tsc
-pnpm test                                         # 16 组（14 纯函数 + 2 真模型回归）
+pnpm test                                         # 18 组（16 纯函数 + 2 真模型回归）
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build        # 生产构建（开关只作用于本条命令）
 pnpm start                                        # 另开受管后台任务，不要用 (cmd &)
 node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A8
@@ -73,6 +73,9 @@ pnpm test:mastery                                 # 掌握度卡 M0–M3（store
 ```
 
 **只有第 4 级能证明客户端真的能跑。** 曾发生 SSR 返回 200、HTML 齐全、`pnpm check` 全绿，但浏览器整页白屏的事故（zustand v5 派生 selector 引用不稳定 → React #185）。HTTP 层验证全是假绿灯。
+
+**第 4 级要在 `pnpm start`（生产产物）上再跑一遍**，不能只跑 `pnpm dev`：dev 与生产的编译与预渲染路径不同，dev 过了不代表产物过了。
+2026-09-18 实测：生产构建下报告页明细 8/8、掌握度卡 4/4、跨浏览器 11/11 —— 与 dev 下同分。
 
 ## 七、目录地图
 
