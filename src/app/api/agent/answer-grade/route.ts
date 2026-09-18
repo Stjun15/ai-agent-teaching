@@ -108,24 +108,40 @@ export async function POST(request: Request): Promise<Response> {
         console.error("[answer-grade] 答题结果持久化失败：", error);
       }
 
-      // 主观题判分不通过 → 记入错题本（报告页「薄弱点」的数据源）。
-      // problems / correct_example 只有点评输出里有，客观题走规则、产不出
-      // 这些字段，不写这张表。conceptId 取题库行的 —— 题目比请求体更可信。
+      // 判为不通过 → 记入错题本（报告页「薄弱点」与「错题本」的数据源）。
+      //
+      // 主观题与客观题**都写**，但字段来历不同，不能在界面上混成一种东西：
+      //   - 主观题：走过点评 Agent，problems 是它指出的 issues、correct_example
+      //     是它给的改进示例 —— 点评的话；
+      //   - 客观题：规则判分没有点评，用题库自带的 `explanation` / `correctAnswer`
+      //     填，并**在文本里写明「解析：」前缀** —— 那是题库作者写的，不是点评
+      //     Agent 的判断。不写前缀会让两者看起来同源。
+      // 之前只写主观题（判据额外要求 review 存在），后果是客观题答错
+      // 只进 question_results、报告页「薄弱点」永远缺这一类错误。
+      //
+      // conceptId 取题库行的 —— 题目比请求体更可信。
       const review = assessment.review;
-      if (!assessment.isCorrect && review) {
+      if (!assessment.isCorrect) {
         try {
           await errorDb.create({
             studentId: body.studentId,
             moduleId: body.moduleId,
             conceptId: question.conceptId,
-            taskType: review.taskType,
+            taskType: review?.taskType ?? "question",
             question: question.question,
             studentAnswer: body.studentAnswer,
-            problems: review.output.issues.map((i) => `${i.type}：${i.detail}`),
-            correctExample: review.output.suggestions[0]?.example ?? null,
-            relatedAntiPattern:
-              review.output.issues.find((i) => i.related_anti_pattern)
-                ?.related_anti_pattern ?? null,
+            problems: review
+              ? review.output.issues.map((i) => `${i.type}：${i.detail}`)
+              : question.explanation
+                ? [`解析：${question.explanation}`]
+                : [],
+            correctExample: review
+              ? (review.output.suggestions[0]?.example ?? null)
+              : question.correctAnswer,
+            relatedAntiPattern: review
+              ? (review.output.issues.find((i) => i.related_anti_pattern)
+                  ?.related_anti_pattern ?? null)
+              : question.relatedAntiPattern,
           });
         } catch (error) {
           console.error("[answer-grade] 错题持久化失败：", error);

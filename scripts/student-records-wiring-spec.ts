@@ -47,3 +47,25 @@ test("answer-grade 路由：question_results 与 errors 同受兜底开关挡住
   // conceptId 取题库行 —— 题目比请求体可信。
   assert.match(text, /conceptId: question\.conceptId/);
 });
+
+test("answer-grade 路由：客观题答错也进错题本（判据不带 review 前提）", () => {
+  const text = readSource("src/app/api/agent/answer-grade/route.ts");
+
+  // 曾经写成 `!assessment.isCorrect && review`：客观题规则判分没有 review，
+  // 于是客观题答错只进 question_results，报告页「薄弱点」永远缺这一类错误。
+  // 这里钉住判据本身 —— 改回带 review 的形式会立刻红。
+  assert.match(
+    text,
+    /if \(!assessment\.isCorrect\) \{/,
+    "错题写入的判据必须只看是否答错，不能要求存在 review",
+  );
+  assert.doesNotMatch(
+    text,
+    /!assessment\.isCorrect && review/,
+    "错题写入不能被 review 存在与否挡住（那会漏掉客观题）",
+  );
+
+  // 客观题的 problems 来自题库解析，必须带「解析：」前缀标明出处，
+  // 否则它和点评 Agent 指出的 issues 在界面上看起来是同一种东西。
+  assert.match(text, /解析：/);
+});
