@@ -102,6 +102,22 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
   const registered = scene !== undefined;
   const total = scene?.steps.length ?? 0;
 
+  /**
+   * 播放键：正在播就暂停；播完了则**从头**再放一次。
+   *
+   * 少了 `reset()` 那一步的话，播完后再点「播放」只会从最后一步再走一遍，随即
+   * 又回到完成态 —— 看起来像按钮坏了。这时用户的意图明确是「我要重看」，
+   * 而不是「我要看最后一步」，所以先回第 0 步。
+   */
+  const togglePlay = () => {
+    if (status === "playing") {
+      pause();
+      return;
+    }
+    if (status === "finished") reset();
+    play();
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +139,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
           size="sm"
           variant={status === "playing" ? "secondary" : "default"}
           disabled={!registered}
-          onClick={() => (status === "playing" ? pause() : play())}
+          onClick={togglePlay}
         >
           {status === "playing" ? (
             <Pause className="size-4" />
