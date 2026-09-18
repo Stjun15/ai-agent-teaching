@@ -44,6 +44,11 @@ const SUITES = [
   { name: "项目模板", file: "scripts/project-templates-spec.ts", model: false },
   { name: "教学循环 DB", file: "scripts/teaching-loop-spec.ts", model: false },
   {
+    name: "教学结果表 DB",
+    file: "scripts/teaching-results-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,

@@ -19,12 +19,12 @@
  * 跑完后 learning_paths / agent_traces / mastery 会多出真实行，正是 Phase 6 收口
  * 想要的「接口能被真实地打一遍」。
  *
- * 诚实的缺口
- * ---------
- * question_results 与 validation_results 在 src/lib/db 与编排层都**没有写入路径**
- * （teaching-loop 第 7~9 步的持久化被刻意推迟到 Phase 7），所以即便教学循环跑过，
- * 这两张表也不会出现行。这里把「缺口」钉成可观测事实（断言它们仍为 0），
- * 而不是假装跑通去伪造行。
+ * question_results / validation_results 的写入闭环
+ * ---------------------------------------------
+ * 这两张结果表此前在 src/lib/db 没有写入路径（Phase 7 钉死的结构缺口），已由
+ * feat(db): add validation/question result write paths 关闭，对应的写→读测试
+ * 见 scripts/teaching-results-spec.ts（同样在真实 dev.db 上真跑）。本文件只守
+ * mastery / learning_path / agent_traces 三条链。
  *
  * 运行：
  *   pnpm test:teaching-loop
@@ -38,7 +38,6 @@ import { getDb } from "@/lib/db/sqlite";
 import {
   learningPathDb,
   masteryDb,
-  questionResultDb,
   traceDb,
   type LearningPathModule,
 } from "@/lib/db";
@@ -184,22 +183,4 @@ test("agent_traces 写入/读取闭环（create + listByStudent）", async () =>
   assert.ok(found, "刚写入的 trace 应能被 listByStudent 读回");
   assert.equal(found?.agent, "teacher");
   assert.deepEqual(found?.tokens, { input: 10, output: 20 });
-});
-
-test("已知缺口：question_results / validation_results 当前无写入 repository（Phase 7 补齐）", async () => {
-  // 这两个表在 schema 里存在，但 src/lib/db 与编排层都没有写入路径
-  // （teaching-loop 第 7~9 步的持久化被刻意推迟）。因此即便教学循环跑过，
-  // 这两张表也不会出现行。这里把「缺口」钉成可观测事实，而不是假装跑通去伪造行。
-  const qCount = await questionResultDb.countByStudent(TEST_STUDENT_ID);
-  assert.equal(typeof qCount, "number", "countByStudent 应返回数字");
-
-  const db = getDb();
-  const qr = db.prepare("SELECT COUNT(*) AS c FROM question_results").get() as {
-    c: number;
-  };
-  const vr = db
-    .prepare("SELECT COUNT(*) AS c FROM validation_results")
-    .get() as { c: number };
-  assert.equal(qr.c, 0, "question_results 当前应有 0 行（无写入路径）");
-  assert.equal(vr.c, 0, "validation_results 当前应有 0 行（无写入路径）");
 });
