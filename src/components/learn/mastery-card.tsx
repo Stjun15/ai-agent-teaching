@@ -1,7 +1,8 @@
 "use client";
 
 import { MasteryIndicator } from "@/components/learn/mastery-indicator";
-import { levelOfScore, selectMastery, useStudentStore } from "@/stores";
+import { levelOfMastery, masteryToPercent } from "@/lib/scores";
+import { selectMastery, useStudentStore } from "@/stores";
 
 /**
  * 掌握度卡片 —— `MasteryIndicator`（纯展示）与 StudentStore 之间的接线。
@@ -14,15 +15,16 @@ import { levelOfScore, selectMastery, useStudentStore } from "@/stores";
  * 复用都要连带着拖上整个 Store。订阅与取数的口径（按 `moduleId` 即概念 id 命中、
  * `null` 表示没数据）集中在这一处。
  *
- * 分档为什么在这里算而不是在指示器里
- * --------------------------------
- * `levelOfScore` 的 60/75/90 阈值是**推断**（`rubrics.md` 没给分界值，见
- * `stores/student.ts`）。推断的东西必须只活在一个文件里；指示器只认传进来的
- * 档位文案，不自己重算 —— 否则阈值一改要改两个地方。
+ * 量纲转换必须在这里做
+ * ------------------
+ * `MasteryIndicator` 画的是百分比（文案是「x / 100」、`Progress` 的 `value`
+ * 也按百分比），而 `mastery.score` 存的是 **0~5**（建表 `CHECK` 约束，
+ * 见 `src/lib/scores.ts` 文件头）。不转换的话，一个已经 `mastered` 的
+ * 4 分会显示成「4 / 100」并被判成「不及格」。
  *
- * 现在永远显示「尚未测评」是**预期的**：掌握度数据的权威来源是数据库，
- * Phase 5 的 `feat(api): add student profile endpoints` 取到数据后调
- * `hydrate`，这条链路的另一端已经就位（见 `stores/student.ts`）。
+ * 这个错在本文件修复前是**潜伏的**：`StudentStore.hydrate` 还没有调用方，
+ * 卡片一直显示「尚未测评」，所以 4/5 和 4/100 的区别看不出来。
+ * 一旦有人接上取数，它就会立刻变成界面上看得见的错。
  */
 export function MasteryCard({
   moduleId,
@@ -37,8 +39,9 @@ export function MasteryCard({
   return (
     <MasteryIndicator
       moduleName={moduleName}
-      mastery={mastery?.score ?? null}
-      level={mastery === null ? undefined : levelOfScore(mastery.score)}
+      // 0~5 → 0~100；`null` 保持 `null`（「没测过」与「0 分」是两件事）。
+      mastery={mastery === null ? null : masteryToPercent(mastery.score)}
+      level={mastery === null ? undefined : levelOfMastery(mastery.score)}
     />
   );
 }

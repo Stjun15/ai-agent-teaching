@@ -116,20 +116,14 @@ export function selectMastery(
 }
 
 /**
- * 掌握度分数 → `rubrics.md` 的四档。
+ * 掌握度分数 → `rubrics.md` 的四档：已移到 `src/lib/scores.ts`（`levelOfMastery`）。
  *
- * 档位口径与 `Mastery.status`（`not_started` / `in_progress` /
- * `needs_review` / `mastered`）不同：那是**学习状态**，这是**单次得分等级**。
- * 两者都要显示，不能互相推导，所以这里只做分数到等级这一件事。
+ * 迁移的原因是一个**真实的量纲错位**：这里原先按 0~100 写的门槛
+ * （90 / 75 / 60），而数据源 `mastery.score` 是 0~5（建表 `CHECK (score <= 5)`）。
+ * 于是 `llm-api = 4`（种子数据里已是 `mastered`）在本项目里会被判成「不及格」。
+ * 错位之所以一直没暴露，是因为 `hydrate` 还没有调用方、卡片恒显示「尚未测评」；
+ * 接线的第一步就会让它变成看得见的错。
  *
- * 阈值是**推断**：`rubrics.md` 给出四档名称但没有分界值。
- * 按常见的 60/75/90 切分，集中在这里一处，将来定了只改这个函数。
+ * 档位来自**分数**，而分数的量纲与 store 无关（报告页也要用同一套），
+ * 所以口径统一放到叶子模块里，而不是留在某个 store 的实现细节中。
  */
-export function levelOfScore(
-  score: number,
-): "优秀" | "良好" | "及格" | "不及格" {
-  if (score >= 90) return "优秀";
-  if (score >= 75) return "良好";
-  if (score >= 60) return "及格";
-  return "不及格";
-}
