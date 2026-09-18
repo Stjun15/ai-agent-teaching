@@ -40,7 +40,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     status: "ready",
   },
   { href: "/report", label: "学习报告", icon: LineChart, status: "ready" },
-  { href: "/settings", label: "设置", icon: Settings, status: "planned" },
+  { href: "/settings", label: "设置", icon: Settings, status: "ready" },
 ];
 
 /** 判断当前路径是否应高亮某导航项（含子路由）。 */
