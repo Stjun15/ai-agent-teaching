@@ -17,9 +17,7 @@ export default function NotFound() {
       <p className="text-5xl font-semibold tracking-tight text-muted-foreground">
         404
       </p>
-      <h1 className="text-xl font-semibold tracking-tight">
-        这一页不存在
-      </h1>
+      <h1 className="text-xl font-semibold tracking-tight">这一页不存在</h1>
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
         可能是链接过期了，或者地址打错了。学习内容都在学习中心里，从那里继续。
       </p>
