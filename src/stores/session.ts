@@ -120,7 +120,14 @@ export interface SessionState {
    */
   invalidFrames: number;
 
-  beginTurn: (content: string) => void;
+  /**
+   * 开启一轮对话。
+   *
+   * `silent`（2026-09-19）：不落学生消息，只进入 streaming 态。给「导师自动
+   * 开讲」用 —— 概念讲解步骤学生还没说话，对话里不该冒出一条假的学生提问
+   * （「请讲讲…」），那会让人以为是自己点过什么。
+   */
+  beginTurn: (content: string, options?: { silent?: boolean }) => void;
   appendToken: (content: string, messageId: string) => void;
   appendThinking: (input: {
     step: string;
@@ -188,19 +195,22 @@ export const useSessionStore = create<SessionState>((set) => ({
   tokens: null,
   invalidFrames: 0,
 
-  beginTurn: (content) =>
+  beginTurn: (content, options) =>
     set((state) => ({
-      messages: [
-        ...state.messages,
-        {
-          id: newId(),
-          role: "student",
-          content,
-          status: "done",
-          citations: [],
-          createdAt: new Date().toISOString(),
-        },
-      ],
+      messages:
+        options?.silent === true
+          ? state.messages
+          : [
+              ...state.messages,
+              {
+                id: newId(),
+                role: "student",
+                content,
+                status: "done",
+                citations: [],
+                createdAt: new Date().toISOString(),
+              },
+            ],
       // 新的一轮清掉上一轮的错误与用量，但不清消息本身 ——
       // 对话是累积的，学生要能往上翻。
       status: "streaming",

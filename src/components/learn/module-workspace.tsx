@@ -9,6 +9,7 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { CitationPanel } from "@/components/chat/citation-panel";
 import { CodeEditor } from "@/components/code/code-editor";
 import { Composer } from "@/components/chat/composer";
+import { LectureLauncher } from "@/components/chat/lecture-launcher";
 import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
@@ -145,17 +146,14 @@ export function ModuleWorkspace({
               */}
               {/*
                 step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19 修正，
-                此前一律是答疑口径，「概念讲解就一句话」）。starter 只在
-                explain 步骤出现 —— 学生不必自己想第一句怎么说。
+                此前一律是答疑口径，「概念讲解就一句话」）。
               */}
-              <Composer
-                step={currentStepId}
-                starter={
-                  currentStepId === "explain"
-                    ? `请讲讲「${teachingModule.name}」的核心概念`
-                    : undefined
-                }
-              />
+              {currentStepId === "explain" ? (
+                <LectureLauncher
+                  prompt={`请开始讲解「${teachingModule.name}」这一讲的核心概念。`}
+                />
+              ) : null}
+              <Composer step={currentStepId} />
             </CardContent>
           </Card>
 

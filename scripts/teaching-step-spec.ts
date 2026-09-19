@@ -136,3 +136,46 @@ test("两条对话管道都按步骤选导师（文本守卫）", () => {
     "Composer 必须把学习步骤随消息发出去",
   );
 });
+
+test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
+  const launcher = readFileSync(
+    new URL("../src/components/chat/lecture-launcher.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    launcher,
+    /silent:\s*true/,
+    "自动开讲必须静默 —— 对话里不能冒出「请讲讲…」的假学生消息（2026-09-19 学生反馈：进去就该直接讲）",
+  );
+  assert.match(
+    launcher,
+    /step:\s*"explain"/,
+    "自动开讲必须携带 explain 步骤，否则退回答疑口径",
+  );
+  assert.match(
+    launcher,
+    /messageCount !== 0\s*\) return|messages\.length !== 0/,
+    "对话已有内容时不得自动插话",
+  );
+
+  const workspace = readFileSync(
+    new URL("../src/components/learn/module-workspace.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(workspace, /LectureLauncher/, "模块工作区必须挂自动开讲组件");
+  assert.doesNotMatch(
+    workspace,
+    /starter/,
+    "starter 按钮已移除 —— 不许再加回来让学生自己点「请讲讲…」",
+  );
+
+  const store = readFileSync(
+    new URL("../src/stores/session.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    store,
+    /options\?\.silent === true\s*\?\s*state\.messages/,
+    "beginTurn 必须支持静默（不落学生消息）",
+  );
+});
