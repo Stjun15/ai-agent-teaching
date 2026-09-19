@@ -92,6 +92,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "编辑器焦点",
+    file: "scripts/editor-focus-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,

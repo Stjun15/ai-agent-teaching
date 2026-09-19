@@ -38,6 +38,7 @@
     "test:teaching-step": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/teaching-step-spec.ts",
     "test:lecture-cache": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/lecture-cache-spec.ts",
     "test:practice-mastery": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/practice-mastery-spec.ts",
+    "test:editor-focus": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/editor-focus-spec.ts",
     "test:validate-wiring": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/validate-wiring-spec.ts",
     "test:cross-browser": "node scripts/cross-browser-spec.mjs",
     "test:report-details": "node scripts/report-details-spec.mjs",
