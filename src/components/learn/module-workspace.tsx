@@ -195,7 +195,7 @@ export function ModuleWorkspace({
                 <CardTitle>观察示范</CardTitle>
               </CardHeader>
               <CardContent>
-                <ObservePanel />
+                <ObservePanel moduleId={teachingModule.id} />
               </CardContent>
             </Card>
           ) : null}
@@ -270,6 +270,18 @@ export function ModuleWorkspace({
                 <CardTitle>动手模仿</CardTitle>
               </CardHeader>
               <CardContent>
+                {stepSeparationPrototype && currentStepId === "imitate" ? (
+                  <p className="text-xs text-muted-foreground">
+                    看不懂示范？{" "}
+                    <Link
+                      href={`/learn/${teachingModule.id}/observe`}
+                      className="underline underline-offset-2"
+                    >
+                      回到观察示范
+                    </Link>{" "}
+                    再看一遍 —— 示范代码卡就在那一步。
+                  </p>
+                ) : null}
                 {/*
                   接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体
                   只管编辑 —— 见 validate-submit.tsx 文件头。

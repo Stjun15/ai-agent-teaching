@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { MarkdownView } from "@/components/chat/markdown-view";
 import { parseMarkdown } from "@/lib/markdown";
 import { useSessionStore } from "@/stores";
@@ -30,9 +32,17 @@ import { useSessionStore } from "@/stores";
  * 本面板不自己写一句教学文案：示范的「看点」就在讲稿原文里（代码前后的
  * 关键行为解释），折叠区原样给出。讲解的活是导师的，这里只负责
  * 「把代码摆到学生眼前」。
+ *
+ * 确认理解的门控
+ * ------------
+ * 「进入动手模仿」默认禁用，勾选「我理解示范在做什么」才解锁 —— 跳转是
+ * 学生**自证理解**的动作，不是系统替他判断（掌握度评估是点评 Agent 的活，
+ * 这里不设分数门槛）。反向的跳回不做门控：不理解时随时回来看，没有成本。
  */
-export function ObservePanel() {
+export function ObservePanel({ moduleId }: { moduleId: string }) {
   const messages = useSessionStore((state) => state.messages);
+  const [hasUnderstood, setUnderstood] = useState(false);
+  const router = useRouter();
   const lecture = messages.find((message) => message.role === "assistant");
 
   const codeBlocks = useMemo(() => {
@@ -90,6 +100,33 @@ export function ObservePanel() {
           })}
         </ol>
       )}
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2.5">
+        <input
+          id="observe-understood"
+          type="checkbox"
+          checked={hasUnderstood}
+          onChange={(event) => setUnderstood(event.target.checked)}
+          className="size-4 accent-primary"
+        />
+        <label htmlFor="observe-understood" className="text-xs leading-relaxed">
+          我理解这些示范代码在做什么了
+        </label>
+        <Button
+          type="button"
+          size="sm"
+          className="ml-auto"
+          disabled={!hasUnderstood}
+          title={hasUnderstood ? undefined : "先勾选上面的确认，按钮才会解锁"}
+          onClick={() => router.push(`/learn/${moduleId}/imitate`)}
+        >
+          进入动手模仿 →
+        </Button>
+        <p className="w-full text-[11px] leading-relaxed text-muted-foreground">
+          还没理解？不着急——多读几遍，或在下面的对话框里问导师。
+          进入动手模仿之后，也随时可以跳回这一步重看。
+        </p>
+      </div>
 
       <details className="rounded-lg border px-3 py-2">
         <summary className="cursor-pointer text-xs text-muted-foreground">
