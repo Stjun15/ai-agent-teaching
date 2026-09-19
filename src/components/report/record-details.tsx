@@ -226,10 +226,23 @@ export function PromptHistorySection({
 /**
  * `created_at` 的显示格式。
  *
- * 只做字符串截取，不 `new Date()`：SQLite 写的是
- * `YYYY-MM-DD HH:MM:SS`（没有时区标记），交给 `Date` 解析会被当成 UTC，
- * 在东八区显示成晚 8 小时。这里按字面截取到分钟，看到的就是库里存的。
+ * 数据层写的是 `helpers.now()` 的 `toISOString()` 产物 —— 带 `Z` 的完整
+ * ISO-8601 UTC 字符串。解析成 `Date` 再用本地时区取年月日时分：库里的
+ * 时刻没有歧义，学生看到的就是自己手表上的时间。
+ *
+ * 之前按字面截取，显示的是 UTC 墙上时间 —— 东八区学生看到的时间比
+ * 自己手表晚 8 小时（提交于 13:40，报告却写 05:40），学生没法把它和
+ * 自己的记忆对上。
+ *
+ * 本组件由客户端渲染（身份在浏览器，取数在 `ReportView`），格式化只
+ * 发生在浏览器里，不存在服务端/客户端时区不一致的水合差异。
  */
 function formatTime(value: string): string {
-  return value.slice(0, 16).replace("T", " ");
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (part: number): string => String(part).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }
