@@ -24,7 +24,7 @@ export interface StudentProfile {
   studentId: string;
   programmingBackground: "zero" | "beginner" | "intermediate";
   learningGoal: string;
-  preferredLanguage: "typescript" | "python";
+  preferredLanguage: import("@/lib/languages").CodeLanguage;
   pace: "slow" | "normal" | "fast";
   explanationStyle: "analogy" | "example" | "theory";
   hintPreference: "try_first" | "hint_early" | "direct";
@@ -168,7 +168,7 @@ export interface Message {
     "student" | "teacher" | "reviewer" | "examiner" | "assistant" | "system";
   content: string;
   code?: string;
-  language?: "typescript" | "python";
+  language?: import("@/lib/languages").CodeLanguage;
   citations: Citation[];
   metadata: MessageMetadata;
   createdAt: string;

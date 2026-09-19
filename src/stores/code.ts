@@ -22,9 +22,14 @@
 
 import { create } from "zustand";
 
+import type { CodeLanguage } from "@/lib/languages";
 import type { ValidationResult } from "@/lib/db";
 
-export type CodeLanguage = "typescript" | "python";
+/**
+ * 值域已收敛到 `lib/languages.ts`；这里重导出历史名字，
+ * 组件层的 `CodeLanguage` 引用不用改。
+ */
+export type { CodeLanguage };
 
 /** 「产品要学生完成的那一类东西」，与 `api-spec.md` 的 `taskType` 一致。 */
 export type TaskType = "prompt" | "tool" | "code";

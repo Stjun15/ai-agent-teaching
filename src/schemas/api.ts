@@ -26,6 +26,8 @@
 
 import { z } from "zod";
 
+import { CODE_LANGUAGES } from "@/lib/languages";
+
 // ---------------------------------------------------------------------------
 // api-spec.md 第八节：逐字实现
 // ---------------------------------------------------------------------------
@@ -39,7 +41,7 @@ export const SendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
   taskType: z.enum(["prompt", "tool", "code"]).optional(),
   code: z.string().max(10000).optional(),
-  language: z.enum(["typescript", "python"]).optional(),
+  language: z.enum(CODE_LANGUAGES).optional(),
 });
 
 export const ValidateSchema = z.object({
@@ -126,7 +128,7 @@ export const ChatRequestSchema = z.object({
   /** 与 `SendMessageSchema.code` 同值域：学生提交的待点评内容。 */
   code: z.string().max(10000).optional(),
   /** 与 `SendMessageSchema.language` 同值域，理由见 `code`。 */
-  language: z.enum(["typescript", "python"]).optional(),
+  language: z.enum(CODE_LANGUAGES).optional(),
   /** 对应 loop.ts 的 `AgentLoopOptions.agent`，进 SSE 的 thinking 事件。 */
   agent: z.string().min(1).max(64).optional(),
   /**
@@ -168,7 +170,7 @@ export const UpdateProfileSchema = z.object({
     .enum(["zero", "beginner", "intermediate"])
     .optional(),
   learningGoal: z.string().max(500).optional(),
-  preferredLanguage: z.enum(["typescript", "python"]).optional(),
+  preferredLanguage: z.enum(CODE_LANGUAGES).optional(),
   pace: z.enum(["slow", "normal", "fast"]).optional(),
   explanationStyle: z.enum(["analogy", "example", "theory"]).optional(),
   hintPreference: z.enum(["try_first", "hint_early", "direct"]).optional(),

@@ -96,7 +96,13 @@ const THINKING_STEP = "思考";
  * 不过。真正危险的是「值经过 JSON / 数据库再回来」那种边界 —— 那里由 Zod 拦，
  * 与这里无关。
  */
-export type AgentCodeLanguage = "typescript" | "python";
+import type { CodeLanguage } from "@/lib/languages";
+
+/**
+ * 与 `lib/languages.ts` 的 `CodeLanguage` 同值 —— 历史名字，调用方沿用。
+ * 值域收敛后这里只保留别名，不再有第二份字面量联合。
+ */
+export type AgentCodeLanguage = CodeLanguage;
 
 /**
  * 把「学生说的话」与「学生提交的代码」组装成模型真正读到的用户输入。
