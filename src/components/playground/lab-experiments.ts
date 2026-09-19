@@ -98,6 +98,9 @@ export const LAB_EXPERIMENTS: readonly LabExperiment[] = [
       moduleId: values.moduleId,
       taskType: values.taskType ?? "prompt",
       content: values.content,
+      // 沙箱试玩不进学生档案（prompt_history / errors / mastery）——
+      // 否则玩票的 15 分会砸掉掌握度、污染报告页平均分。
+      sandbox: true,
     }),
   },
   {

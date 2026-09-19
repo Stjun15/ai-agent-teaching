@@ -24,7 +24,8 @@
  * - validation_results：每次点评一行（含兜底 —— 兜底也是一次真实发生的调用）；
  * - prompt_history：只记真实点评（报告页「Prompt 平均分」的数据源）；
  * - errors：真实点评且不通过时写入（报告页「薄弱点」的数据源）；
- * - mastery：真实点评后更新（过与不过都是当前能力的最新测量）。设计文档
+ * - mastery：真实点评后更新（过与不过都是当前能力的最新测量；沙箱试玩
+ *   调用 sandbox=true 时跳过 —— 学生档案不为实验买单）。设计文档
  *   `02-agent-system.md`「数据职责」约定点评 Agent 写 prompts / errors /
  *   mastery 三张表，前两条此前已接线，mastery 是最后一条 —— 没有它，
  *   点评通过也抬不动掌握度，前置门槛永远停在种子分，掌握式学习的
@@ -118,9 +119,11 @@ export async function POST(request: Request): Promise<Response> {
       console.error("[validate] 持久化校验结果失败：", dbError);
     }
 
-    // 以下两笔只在**真实点评**后写：兜底输出是编的（0 分 + 假 issues），
+    // 以下几笔只在**真实点评**后写：兜底输出是编的（0 分 + 假 issues），
     // 写进 Prompt 历史或错题本，等于让学生为一次系统故障背记录。
-    if (!result.usedFallback) {
+    // 沙箱试玩调用（sandbox=true）同样跳过 —— 它们是学生档案，不是实验记录；
+    // 沙箱页面向学生明说「没有评分」，玩票的 15 分不该进报告、砸掌握度。
+    if (!result.usedFallback && !body.sandbox) {
       try {
         await promptHistoryDb.create({
           studentId: auth.student.id,
