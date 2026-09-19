@@ -87,6 +87,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "练习判定接线",
+    file: "scripts/practice-mastery-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
