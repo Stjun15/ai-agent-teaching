@@ -31,6 +31,7 @@ import {
   MASTERY_MAX_SCORE,
   MASTERY_PASS_SCORE,
   masteryToPercent,
+  masteryScoreFromPromptScore,
   levelOfMastery,
 } from "@/lib/scores";
 
@@ -95,4 +96,19 @@ test("百分制换算后 4 分不再是「不及格」", () => {
   // 必须落在「优秀」而不是「不及格」。旧写法（直接拿 4 当百分制）会失败。
   assert.ok(masteryToPercent(4) >= 75, "4 分换算后应当达到良好以上");
   assert.equal(masteryToPercent(4), 80);
+});
+
+test("masteryScoreFromPromptScore：点评分换算掌握度分（运行时闭环的量纲桥）", () => {
+  // 满分对满分；通过线 75 → 3.75 四舍五入为 4，保证「过点评线必过掌握线 3」。
+  assert.equal(masteryScoreFromPromptScore(100), 5);
+  assert.equal(masteryScoreFromPromptScore(75), 4);
+  assert.equal(masteryScoreFromPromptScore(50), MASTERY_PASS_SCORE);
+  assert.equal(masteryScoreFromPromptScore(0), 0);
+});
+
+test("masteryScoreFromPromptScore：越界输入夹回 [0, 5]，防炸数据库 CHECK", () => {
+  // 模型输出未经 Zod 兜住的极端值不应让 upsert 抛约束错误。
+  assert.equal(masteryScoreFromPromptScore(120), 5);
+  assert.equal(masteryScoreFromPromptScore(-3), 0);
+  assert.equal(masteryScoreFromPromptScore(Number.NaN), 0);
 });

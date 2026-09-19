@@ -6,6 +6,7 @@
  *   2. 从题库读取题目（question_id 外键必须存在，否则无法评分）；
  *   3. 评分（客观题规则 / 主观题复用 reviewer）；
  *   4. 写入 question_results（这是该表落库的唯一 HTTP 触发点）；
+ *      主观题另更新 mastery（「点评写掌握度」的设计约定，见 masteryScoreFromPromptScore）；
  *   5. 返回评分结论与已持久化的结果 id。
  *
  * 设计依据 api-spec.md 同类端点（validate / generate-question）的边界约定：
@@ -24,8 +25,15 @@
 import { resolveStudent } from "@/lib/api-auth";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
-import { errorDb, questionDb, questionResultDb, sessionDb } from "@/lib/db";
+import {
+  errorDb,
+  masteryDb,
+  questionDb,
+  questionResultDb,
+  sessionDb,
+} from "@/lib/db";
 import { newId } from "@/lib/db/helpers";
+import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runAssessLoop } from "@/lib/agent/orchestrator/assess-loop";
 import { AnswerGradeSchema, type AnswerGradeInput } from "@/schemas";
 
@@ -147,6 +155,21 @@ export async function POST(request: Request): Promise<Response> {
           });
         } catch (error) {
           console.error("[answer-grade] 错题持久化失败：", error);
+        }
+      }
+
+      // 主观题由点评模型批改 → 与 validate 同属「点评写掌握度」的设计约定
+      // （02-agent-system.md「数据职责」）。客观题走规则判分，单题 0/100
+      // 映射 0/5 会大幅摆动掌握度，不更新 —— 客观题的信号进错题本。
+      if (assessment.gradedBy === "model") {
+        try {
+          await masteryDb.update(
+            body.studentId,
+            question.conceptId,
+            masteryScoreFromPromptScore(assessment.score),
+          );
+        } catch (error) {
+          console.error("[answer-grade] 更新掌握度失败：", error);
         }
       }
     }

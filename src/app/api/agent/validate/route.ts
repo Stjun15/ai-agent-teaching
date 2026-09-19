@@ -23,7 +23,12 @@
  * ----
  * - validation_results：每次点评一行（含兜底 —— 兜底也是一次真实发生的调用）；
  * - prompt_history：只记真实点评（报告页「Prompt 平均分」的数据源）；
- * - errors：真实点评且不通过时写入（报告页「薄弱点」的数据源）。
+ * - errors：真实点评且不通过时写入（报告页「薄弱点」的数据源）；
+ * - mastery：真实点评后更新（过与不过都是当前能力的最新测量）。设计文档
+ *   `02-agent-system.md`「数据职责」约定点评 Agent 写 prompts / errors /
+ *   mastery 三张表，前两条此前已接线，mastery 是最后一条 —— 没有它，
+ *   点评通过也抬不动掌握度，前置门槛永远停在种子分，掌握式学习的
+ *   「测评 → 解锁」循环走不动。
  */
 
 import { resolveStudent } from "@/lib/api-auth";
@@ -31,11 +36,13 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import {
   errorDb,
+  masteryDb,
   promptHistoryDb,
   sessionDb,
   validationResultDb,
 } from "@/lib/db";
 import { findModule } from "@/lib/modules";
+import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
 import { ValidateSchema, type ValidateInput } from "@/schemas";
 
@@ -156,6 +163,18 @@ export async function POST(request: Request): Promise<Response> {
         } catch (dbError) {
           console.error("[validate] 持久化错题失败：", dbError);
         }
+      }
+
+      // 掌握度更新（不区分过与不过 —— 点评是能力的最新测量）。持久化失败
+      // 同样不阻断点评反馈，但掌握度不动会让前置门槛读旧值，先记下日志。
+      try {
+        await masteryDb.update(
+          auth.student.id,
+          body.moduleId,
+          masteryScoreFromPromptScore(review.total_score),
+        );
+      } catch (dbError) {
+        console.error("[validate] 更新掌握度失败：", dbError);
       }
     }
 

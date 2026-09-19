@@ -105,3 +105,27 @@ test("工作区常驻当前步横幅（切步反馈不能只靠左栏高亮）",
     "中栏必须常驻「第 N / 7 步 · 名称」横幅，只换左栏高亮不算切步反馈",
   );
 });
+
+test("点评路径必须更新掌握度（设计数据职责的第三张表）", () => {
+  // `02-agent-system.md`「数据职责」：点评 Agent 写 prompts / errors / mastery。
+  // 前两张表此前已接线，mastery 一直零写入 —— 点评通过也抬不动掌握度，
+  // 前置门槛永远停在种子分，掌握式学习的「测评 → 解锁」循环走不动。
+  // 本守卫钉住两条点评路径都必须调 masteryDb.update，且量纲换算必须走
+  // scores.ts 的共享函数（两边各写一个 `/ 20` 是迟早的分叉）。
+  for (const route of [
+    "../src/app/api/agent/validate/route.ts",
+    "../src/app/api/agent/answer-grade/route.ts",
+  ]) {
+    const text = read(route);
+    assert.match(
+      text,
+      /masteryDb\.update\(/,
+      `${route} 必须更新掌握度 —— 这是「点评 → 解锁」闭环的关键一条`,
+    );
+    assert.match(
+      text,
+      /masteryScoreFromPromptScore\(/,
+      `${route} 的量纲换算必须走 scores.ts 共享口径，不得手写 / 20`,
+    );
+  }
+});
