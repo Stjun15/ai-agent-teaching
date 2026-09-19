@@ -63,7 +63,21 @@ export function MonacoSurface({
 
   const handleMount: OnMount = (editor) => {
     // 编辑器挂载后把焦点给它：学生点进「动手模仿」这一栏就是要直接敲字。
-    editor.focus();
+    //
+    // 但抢焦点有个代价：浏览器会把焦点元素滚进视口。动手模仿卡挂在全部
+    // 七步页面的中栏下方（对话卡之后），学生刚进讲解/示范步，1~2 秒后
+    // Monaco 从 CDN 加载完一挂载就抢焦点，窗口被滚下去 465px —— 讲稿被
+    // 顶出视野，看起来像「点观察示范却跳到了动手模仿」（2026-09-19 实测
+    // 滚动瞬间 activeElement 落在 monaco 内）。所以只在编辑器**本来就在
+    // 视口内**时才要焦点；看不见的编辑器不值得为它动滚动位置。
+    const dom = editor.getDomNode();
+    if (
+      dom !== null &&
+      typeof window !== "undefined" &&
+      dom.getBoundingClientRect().top < window.innerHeight
+    ) {
+      editor.focus();
+    }
   };
 
   return (
