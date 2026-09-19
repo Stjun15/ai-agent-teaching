@@ -159,9 +159,14 @@ export function ModuleWorkspace({
                 step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19 修正，
                 此前一律是答疑口径，「概念讲解就一句话」）。
               */}
-              {currentStepId === "explain" ? (
+              {currentStepId === "explain" || currentStepId === "observe" ? (
                 <LectureLauncher
-                  prompt={`请开始讲解「${teachingModule.name}」这一讲的核心概念。`}
+                  step={currentStepId}
+                  prompt={
+                    currentStepId === "explain"
+                      ? `请开始讲解「${teachingModule.name}」这一讲的核心概念。`
+                      : `请给我看一个「${teachingModule.name}」的完整示范：一段写得好的示例（Prompt 或代码），并逐段说明它为什么好、每个部分在起什么作用。`
+                  }
                 />
               ) : null}
               <Composer step={currentStepId} />

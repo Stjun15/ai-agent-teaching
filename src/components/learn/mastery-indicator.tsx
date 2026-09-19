@@ -20,6 +20,7 @@ export function MasteryIndicator({
   moduleName,
   mastery,
   level,
+  caption,
   className,
 }: {
   moduleName: string;
@@ -27,6 +28,12 @@ export function MasteryIndicator({
   mastery: number | null;
   /** 与 `rubrics.md` 四档一致；无数据时省略。 */
   level?: "优秀" | "良好" | "及格" | "不及格";
+  /**
+   * 口径说明（2026-09-19 加）：零基础走查发现学生分不清「模块页 80 分」
+   * 与「报告页平均 47 分」—— 前者是本概念的分数换算，后者是全部概念的
+   * 平均。数据都对，但页面不解释口径，看起来就像数字打架。
+   */
+  caption?: string;
   className?: string;
 }) {
   const hasData = mastery !== null;
@@ -71,6 +78,11 @@ export function MasteryIndicator({
               mastery >= 60 ? "bg-emerald-500" : "bg-amber-500"
             }
           />
+          {caption ? (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {caption}
+            </p>
+          ) : null}
         </>
       ) : (
         <p className="text-xs leading-relaxed text-muted-foreground">

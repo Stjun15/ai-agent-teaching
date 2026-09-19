@@ -42,6 +42,11 @@ export function MasteryCard({
       // 0~5 → 0~100；`null` 保持 `null`（「没测过」与「0 分」是两件事）。
       mastery={mastery === null ? null : masteryToPercent(mastery.score)}
       level={mastery === null ? undefined : levelOfMastery(mastery.score)}
+      caption={
+        mastery === null
+          ? undefined
+          : `这是「${moduleName}」这一个概念的掌握度（原始 ${mastery.score} / 5 换算成百分制）。报告页的「平均掌握度」是全部概念的平均——两边数字不同是口径不同，不是算错。`
+      }
     />
   );
 }

@@ -149,8 +149,8 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   );
   assert.match(
     launcher,
-    /step:\s*"explain"/,
-    "自动开讲必须携带 explain 步骤，否则退回答疑口径",
+    /send\(\{\s*content:\s*prompt,\s*step\s*\}/,
+    "自动开场必须把步骤随请求带上，否则退回答疑口径",
   );
   assert.match(
     launcher,
@@ -163,6 +163,18 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
     "utf8",
   );
   assert.match(workspace, /LectureLauncher/, "模块工作区必须挂自动开讲组件");
+  // 讲解与观察示范都要自动开场（观察示范此前是空白对话区，学生不知道干什么）；
+  // 动手模仿不得自动开场 —— 那一步的主体是学生自己写。
+  assert.match(
+    workspace,
+    /currentStepId === "explain" \|\| currentStepId === "observe"/,
+    "讲解与观察示范两步都应自动开场",
+  );
+  assert.match(
+    workspace,
+    /step=\{currentStepId\}/,
+    "开场组件必须拿到当前步骤（两个步骤用不同的开场词）",
+  );
   assert.doesNotMatch(
     workspace,
     /starter/,
