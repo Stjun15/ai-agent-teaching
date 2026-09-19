@@ -1,6 +1,6 @@
 ---
 type: concept
-last_updated: 2026-09-17
+last_updated: 2026-09-19
 id: rag
 name: RAG 检索增强生成
 prerequisites: [tool-calling]
@@ -13,7 +13,7 @@ tags: [core, rag, retrieval]
 
 ## 定义
 
-RAG = Retrieval + Augmented + Generation
+RAG = Retrieval + Augmented + Generation。
 先检索相关资料，再让 AI 基于资料生成回答。
 
 ## 为什么需要 RAG

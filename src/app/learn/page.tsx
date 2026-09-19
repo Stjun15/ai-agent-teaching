@@ -31,9 +31,9 @@ export default async function LearnPage() {
       <header className="max-w-2xl">
         <h1 className="text-2xl font-semibold tracking-tight">学习中心</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {modules.length} 个模块依依赖关系排定顺序，共约 {totalMinutes} 分钟。
-          每个模块走完「概念讲解 → 动手实践 → 校验点评 → 可视化 →
-          变式练习」五步， 掌握度达标后再进入下一个 ——
+          {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes} 分钟。
+          每个模块走完「概念讲解 → 观察示范 → 动手模仿 → 校验点评 → 可视化 →
+          变式练习 → 掌握判定」七步，掌握度达标后再进入下一个 ——
           这是掌握式学习的顺序，不建议跳讲。
         </p>
       </header>
