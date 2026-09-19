@@ -7,7 +7,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-4 rounded-xl border bg-card py-5 text-card-foreground shadow-xs",
+        // scroll-mt-24：滚动定位（键盘 Tab、锚点、scrollIntoView）落到卡片时，
+        // 给 sticky 页头（h-14）留出高度，否则卡片顶部被页头盖住 —— 实测
+        // 自动化点击与键盘滚动都会命中「可见却被遮」的死区。
+        "scroll-mt-24 flex flex-col gap-4 rounded-xl border bg-card py-5 text-card-foreground shadow-xs",
         className,
       )}
       {...props}
