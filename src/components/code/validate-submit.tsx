@@ -42,7 +42,14 @@ interface ValidateResponse {
   level: ValidationResult["level"];
   isCorrect: boolean;
   dimensions: ValidationResult["dimensions"];
-  issues: ValidationResult["issues"];
+  /** ⚠️ 路由原样透传点评输出，字段是 snake_case（related_dimension 等）。 */
+  issues: Array<{
+    type: ValidationResult["issues"][number]["type"];
+    detail: string;
+    deduction: number;
+    related_dimension: string;
+    related_anti_pattern: string | null;
+  }>;
   /**
    * ⚠️ 不是 `string[]`：点评 Agent 的建议是对象（priority/action/example），
    * validate 路由**原样透传**（`db/types.ts` 里 `suggestions: string[]` 的
@@ -65,6 +72,19 @@ function normalizeSuggestion(
   const parts = [item.action];
   if (item.example !== "") parts.push(`例：${item.example}`);
   return `【${item.priority}】${parts.join(" —— ")}`;
+}
+
+/** 问题对象 snake_case → 库行形状（面板只认一种口径）。 */
+function normalizeIssue(
+  item: ValidateResponse["issues"][number],
+): ValidationResult["issues"][number] {
+  return {
+    type: item.type,
+    detail: item.detail,
+    deduction: item.deduction,
+    relatedDimension: item.related_dimension,
+    relatedAntiPattern: item.related_anti_pattern,
+  };
 }
 
 export function ValidateSubmit({ moduleId }: { moduleId: string }) {
@@ -119,7 +139,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         level: result.level,
         isCorrect: result.isCorrect,
         dimensions: result.dimensions,
-        issues: result.issues,
+        issues: result.issues.map(normalizeIssue),
         suggestions: result.suggestions.map(normalizeSuggestion),
         createdAt: new Date().toISOString(),
       });
