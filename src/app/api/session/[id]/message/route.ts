@@ -38,12 +38,19 @@
  * 注释）：到了模型眼里 teacher/reviewer/examiner 都是「助手说过的话」，
  * 区分开只会让它以为有多个说话人。system 消息不进历史。
  *
- * agent 字段的来源（刻意的简化）
- * ---------------------------
- * `SendMessageSchema` 不含 agent，会话的 `currentStep` 也不直接对应四 Agent
- * 架构里的 teacher/reviewer/examiner。本端点统一用 `DEFAULT_AGENT_ID`（"chat"），
- * 把「按 step 选 agent」留给 `/api/agent/*` 那组编排端点（后续提交点）。
- * thinking 事件里 agent 因此固定为 "chat" —— 这是已知简化，不是 bug。
+ * agent 字段的来源（2026-09-19 修正：不再一律 "chat"）
+ * ---------------------------------------------
+ * 原先无论会话停在哪一步，一律用 `DEFAULT_AGENT_ID`（"chat"）配
+ * loop.ts 的临时提示词（准则里写着「简洁直接，先给结论再给理由」）。
+ * 结果学生在「概念讲解」这一步提问，得到的是答疑口径的一句话 ——
+ * 学生原话反馈：「概念讲解就一句话吗？应该先仔细讲讲，然后再给出实例，
+ * 之后再让用户模仿。」
+ *
+ * 现在按 `session.currentStep` 选身份层：讲解三步（explain / observe /
+ * imitate）由讲解导师接管，其余步骤仍是通用答疑。
+ * 选择与不选的完整理由见 `lib/agent/step-prompt.ts` 头部 —— 尤其是为什么
+ * validate / practice 不能走这条路（它们的 Agent 输出是 JSON，上对话流
+ * 会让学生看到原始报文）。
  */
 
 import { resolveStudent } from "@/lib/api-auth";
@@ -54,10 +61,11 @@ import { newId } from "@/lib/db/helpers";
 import type { Citation } from "@/lib/db/types";
 import { screenInput } from "@/lib/security/input-filter";
 import {
-  DEFAULT_AGENT_ID,
   runAgentLoop,
   type AgentHistoryTurn,
+  type AgentLoopOptions,
 } from "@/lib/agent/loop";
+import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import {
   DEFAULT_CITATION_COUNT,
   retrieveCitations,
@@ -197,16 +205,24 @@ export async function POST(
   request.signal.addEventListener("abort", () => abortStream(id));
 
   // 7. 起一轮 Agent（SSE 响应头随之交出，运行在后台）
-  const agent = DEFAULT_AGENT_ID;
-  const loop = runAgentLoop({
+  //
+  // 身份层按当前学习步骤选：讲解三步换讲解导师，其余维持通用答疑口径。
+  // `systemPrompt` 空串表示「用 loop 自己的默认值」—— 不在这里抄一份文案，
+  // 免得两处各自漂移（见 step-prompt.ts 的注释）。
+  const stepAgent = resolveStepAgent(session.currentStep);
+  const loopOptions: AgentLoopOptions = {
     prompt: body.content,
     code: body.code,
     language: body.language,
-    agent,
+    agent: stepAgent.id,
     history,
     preludeEvents,
     signal,
-  });
+  };
+  if (stepAgent.systemPrompt !== "") {
+    loopOptions.systemPrompt = stepAgent.systemPrompt;
+  }
+  const loop = runAgentLoop(loopOptions);
 
   // 8. 后台落库助手消息（不阻塞 SSE 响应）
   const startedAt = Date.now();
@@ -218,7 +234,8 @@ export async function POST(
         content: summary.text,
         citations: [],
         metadata: {
-          agent,
+          // 落库的是本轮真正使用的身份，便于回溯「这句话是哪个 Agent 说的」。
+          agent: stepAgent.id,
           tokens: summary.tokens,
           duration: Date.now() - startedAt,
           error: summary.ok ? undefined : summary.error,

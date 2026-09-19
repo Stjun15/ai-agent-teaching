@@ -17,6 +17,7 @@ import {
   useVisualizationStore,
   type PlaybackSpeed,
 } from "@/stores";
+import { SCENE_LABELS, isSceneId } from "@/lib/agent/scene-ids";
 import { getSceneDefinition } from "@/scenes/scene-catalog";
 import { SceneStage } from "@/scenes/scene-stage";
 import { cn } from "@/lib/utils";
@@ -123,7 +124,9 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="muted">
           <Film />
-          {displayId}
+          {displayId !== null && isSceneId(displayId)
+            ? SCENE_LABELS[displayId]
+            : "流程演示"}
         </Badge>
         {registered ? (
           <span className="text-sm font-medium">{scene.title}</span>

@@ -62,20 +62,27 @@ export interface UseChatStreamOptions {
 
 export interface ChatStreamController {
   /** 发一轮消息。重复调用会被拒绝（同一时刻只允许一条流）。 */
-  send: (request: ChatRequest) => Promise<void>;
+  send: (request: ChatRequest, options?: { silent?: boolean }) => Promise<void>;
   /** 中断当前流。已收到的内容会保留。 */
   abort: () => void;
   /** 清空会话（消息、思考、工具、引用、用量）。 */
   reset: () => void;
 }
 
+/** 「同一时刻只允许一条流」的全局闸门。
+ *
+ * 为什么是模块级而不是实例级（`useRef`）：发起流的和摆「停止」按钮的
+ * 可能是**两个组件实例** —— 讲解步骤由 `LectureLauncher` 自动开讲，
+ * `Composer` 只负责中止。各存一份的话，停止按钮 abort 的是自己实例里
+ * 那个 null，自动开讲的流根本停不下来（2026-09-19 实测推导）。
+ */
+const activeController: { current: AbortController | null } = { current: null };
+
 export function useChatStream(
   options: UseChatStreamOptions = {},
 ): ChatStreamController {
   const { url = "/api/chat", onUiEvent } = options;
 
-  // 用 ref 而不是 state：它不参与渲染，放 state 会因每次变更触发多余的渲染。
-  const controllerRef = useRef<AbortController | null>(null);
   // 组件卸载后仍在飞的事件要丢弃，否则会对已卸载的 Store 消费者写入。
   const mountedRef = useRef(true);
   const onUiEventRef = useRef(onUiEvent);
@@ -93,20 +100,24 @@ export function useChatStream(
       mountedRef.current = false;
       // 卸载即中断：否则关页面后服务端还在跑一次完整的模型调用，
       // 白烧一份 token。
-      controllerRef.current?.abort();
-      controllerRef.current = null;
+      activeController.current?.abort();
+      activeController.current = null;
     };
   }, []);
 
   const send = useCallback(
-    async (request: ChatRequest): Promise<void> => {
-      if (controllerRef.current !== null) return;
+    async (
+      request: ChatRequest,
+      /** `silent`：不在对话里落学生消息 —— 给「导师自动开讲」用。 */
+      options?: { silent?: boolean },
+    ): Promise<void> => {
+      if (activeController.current !== null) return;
 
       const controller = new AbortController();
-      controllerRef.current = controller;
+      activeController.current = controller;
 
       const session = useSessionStore.getState();
-      session.beginTurn(request.content);
+      session.beginTurn(request.content, options);
 
       try {
         await handleSSE(
@@ -141,18 +152,18 @@ export function useChatStream(
 
         useSessionStore.getState().failTurn(toSessionError(error));
       } finally {
-        controllerRef.current = null;
+        activeController.current = null;
       }
     },
     [url],
   );
 
   const abort = useCallback(() => {
-    controllerRef.current?.abort();
+    activeController.current?.abort();
   }, []);
 
   const reset = useCallback(() => {
-    controllerRef.current?.abort();
+    activeController.current?.abort();
     useSessionStore.getState().reset();
   }, []);
 

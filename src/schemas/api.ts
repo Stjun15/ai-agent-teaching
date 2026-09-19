@@ -129,6 +129,26 @@ export const ChatRequestSchema = z.object({
   language: z.enum(["typescript", "python"]).optional(),
   /** 对应 loop.ts 的 `AgentLoopOptions.agent`，进 SSE 的 thinking 事件。 */
   agent: z.string().min(1).max(64).optional(),
+  /**
+   * 学生当前所处的学习步骤。学习页随每条消息携带；缺省 = 不在学习页语境
+   * （演练场自由对话），按通用答疑口径回答。
+   *
+   * 字面量列表与 `src/lib/db/types.ts` 的 `StepType` 是**同一份值的两次誊写**
+   * （本文件不 import db，见文件头「不 import 任何运行时依赖」）。
+   * 不会漂移：route.ts 拿解析后的值调 `resolveStepAgent(step)`，后者参数类型
+   * 是 `StepType`，两边字面量有一个对不上，`tsc` 当场报错。
+   */
+  step: z
+    .enum([
+      "explain",
+      "observe",
+      "imitate",
+      "validate",
+      "visualize",
+      "practice",
+      "mastery",
+    ])
+    .optional(),
 });
 
 /**

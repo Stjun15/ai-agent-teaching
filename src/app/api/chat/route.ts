@@ -33,7 +33,8 @@
  */
 
 import { ARK_API_KEY_ENV, isArkApiKeyConfigured } from "@/lib/agent/ark-config";
-import { runAgentLoop } from "@/lib/agent/loop";
+import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
+import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 import { ChatRequestSchema } from "@/schemas";
@@ -87,7 +88,15 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const { response } = runAgentLoop({
+  // 身份层按学习步骤选（2026-09-19 修正）。与落库端点
+  // `/api/session/[id]/message` 共用同一张表（`resolveStepAgent`）——
+  // 两条管道、一份口径。这里曾经只给 loop 的临时答疑提示词，学生在
+  // 「概念讲解」步骤得到的也是答疑口径的一句话（学生反馈：「概念讲解就
+  // 一句话吗？」）。为什么 validate / practice 不在这张表里、为什么教学
+  // 提示词必须是 Markdown 而非 JSON，见 step-prompt.ts 与
+  // prompts/teaching-chat.ts 的头部注释。
+  const stepAgent = resolveStepAgent(parsed.data.step);
+  const loopOptions: AgentLoopOptions = {
     prompt: parsed.data.content,
     // 学生附带的代码。⚠️ 这两行是后补的：schema 首版没这两个字段时，
     // 前端「附带代码」按钮发出去的内容会被 Zod 静默剥离（详见
@@ -95,10 +104,14 @@ export async function POST(req: Request): Promise<Response> {
     // composeUserPrompt；Phase 5 换成落库端点后由提示词构造层统一组装。
     code: parsed.data.code,
     language: parsed.data.language,
-    agent: parsed.data.agent,
+    agent: parsed.data.agent ?? stepAgent.id,
     // 浏览器关闭标签页 / 前端点「停止」时，让 SSE 的取消动作一路传到 SDK 的 abort()。
     signal: req.signal,
-  });
+  };
+  if (stepAgent.systemPrompt !== "") {
+    loopOptions.systemPrompt = stepAgent.systemPrompt;
+  }
+  const { response } = runAgentLoop(loopOptions);
 
   return response;
 }

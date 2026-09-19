@@ -26,7 +26,7 @@ export function CitationPanel() {
   if (citations.length === 0) {
     return (
       <p className="text-xs leading-relaxed text-muted-foreground">
-        暂无引用。接入检索（RAG）后，导师引用知识库的地方会列在这里。
+        这条回答没有引用参考资料。等导师开始查资料答题后，引用出处会列在这里。
       </p>
     );
   }

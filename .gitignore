@@ -71,3 +71,6 @@ _backup/
 _day0_test/
 scaffold-tmp/
 .workbuddy/
+
+# 学生走查截图（人工查看用，不入库）
+.walkthrough/
