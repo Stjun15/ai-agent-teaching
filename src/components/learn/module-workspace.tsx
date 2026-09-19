@@ -220,7 +220,7 @@ export function ModuleWorkspace({
           */}
           <Card className="h-[560px]">
             <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-              <ChatPanel {...chatStepProps} />
+              <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
               {/*
                 输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
                 底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
@@ -240,7 +240,7 @@ export function ModuleWorkspace({
                   )}
                 />
               ) : null}
-              <Composer step={currentStepId} />
+              <Composer step={currentStepId} moduleId={teachingModule.id} />
             </CardContent>
           </Card>
 

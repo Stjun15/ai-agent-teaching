@@ -187,7 +187,16 @@ export interface SessionState {
    * 返回是否真的注入了（调用方无需关心，返回值只为测试）。
    */
   seedLecture: (step: StepType, content: string) => boolean;
+  /** 当前会话态所属的模块；null = 尚未进入任何模块页。 */
+  activeModuleId: string | null;
   reset: () => void;
+  /**
+   * 模块会话隔离（2026-09-19）：SPA 切换模块时清空上一模块的对话态。
+   * 此前 messages/thinking/tokens 是全局单份，学生从 A 模块切到 B 模块，
+   * A 的讲稿与问答会原样出现在 B 的页面里（「每个模块不要套用其他模块
+   * 的内容」）。同名调用是 no-op —— 模块内逐步切换不受影响。
+   */
+  ensureModule: (moduleId: string) => void;
 }
 
 function newId(): string {
@@ -225,6 +234,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   thinking: [],
   tools: [],
   citations: [],
+  activeModuleId: null as string | null,
   status: "idle",
   error: null,
   tokens: null,
@@ -466,6 +476,19 @@ export const useSessionStore = create<SessionState>((set) => ({
     return seeded;
   },
 
+  ensureModule: (moduleId) =>
+    set((state) => {
+      if (state.activeModuleId === moduleId) return state;
+      return {
+        activeModuleId: moduleId,
+        messages: [],
+        thinking: [],
+        tools: [],
+        citations: [],
+        status: "idle",
+        error: null,
+      };
+    }),
   reset: () =>
     set({
       messages: [],

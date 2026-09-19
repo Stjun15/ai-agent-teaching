@@ -107,7 +107,7 @@ export function LectureLauncher({
       const state = useSessionStore.getState();
       if (state.status !== "idle") return;
       if (state.messages.some((message) => message.step === step)) return;
-      await send({ content: prompt, step }, { silent: true });
+      await send({ content: prompt, step }, { silent: true, moduleId });
     })();
   }, [status, messages, moduleId, step, prompt, send]);
 

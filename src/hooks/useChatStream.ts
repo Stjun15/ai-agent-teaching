@@ -62,7 +62,10 @@ export interface UseChatStreamOptions {
 
 export interface ChatStreamController {
   /** 发一轮消息。重复调用会被拒绝（同一时刻只允许一条流）。 */
-  send: (request: ChatRequest, options?: { silent?: boolean }) => Promise<void>;
+  send: (
+    request: ChatRequest,
+    options?: { silent?: boolean; moduleId?: string },
+  ) => Promise<void>;
   /** 中断当前流。已收到的内容会保留。 */
   abort: () => void;
   /** 清空会话（消息、思考、工具、引用、用量）。 */
@@ -109,7 +112,7 @@ export function useChatStream(
     async (
       request: ChatRequest,
       /** `silent`：不在对话里落学生消息 —— 给「导师自动开讲」用。 */
-      options?: { silent?: boolean },
+      options?: { silent?: boolean; moduleId?: string },
     ): Promise<void> => {
       if (activeController.current !== null) return;
 
@@ -117,6 +120,15 @@ export function useChatStream(
       activeController.current = controller;
 
       const session = useSessionStore.getState();
+      // 模块切换时清空上一模块的对话态（含中止在途流）—— 跨模块的
+      // 讲稿/问答不允许串台（2026-09-19「每个模块不要套用其他模块」）。
+      if (options?.moduleId !== undefined) {
+        if (session.activeModuleId !== options.moduleId) {
+          activeController.current?.abort();
+          activeController.current = null;
+        }
+        session.ensureModule(options.moduleId);
+      }
       // step 随轮次进 store：学生消息直接带标签，助手消息经 turnStep 继承
       // —— LectureLauncher 的「这一步开过场没有」按消息的 step 判断。
       session.beginTurn(request.content, {
@@ -124,12 +136,21 @@ export function useChatStream(
         step: request.step,
       });
 
+      const turnModuleId = options?.moduleId;
       try {
         await handleSSE(
           url,
           request,
           (event) => {
             if (!mountedRef.current) return;
+            // 学生在流式输出途中切走了模块：迟到事件一律丢弃，
+            // 否则旧模块的 token 会写进新模块的对话。
+            if (
+              turnModuleId !== undefined &&
+              useSessionStore.getState().activeModuleId !== turnModuleId
+            ) {
+              return;
+            }
             dispatch(event, onUiEventRef.current);
           },
           {

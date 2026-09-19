@@ -23,6 +23,7 @@ import { selectStepMessages, type LectureMode } from "@/lib/lecture-split";
 export function ChatPanel({
   stepFilter,
   lectureMode = "full",
+  moduleId,
 }: {
   /**
    * 按学习步骤过滤消息（七步分屏，2026-09-19）：每一步只渲染属于自己的
@@ -32,8 +33,14 @@ export function ChatPanel({
   stepFilter?: string;
   /** 该步讲稿消息的处理方式，语义见 `lib/lecture-split.ts`。 */
   lectureMode?: LectureMode;
+  /**
+   * 所属模块：会话态按模块隔离（`ensureModule`），切模块即清空上一
+   * 模块的对话；渲染守卫防止切换瞬间闪现旧模块的消息。
+   */
+  moduleId?: string;
 } = {}) {
   const rawMessages = useSessionStore((state) => state.messages);
+  const activeModuleId = useSessionStore((state) => state.activeModuleId);
   const status = useSessionStore((state) => state.status);
   const error = useSessionStore((state) => state.error);
   const messages = useMemo(
@@ -46,6 +53,17 @@ export function ChatPanel({
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
+
+  useEffect(() => {
+    if (moduleId !== undefined) {
+      useSessionStore.getState().ensureModule(moduleId);
+    }
+  }, [moduleId]);
+
+  // 模块切换的第一帧 store 里还是旧模块的消息：渲染空态而不是闪现
+  // 旧内容（effect 清空后下一帧恢复正常）。
+  const moduleMismatch =
+    moduleId !== undefined && activeModuleId !== moduleId;
 
   function handleScroll(): void {
     const element = scrollRef.current;
@@ -71,7 +89,7 @@ export function ChatPanel({
         aria-live="polite"
         aria-busy={status === "streaming"}
       >
-        {messages.length === 0 ? (
+        {moduleMismatch || messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <MessageSquare className="size-6" />
             <p className="text-sm">还没有对话</p>

@@ -35,9 +35,12 @@ import { cn } from "@/lib/utils";
  */
 export function Composer({
   step,
+  moduleId,
 }: {
   /** 学生当前所处学习步骤。缺省 = 非学习页语境（演练场）。 */
   step?: StepType;
+  /** 所属模块：流按模块隔离（切模块时清空上一模块的对话态）。 */
+  moduleId?: string;
 }) {
   // 流控制器由本组件持有，而不是提到上层：输入区是**唯一**发起请求的地方，
   // 「同一时刻只允许一条流」这个约束放在这里既自然又不用跨组件共享状态。
@@ -59,16 +62,19 @@ export function Composer({
   const elapsed = useElapsed(streaming);
 
   function sendContent(content: string): void {
-    void send({
-      content,
-      // 步骤随消息走：后端按它选讲解导师或答疑口径（见 step-prompt.ts）。
-      ...(step !== undefined ? { step } : {}),
-      // 空代码不发送：让请求体保持最简，也免得后端把空字符串当成
-      // 「学生提交了空代码」。
-      ...(showCode && code.trim() !== ""
-        ? { code: code.trim(), language }
-        : {}),
-    });
+    void send(
+      {
+        content,
+        // 步骤随消息走：后端按它选讲解导师或答疑口径（见 step-prompt.ts）。
+        ...(step !== undefined ? { step } : {}),
+        // 空代码不发送：让请求体保持最简，也免得后端把空字符串当成
+        // 「学生提交了空代码」。
+        ...(showCode && code.trim() !== ""
+          ? { code: code.trim(), language }
+          : {}),
+      },
+      { moduleId },
+    );
     setText("");
   }
 
