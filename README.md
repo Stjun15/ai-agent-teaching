@@ -10,7 +10,7 @@
   - 联系方式
 -->
 
-**状态**：`v0.1.0` 已打标 —— Phase 7 软件侧 9/12 完成（安全加固 / 提示词预算 / 技术文档 / 跨浏览器测试），剩 EdgeOne 真实部署（指南见 `docs/deployment.md`）与演示材料等人工事项 · 省赛提交截止 2026-11-18
+**状态**：`v0.4.0` 已打标 —— 七步教学流程全通（讲解/示范点开即有 · 动手模仿 · 校验点评 · 可视化 · 变式练习 · 掌握判定），Phase 7 软件侧 9/12 完成，剩 EdgeOne 真实部署（指南见 `docs/deployment.md`）与演示材料等人工事项 · 省赛提交截止 2026-11-18
 
 ---
 
@@ -118,8 +118,11 @@ pnpm build        # 生产构建
 ├── src/
 │   ├── app/                    Next.js App Router 路由与页面
 │   ├── components/             UI 组件（chat / code / learn / playground …）
-│   ├── lib/                    业务库（agent / db / wiki / schemas …）
+│   ├── hooks/                  客户端 hooks（对话流 / 练习流程 / 学生数据 hydrate）
+│   ├── lib/                    业务库（agent / db / wiki / modules …）
 │   ├── scenes/                 9 个可视化场景（数据层 .ts + 组件 .tsx）
+│   ├── schemas/                Zod 契约（API / SSE / 学生记录 / 错误码）
+│   ├── stores/                 Zustand 状态（会话 / 可视化 / 主题 / 学生）
 │   └── wiki/                   LLM Wiki 自研最小实现（读取 llm-wiki/）
 ├── llm-wiki/                   知识层内容（概念 / 反模式 / 评分标准 / 项目模板 …）
 ├── agent-prompts/              设计文档与参考规范（00-MASTER … 06-execution-plan）
