@@ -19,11 +19,13 @@
  *      通常看不出来（Zod 不会参与，因为聊天流压根不校验）。
  */
 
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import { TEACHING_CHAT_SYSTEM_PROMPT } from "@/lib/agent/prompts/teaching-chat";
+import { ChatRequestSchema } from "@/schemas";
 
 test("讲解三步由讲解导师接管", () => {
   for (const step of ["explain", "observe", "imitate"] as const) {
@@ -71,4 +73,66 @@ test("教学提示词不带任何 JSON 输出契约", () => {
       `教学提示词不该要求输出 ${marker}：SSE 逐字吐给学生，学生会看到原始报文`,
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// 2026-09-19 补：/api/chat 也要按步骤选导师
+//
+// 起因是一次**真实踩坑**：第一版只接了落库端点 `/api/session/[id]/message`，
+// 但学习页输入框实际走的是不落库的 `/api/chat`（`useChatStream()` 默认
+// url）—— 「讲透 + 实例 + 模仿」在用户真正用的那条路上根本没生效。
+// 守卫方式沿用 student-records-wiring-spec 的文本断言：这两条路由没有
+// 可直接调用的纯函数出口，文本是最诚实的钉子。
+// ---------------------------------------------------------------------------
+
+test("step 缺省时走通用答疑口径（演练场自由对话不受影响）", () => {
+  for (const step of [undefined, null]) {
+    const spec = resolveStepAgent(step);
+    assert.equal(spec.teaching, false);
+    assert.equal(spec.systemPrompt, "");
+  }
+});
+
+test("ChatRequestSchema 接受七个合法步骤、拒绝编造的", () => {
+  for (const step of [
+    "explain",
+    "observe",
+    "imitate",
+    "validate",
+    "visualize",
+    "practice",
+    "mastery",
+  ]) {
+    const parsed = ChatRequestSchema.safeParse({ content: "hi", step });
+    assert.equal(parsed.success, true, `${step} 应是合法 step`);
+  }
+  assert.equal(
+    ChatRequestSchema.safeParse({ content: "hi", step: "play" }).success,
+    false,
+    "编造的 step 必须被 Zod 拒掉",
+  );
+  // 缺省合法：演练场不带 step。
+  assert.equal(ChatRequestSchema.safeParse({ content: "hi" }).success, true);
+});
+
+test("两条对话管道都按步骤选导师（文本守卫）", () => {
+  const chatRoute = readFileSync(
+    new URL("../src/app/api/chat/route.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    chatRoute,
+    /resolveStepAgent\(parsed\.data\.step\)/,
+    "/api/chat 必须按请求体里的 step 选身份层 —— 学习页输入框走的就是这条管道",
+  );
+
+  const composer = readFileSync(
+    new URL("../src/components/chat/composer.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    composer,
+    /\?\s*\{\s*step\s*\}/,
+    "Composer 必须把学习步骤随消息发出去",
+  );
 });

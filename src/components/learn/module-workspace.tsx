@@ -143,7 +143,19 @@ export function ModuleWorkspace({
                 底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
                 滚过整个中栏才够得到输入框。
               */}
-              <Composer />
+              {/*
+                step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19 修正，
+                此前一律是答疑口径，「概念讲解就一句话」）。starter 只在
+                explain 步骤出现 —— 学生不必自己想第一句怎么说。
+              */}
+              <Composer
+                step={currentStepId}
+                starter={
+                  currentStepId === "explain"
+                    ? `请讲讲「${teachingModule.name}」的核心概念`
+                    : undefined
+                }
+              />
             </CardContent>
           </Card>
 
