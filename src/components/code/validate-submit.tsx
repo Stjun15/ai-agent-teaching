@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ApiError, apiPost } from "@/lib/client-api";
 import { currentStudentId } from "@/lib/client-identity";
+import { useElapsed } from "@/hooks/use-elapsed";
 import { useCodeStore } from "@/stores";
 import type { ValidationResult } from "@/lib/db";
 
@@ -160,6 +161,20 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
   );
 }
 
+/** 批改中提示：带等待秒数（真实点评 20~40 秒，秒数走起来学生才安心）。 */
+function ValidatingNotice() {
+  const elapsed = useElapsed(true);
+  return (
+    <p
+      className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground"
+      role="status"
+    >
+      <Loader2 className="size-4 animate-spin" aria-hidden />
+      点评 Agent 正在按评分维度逐项批改，已等 {elapsed} 秒（通常 20~40 秒）…
+    </p>
+  );
+}
+
 /** 点评结果面板：状态（批改中 / 失败 / 结果）三分支。 */
 function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
   const status = useCodeStore((state) => state.validationStatus);
@@ -167,15 +182,7 @@ function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
   const error = useCodeStore((state) => state.validationError);
 
   if (status === "validating") {
-    return (
-      <p
-        className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground"
-        role="status"
-      >
-        <Loader2 className="size-4 animate-spin" aria-hidden />
-        点评 Agent 正在按评分维度逐项批改，大约需要十几秒…
-      </p>
-    );
+    return <ValidatingNotice />;
   }
 
   if (status === "error") {

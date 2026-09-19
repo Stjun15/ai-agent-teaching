@@ -5,6 +5,7 @@ import { Code2, CornerDownLeft, Loader2, Send, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useChatStream } from "@/hooks/useChatStream";
+import { useElapsed } from "@/hooks/use-elapsed";
 import { useCodeStore, useSessionStore } from "@/stores";
 import type { StepType } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,9 @@ export function Composer({
 
   const streaming = status === "streaming";
   const canSend = text.trim() !== "" && !streaming;
+  // 等待计时：真实模型一轮 20~40 秒，秒数走起来学生才知道「在干活」
+  // 而不是「卡死了」（走查 P2：没有时间参照的等待最难熬）。
+  const elapsed = useElapsed(streaming);
 
   function sendContent(content: string): void {
     void send({
@@ -144,7 +148,7 @@ export function Composer({
       {streaming ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Loader2 className="size-3 animate-spin" />
-          模型正在输出，可以随时停止
+          模型正在输出，已等 {elapsed} 秒，可以随时停止
         </p>
       ) : null}
     </div>
