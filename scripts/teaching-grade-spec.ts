@@ -128,6 +128,30 @@ test("gradeObjective：选择题保持精确比对（不做包含放行）", () 
   assert.equal(padded.isCorrect, false, "选择题应精确比对选项");
 });
 
+test("gradeObjective：选择题对账选项字母与整段选项文本", () => {
+  // 实测失败模式：题库 correct_answer 存选项字母（"A"），界面送的是
+  // 整段选项文本（"A. 在对话开始时作为系统提示词发送…"）—— 精确比对
+  // 把答对的学生判 0 分。规则判分必须对账这两种形态。
+  const q = {
+    type: "选择题",
+    text: "小华应该把这句角色设定放在哪里？",
+    correctAnswer: "A",
+    explanation: "系统提示词在对话开始前发送。",
+  };
+
+  const fullOption = gradeObjective(
+    q,
+    "A. 在对话开始时作为系统提示词发送，而不是当作普通问题",
+  );
+  assert.equal(fullOption.isCorrect, true, "整段选项文本应对账到字母");
+
+  const bareLetter = gradeObjective(q, "A");
+  assert.equal(bareLetter.isCorrect, true, "裸字母本就精确比对命中");
+
+  const otherLetter = gradeObjective(q, "B. 在每一条 AI 回答之后重复一遍");
+  assert.equal(otherLetter.isCorrect, false, "选错字母仍应判错");
+});
+
 test("runAssessLoop：客观题不调模型直接走规则", async () => {
   const q = {
     type: "填空题",
