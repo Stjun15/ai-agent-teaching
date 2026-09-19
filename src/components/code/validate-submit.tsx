@@ -43,14 +43,35 @@ interface ValidateResponse {
   isCorrect: boolean;
   dimensions: ValidationResult["dimensions"];
   issues: ValidationResult["issues"];
-  suggestions: string[];
+  /**
+   * ⚠️ 不是 `string[]`：点评 Agent 的建议是对象（priority/action/example），
+   * validate 路由**原样透传**（`db/types.ts` 里 `suggestions: string[]` 的
+   * 声明与真实载荷不符 —— 2026-09-19 实测 React #31 崩溃才发现）。
+   * 在这里归一化成展示字符串，进 store 后才是 `string[]`。
+   */
+  suggestions: Array<
+    string | { priority: "高" | "中" | "低"; action: string; example: string }
+  >;
   nextAction: "pass" | "retry" | "lower_difficulty";
   success: boolean;
   usedFallback: boolean;
 }
 
+/** 建议对象 → 一行可读文本：`【高】做法（例：…）`。 */
+function normalizeSuggestion(
+  item: ValidateResponse["suggestions"][number],
+): string {
+  if (typeof item === "string") return item;
+  const parts = [item.action];
+  if (item.example !== "") parts.push(`例：${item.example}`);
+  return `【${item.priority}】${parts.join(" —— ")}`;
+}
+
 export function ValidateSubmit({ moduleId }: { moduleId: string }) {
   const [submitting, setSubmitting] = useState(false);
+  // 兜底点评标记：store 的 ValidationResult 没有这个字段（那是库行的形状），
+  // 放在组件 state 里，随结果一起交给面板做「这次分数不算数」的提示。
+  const [usedFallback, setUsedFallback] = useState(false);
   // 本挂载内复用的会话。切模块/刷新后重建 —— 会话是廉价资源，缓存到
   // sessionStorage 反而要在模块切换时清理，得不偿失。
   const sessionIdRef = useRef<string | null>(null);
@@ -86,6 +107,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         taskType: store.taskType,
         content: store.code,
       });
+      setUsedFallback(result.usedFallback);
       // 响应不含 id / createdAt（那是库行的字段），面板展示用不到，
       // 按类型要求补上占位值 —— 不为此造第二份展示类型。
       useCodeStore.getState().resolveValidation({
@@ -98,7 +120,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         isCorrect: result.isCorrect,
         dimensions: result.dimensions,
         issues: result.issues,
-        suggestions: result.suggestions,
+        suggestions: result.suggestions.map(normalizeSuggestion),
         createdAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -113,13 +135,13 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <CodeEditor onSubmit={handleSubmit} submitting={submitting} />
-      <ValidationReport />
+      <ValidationReport usedFallback={usedFallback} />
     </div>
   );
 }
 
 /** 点评结果面板：状态（批改中 / 失败 / 结果）三分支。 */
-function ValidationReport() {
+function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
   const status = useCodeStore((state) => state.validationStatus);
   const result = useCodeStore((state) => state.validationResult);
   const error = useCodeStore((state) => state.validationError);
@@ -158,6 +180,12 @@ function ValidationReport() {
   const passed = result.isCorrect;
   return (
     <div className="flex flex-col gap-4 rounded-lg border bg-background px-4 py-3.5">
+      {usedFallback ? (
+        <p className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+          这次没能连上点评模型，以下是系统兜底的占位结果——分数仅供参考，别当真。
+        </p>
+      ) : null}
       {/* 总分与判定 */}
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-2xl font-semibold tabular-nums">
