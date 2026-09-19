@@ -304,9 +304,12 @@ test("限流发生在解析请求体与起流之前", () => {
   // 所以限流必须在起流之前 —— 晚一步就不是 429，而是流跑完才被告知超限。
   const messageFile = "src/app/api/session/[id]/message/route.ts";
   const messageText = readSource(messageFile);
+  // 锚点是 `runAgentLoop(`（调用），不是 `{` 结尾的字面量 —— 2026-09-19 起
+  // 请求体先组 `loopOptions` 再传入，按 `{` 找会得到 -1，断言恒假（曾红过一轮）。
+  // import 行写的是 `runAgentLoop,`，不带括号，不会被这个锚误中。
   assert.ok(
     messageText.indexOf("enforceRateLimit(") <
-      messageText.indexOf("runAgentLoop({"),
+      messageText.indexOf("runAgentLoop("),
     `${messageFile} 的限流必须早于 runAgentLoop —— 一次请求会跑完一整轮 Agent`,
   );
 });
