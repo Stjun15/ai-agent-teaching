@@ -74,3 +74,6 @@ scaffold-tmp/
 
 # 学生走查截图（人工查看用，不入库）
 .walkthrough/
+
+# 走查证据截图（会话产物，不入库）
+gui-test-screenshots/
