@@ -51,6 +51,12 @@ export interface ValidationLoopInput {
   studentAnswer: string;
   moduleId: string;
   conceptId?: string;
+  /**
+   * 这次提交对应的题目原文（题面）。给了它，点评 Agent 才能对着
+   * 「题面要求了什么」评分；不给（自主提交的作业没有题面），它只能按
+   * 模块通用 rubric 评 —— 实测会把「答自己组织语言」误判成跑题。
+   */
+  questionText?: string;
   /** 学生上一次提交的内容。给了才能生成 `progress_note` 的对比。 */
   previousAnswer?: string;
   /** 该生在这道题上的尝试次数（1 起）。>= 3 时触发降难度指令。 */
@@ -104,6 +110,7 @@ export async function runValidationLoop(
     studentAnswer,
     moduleId,
     conceptId,
+    questionText,
     previousAnswer,
     attemptNumber = 1,
     maxRetries,
@@ -122,6 +129,7 @@ export async function runValidationLoop(
       student_answer: studentAnswer,
       module_id: moduleId,
       ...(conceptId ? { concept_id: conceptId } : {}),
+      ...(questionText ? { question_text: questionText } : {}),
       ...(previousAnswer ? { previous_answer: previousAnswer } : {}),
       attempt_number: attemptNumber,
       ...(lower ? { teaching_strategy: lower } : {}),

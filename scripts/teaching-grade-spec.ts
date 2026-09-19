@@ -78,6 +78,7 @@ before(() => {
 test("gradeObjective：客观题规则判分（正确/错误 + feedback 含解析）", () => {
   const q = {
     type: "选择题",
+    text: "中国的首都是？",
     correctAnswer: "北京",
     explanation: "北京是中国的首都。",
   };
@@ -100,6 +101,7 @@ test("gradeObjective：填空题剥离答案备注并接受覆盖标准答案的
   // 「或任何合理的天气描述」，判分与解析口径矛盾。
   const q = {
     type: "填空题",
+    text: "请填写一个合理且符合场景的 weather 字段内容。",
     correctAnswer: "晴（或任何合理的天气描述，如多云、小雨等）",
     explanation: "weather 字段应填入一个描述天气的词语或短句。",
   };
@@ -117,6 +119,7 @@ test("gradeObjective：填空题剥离答案备注并接受覆盖标准答案的
 test("gradeObjective：选择题保持精确比对（不做包含放行）", () => {
   const q = {
     type: "选择题",
+    text: "以下哪个输入用来设定 AI 的角色和回复风格？",
     correctAnswer: "B",
     explanation: "system message 用于设定角色与风格。",
   };
@@ -128,6 +131,7 @@ test("gradeObjective：选择题保持精确比对（不做包含放行）", () 
 test("runAssessLoop：客观题不调模型直接走规则", async () => {
   const q = {
     type: "填空题",
+    text: "请填写答案。",
     correctAnswer: "42",
     explanation: "答案是 42。",
   };
@@ -184,6 +188,7 @@ test("完整闭环：客观题评分 → question_results 真实落库", async (
   const assessment = await runAssessLoop({
     question: {
       type: "选择题",
+      text: "中国的首都是？",
       correctAnswer: "北京",
       explanation: "北京是首都。",
     },

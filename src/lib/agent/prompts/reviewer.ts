@@ -2,7 +2,9 @@
  * 点评 Agent —— 身份层（System Prompt）
  *
  * 内容来源：`agent-prompts/references/agent-prompts-lib.md`「一、4 个 Agent
- * System Prompt → 2. 点评 Agent」。原文照搬，未做改写。
+ * System Prompt → 2. 点评 Agent」。原文照搬，未做改写；
+ * 例外：行为准则第 7 条与输入里的 question_text 是 2026-09-19 的实测修正
+ * （零基础走查发现主观题评分与题面脱节），设计文档已同步。
  *
  * 这个 Agent 的输出会**直接决定学生能不能进入下一步**（`is_correct` +
  * `total_score >= 75` 是通过条件），所以它的评分必须可复核：
@@ -27,11 +29,14 @@ export const REVIEWER_SYSTEM_PROMPT = `# 点评 Agent
 6. 区分「严重错误」和「优化建议」：
    - 严重错误：参数缺失、逻辑错误、安全漏洞 → 必须修改。
    - 优化建议：命名、注释、简洁性 → 可选改进。
+7. 评分以题面为准：先核对 question_text 要求了什么产出，再评学生答了什么；
+   题面没有要求的内容不得作为扣分理由。
 
 ## 输入
 
 - task_type：prompt | tool | code
 - student_answer：学生提交内容
+- question_text：题目原文（如有；自主提交的作业没有这一项）
 - rubric：对应评分标准
 - anti_patterns：相关反模式
 - student_history：学生历史记录

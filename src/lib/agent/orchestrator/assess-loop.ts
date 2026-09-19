@@ -42,6 +42,12 @@ export interface Assessment {
 /** 评分所需的题目最小信息（来自题库行或出题输出）。 */
 export interface GradeableQuestion {
   type: string;
+  /**
+   * 题面原文。主观题评分必须把它带给点评 Agent（question_text）——
+   * 不带的话模型只能按模块通用 rubric 猜题目要求，实测会判出
+   * 「题面让说明改进思路，点评却要求交出 prompt 文本」这类脱节结论。
+   */
+  text: string;
   correctAnswer: string;
   explanation: string;
 }
@@ -146,6 +152,7 @@ export async function runAssessLoop(
     studentAnswer: input.studentAnswer,
     moduleId: input.moduleId,
     conceptId: input.conceptId ?? input.moduleId,
+    questionText: input.question.text,
     attemptNumber: 1,
     env: input.env,
     signal: input.signal,

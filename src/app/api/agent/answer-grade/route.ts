@@ -78,6 +78,8 @@ export async function POST(request: Request): Promise<Response> {
     const assessment = await runAssessLoop({
       question: {
         type: question.type,
+        // 题面原文：主观题点评必须对着「题面要求了什么」评，见 assess-loop.ts。
+        text: question.question,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
       },
