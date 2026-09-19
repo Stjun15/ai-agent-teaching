@@ -36,6 +36,7 @@
     "test:theme": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/theme-spec.ts",
     "test:report-dimensions": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/report-dimensions-spec.ts",
     "test:teaching-step": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/teaching-step-spec.ts",
+    "test:lecture-cache": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/lecture-cache-spec.ts",
     "test:validate-wiring": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/validate-wiring-spec.ts",
     "test:cross-browser": "node scripts/cross-browser-spec.mjs",
     "test:report-details": "node scripts/report-details-spec.mjs",

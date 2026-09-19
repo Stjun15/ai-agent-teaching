@@ -82,6 +82,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "讲稿缓存",
+    file: "scripts/lecture-cache-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
