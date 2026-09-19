@@ -120,6 +120,18 @@ async function main(): Promise<void> {
       continue;
     }
 
+    // 截断守卫（实测教训）：模型输出 token 有 8192 上限，思考吃得太多时
+    // **正文会被拦腰砍断**（实测 multi-agent:observe 只剩 76 字、半句收尾；
+    // llm-wiki:observe 死在半行列表项上）。残稿绝不能进缓存 —— 学生会看到
+    // 「导师话说一半」。两个信号：output 顶到上限、正文短得反常。
+    if (summary.tokens.output >= 8000 || summary.text.length < 800) {
+      failed += 1;
+      console.error(
+        `${label} 疑似截断（output ${summary.tokens.output} tok / ${summary.text.length} 字），不写入缓存。重跑：--only=${job.moduleId}:${job.step} --force`,
+      );
+      continue;
+    }
+
     await lectureCacheDb.upsert({
       moduleId: job.moduleId,
       step: job.step,
