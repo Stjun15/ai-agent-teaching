@@ -185,6 +185,7 @@ export const LAB_EXPERIMENTS: readonly LabExperiment[] = [
       },
     ],
     needsSession: false,
+    usesModel: false,
     build: (values) => ({
       query: values.query,
       options: { topK: values.topK ?? 3 },

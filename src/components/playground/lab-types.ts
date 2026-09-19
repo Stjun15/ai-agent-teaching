@@ -55,6 +55,12 @@ export interface LabExperiment {
   /** 运行前是否需要先建会话（`validate` / `explain` / `answer` 要 sessionId）。 */
   needsSession: boolean;
   /**
+   * 运行是否真的调用模型。知识库检索是本地加权关键词检索（不出网、
+   * 毫秒级返回），页脚的「消耗 token」提示对它就是假话 —— 按能力声明，
+   * 不准确的全局文案比没有文案更糟。
+   */
+  usesModel?: boolean;
+  /**
    * 已转好类型的值 → 请求体。
    *
    * 服务端一律用 Zod 校验（铁律：路由里不许直接读 `req.json()` 的字段），

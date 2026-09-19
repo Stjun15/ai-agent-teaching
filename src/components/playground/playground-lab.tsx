@@ -177,7 +177,9 @@ export function PlaygroundLab({
             {running ? "运行中…" : "运行"}
           </Button>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            每次运行都会真实调用模型：要等几秒，也真的消耗 token。
+            {experiment.usesModel === false
+              ? "这个能力不调模型：检索在本地完成，毫秒级返回，不消耗 token。"
+              : "每次运行都会真实调用模型：要等几秒，也真的消耗 token。"}
           </p>
         </section>
 
