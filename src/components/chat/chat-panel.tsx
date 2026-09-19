@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MessageSquare } from "lucide-react";
 
 import { MessageItem } from "@/components/chat/message-item";
 import { useSessionStore } from "@/stores";
+import { selectStepMessages, type LectureMode } from "@/lib/lecture-split";
 
 /**
  * 对话面板（模块页中栏主体）。
@@ -19,10 +20,29 @@ import { useSessionStore } from "@/stores";
  * 滚动容器与消息列表是同一个元素（`overflow-y-auto`），
  * 判断距离用 `scrollHeight - scrollTop - clientHeight`。
  */
-export function ChatPanel() {
-  const messages = useSessionStore((state) => state.messages);
+export function ChatPanel({
+  stepFilter,
+  lectureMode = "full",
+}: {
+  /**
+   * 按学习步骤过滤消息（七步分屏，2026-09-19）：每一步只渲染属于自己的
+   * 消息 —— 概念讲解页不再出现示范步的内容，动手模仿页上划也看不到
+   * 前面的讲稿。不传 = 旧的全量行为（未分屏的步骤与模块沿用）。
+   */
+  stepFilter?: string;
+  /** 该步讲稿消息的处理方式，语义见 `lib/lecture-split.ts`。 */
+  lectureMode?: LectureMode;
+} = {}) {
+  const rawMessages = useSessionStore((state) => state.messages);
   const status = useSessionStore((state) => state.status);
   const error = useSessionStore((state) => state.error);
+  const messages = useMemo(
+    () =>
+      stepFilter
+        ? selectStepMessages(rawMessages, stepFilter, lectureMode)
+        : rawMessages,
+    [rawMessages, stepFilter, lectureMode],
+  );
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);

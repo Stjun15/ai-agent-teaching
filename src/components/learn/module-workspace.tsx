@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Clock } from "lucide-react";
 
+import { AssignmentCard } from "@/components/learn/assignment-card";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
@@ -90,6 +91,17 @@ export function ModuleWorkspace({
   const showWorkspacePanels =
     !stepSeparationPrototype ||
     (currentStepId !== "explain" && currentStepId !== "observe");
+  // 分屏后每一步的聊天只渲染本步消息；讲解稿在本步的呈现方式见
+  // lib/lecture-split.ts（truncate=截到作业前 / skip=整条不显示）。
+  const chatStepProps = !stepSeparationPrototype
+    ? {}
+    : currentStepId === "explain"
+      ? { stepFilter: "explain", lectureMode: "truncate" as const }
+      : currentStepId === "observe"
+        ? { stepFilter: "observe", lectureMode: "skip" as const }
+        : currentStepId === "imitate"
+          ? { stepFilter: "imitate", lectureMode: "skip" as const }
+          : {};
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
@@ -207,7 +219,7 @@ export function ModuleWorkspace({
           */}
           <Card className="h-[560px]">
             <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-              <ChatPanel />
+              <ChatPanel {...chatStepProps} />
               {/*
                 输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
                 底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
@@ -269,18 +281,21 @@ export function ModuleWorkspace({
               <CardHeader>
                 <CardTitle>动手模仿</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-3">
                 {stepSeparationPrototype && currentStepId === "imitate" ? (
-                  <p className="text-xs text-muted-foreground">
-                    看不懂示范？{" "}
-                    <Link
-                      href={`/learn/${teachingModule.id}/observe`}
-                      className="underline underline-offset-2"
-                    >
-                      回到观察示范
-                    </Link>{" "}
-                    再看一遍 —— 示范代码卡就在那一步。
-                  </p>
+                  <>
+                    <AssignmentCard moduleId={teachingModule.id} />
+                    <p className="text-xs text-muted-foreground">
+                      看不懂示范？{" "}
+                      <Link
+                        href={`/learn/${teachingModule.id}/observe`}
+                        className="underline underline-offset-2"
+                      >
+                        回到观察示范
+                      </Link>{" "}
+                      再看一遍 —— 示范代码卡就在那一步。
+                    </p>
+                  </>
                 ) : null}
                 {/*
                   接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体

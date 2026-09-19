@@ -43,7 +43,11 @@ export function ObservePanel({ moduleId }: { moduleId: string }) {
   const messages = useSessionStore((state) => state.messages);
   const [hasUnderstood, setUnderstood] = useState(false);
   const router = useRouter();
-  const lecture = messages.find((message) => message.role === "assistant");
+  // 代码取自**示范步自己的讲稿**（step=observe，由 LectureLauncher 播种
+  // 或流式生成）—— 概念讲解稿里的例子在讲解页，两步内容不复用。
+  const lecture = messages.find(
+    (message) => message.step === "observe" && message.role === "assistant",
+  );
 
   const codeBlocks = useMemo(() => {
     if (!lecture) return [];
@@ -67,8 +71,8 @@ export function ObservePanel({ moduleId }: { moduleId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        这些是本讲讲稿里的示范代码 —— 对照讲稿原文（文末折叠区）读它们，
-        看清「对的」长什么样。有疑问直接在下面问导师。
+        这些是导师示范里的代码 —— 看清「对的」长什么样。每段代码前后的
+        解释在「概念讲解」步的讲稿里；有疑问直接在下面的对话框问导师。
       </p>
 
       {codeBlocks.length === 0 ? (
@@ -127,15 +131,6 @@ export function ObservePanel({ moduleId }: { moduleId: string }) {
           进入动手模仿之后，也随时可以跳回这一步重看。
         </p>
       </div>
-
-      <details className="rounded-lg border px-3 py-2">
-        <summary className="cursor-pointer text-xs text-muted-foreground">
-          展开讲稿全文（含每段代码前后的解释）
-        </summary>
-        <div className="mt-2 text-sm leading-relaxed">
-          <MarkdownView source={lecture.content} />
-        </div>
-      </details>
     </div>
   );
 }
