@@ -4,6 +4,7 @@ import { ChevronRight, Clock } from "lucide-react";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
+import { ObservePanel } from "@/components/learn/observe-panel";
 import { PracticePanel } from "@/components/learn/practice-panel";
 import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
@@ -74,6 +75,21 @@ export function ModuleWorkspace({
   // find 理论上不会落空；万一落空就不渲染横幅，而不是让页面挂掉。
   const currentStep =
     LEARNING_STEPS.find((step) => step.id === currentStepId) ?? null;
+
+  /**
+   * 步骤分屏原型（2026-09-19，待用户确认后批量到全部模块）。
+   *
+   * 教学法上 explain（建立心智模型）与 observe（看清「对的」长什么样）
+   * 目的不同，此前却共用同一屏 —— 走查实测学生感知不到切步。原型改法：
+   *   - explain：讲稿 + 问答聊天（不再同屏展示动手模仿与可视化）；
+   *   - observe：示范代码卡（从讲稿提取）+ 问答聊天；
+   *   - 其余步骤与其余模块暂维持原样。
+   * 确认后删除本常量，把条件推广到全部模块。
+   */
+  const stepSeparationPrototype = teachingModule.id === "llm-api";
+  const showWorkspacePanels =
+    !stepSeparationPrototype ||
+    (currentStepId !== "explain" && currentStepId !== "observe");
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
@@ -170,6 +186,21 @@ export function ModuleWorkspace({
             </div>
           ) : null}
           {/*
+            观察示范卡（分屏原型）：示范代码是这一步的主角，卡位排在
+            聊天**之前** —— 聊天退居其下，学生先读代码、再提问。
+          */}
+          {stepSeparationPrototype && currentStepId === "observe" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>观察示范</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ObservePanel />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/*
             对话卡片用**定高**而不是 min-h：ChatPanel 的自动滚动依赖一个
             高度有界的滚动容器 —— auto 高度下 overflow 容器只会被内容撑开，
             overflow-y-auto 永远不会真的滚起来。
@@ -233,27 +264,31 @@ export function ModuleWorkspace({
             </Card>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>动手模仿</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/*
-                接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体
-                只管编辑 —— 见 validate-submit.tsx 文件头。
-              */}
-              <ValidateSubmit moduleId={teachingModule.id} />
-            </CardContent>
-          </Card>
+          {showWorkspacePanels ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>动手模仿</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/*
+                  接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体
+                  只管编辑 —— 见 validate-submit.tsx 文件头。
+                */}
+                <ValidateSubmit moduleId={teachingModule.id} />
+              </CardContent>
+            </Card>
+          ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>可视化</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <VisualizationPanel sceneId={teachingModule.sceneId} />
-            </CardContent>
-          </Card>
+          {showWorkspacePanels ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>可视化</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VisualizationPanel sceneId={teachingModule.sceneId} />
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         {/* 右栏 */}
