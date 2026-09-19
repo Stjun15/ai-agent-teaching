@@ -99,9 +99,10 @@ export function ModuleWorkspace({
       ? { stepFilter: "explain", lectureMode: "truncate" as const }
       : currentStepId === "observe"
         ? { stepFilter: "observe", lectureMode: "skip" as const }
-        : currentStepId === "imitate"
-          ? { stepFilter: "imitate", lectureMode: "skip" as const }
-          : {};
+        : // 其余五步没有预生成讲稿（LectureLauncher 只管 explain/observe），
+          // 按步过滤即可去掉前面步骤的讲解残留；lectureMode 用 full，
+          // 避免把本步问答里的首条导师回复误当讲稿跳掉。
+          { stepFilter: currentStepId, lectureMode: "full" as const };
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
