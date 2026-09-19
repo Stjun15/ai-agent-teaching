@@ -39,6 +39,8 @@
 
 import { create } from "zustand";
 
+import type { StepType } from "@/lib/db";
+import { TEACHING_AGENT_ID } from "@/lib/agent/prompts/teaching-chat";
 import type { ErrorCode, JsonObject } from "@/schemas";
 
 /** 一条对话消息（界面状态，非数据库实体）。 */
@@ -49,6 +51,16 @@ export interface ChatMessage {
   content: string;
   /** 助手消息所属 Agent，来自 `thinking` 事件（`/api/chat` 目前固定为 `chat`）。 */
   agent?: string;
+  /**
+   * 消息所属的学习步骤（2026-09-19「点开即有」改造新增）。
+   *
+   * 为什么要有：讲解三步共用**同一个**对话区，而步骤是三条独立路由 ——
+   * 讲完概念切到「观察示范」，对话里得能分清哪条消息属于哪一步，
+   * LectureLauncher 才能判断「这一步开过场没有」。没有它，讲解步的消息
+   * 会把示范步的开场闸门挡死（示范步永远空白）。演练场的消息不带步骤
+   * （undefined），其闸门语义是「没有属于本步骤的消息」。
+   */
+  step?: StepType;
   status: "streaming" | "done" | "error";
   /** 该消息引用的知识来源，来自 `citation` 事件。 */
   citations: Citation[];
@@ -121,13 +133,28 @@ export interface SessionState {
   invalidFrames: number;
 
   /**
+   * 本轮（正在流式输出的那一轮）所属的学习步骤。
+   *
+   * 助手消息是**懒创建**的（第一个 token 事件才建），创建时要把步骤标签
+   * 打上去 —— 标签就存在这里，由 `beginTurn` 写入、`appendToken` 消费。
+   * 演练场等无步骤语境为 null。
+   */
+  turnStep: StepType | null;
+
+  /**
    * 开启一轮对话。
    *
    * `silent`（2026-09-19）：不落学生消息，只进入 streaming 态。给「导师自动
    * 开讲」用 —— 概念讲解步骤学生还没说话，对话里不该冒出一条假的学生提问
    * （「请讲讲…」），那会让人以为是自己点过什么。
+   *
+   * `step`（同日「点开即有」改造）：本轮所属的学习步骤。落在学生消息上、
+   * 记进 `turnStep` 供助手消息继承，让「这一步开过场没有」可按步骤判断。
    */
-  beginTurn: (content: string, options?: { silent?: boolean }) => void;
+  beginTurn: (
+    content: string,
+    options?: { silent?: boolean; step?: StepType },
+  ) => void;
   appendToken: (content: string, messageId: string) => void;
   appendThinking: (input: {
     step: string;
@@ -152,6 +179,14 @@ export interface SessionState {
   failTurn: (error: SessionError) => void;
   abortTurn: () => void;
   noteInvalidFrame: () => void;
+  /**
+   * 注入一条预生成讲稿（2026-09-19「点开即有」）。
+   *
+   * 缓存命中时由 LectureLauncher 调用：讲稿作为**已完成**的助手消息直接
+   * 出现在对话里，零等待、零模型调用。该步骤已有消息时是 no-op ——
+   * 返回是否真的注入了（调用方无需关心，返回值只为测试）。
+   */
+  seedLecture: (step: StepType, content: string) => boolean;
   reset: () => void;
 }
 
@@ -194,6 +229,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   error: null,
   tokens: null,
   invalidFrames: 0,
+  /** 本轮所属的学习步骤；演练场（无步骤语境）为 null。助手消息据此继承 step。 */
+  turnStep: null,
 
   beginTurn: (content, options) =>
     set((state) => ({
@@ -209,6 +246,7 @@ export const useSessionStore = create<SessionState>((set) => ({
                 status: "done",
                 citations: [],
                 createdAt: new Date().toISOString(),
+                ...(options?.step !== undefined ? { step: options.step } : {}),
               },
             ],
       // 新的一轮清掉上一轮的错误与用量，但不清消息本身 ——
@@ -216,6 +254,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       status: "streaming",
       error: null,
       tokens: null,
+      turnStep: options?.step ?? null,
     })),
 
   appendToken: (content, messageId) =>
@@ -235,6 +274,8 @@ export const useSessionStore = create<SessionState>((set) => ({
               status: "streaming" as const,
               citations: [],
               createdAt: new Date().toISOString(),
+              // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
+              ...(state.turnStep !== null ? { step: state.turnStep } : {}),
             },
           ],
           thinking: closeThinking(state.thinking),
@@ -258,6 +299,8 @@ export const useSessionStore = create<SessionState>((set) => ({
               status: "streaming" as const,
               citations: [],
               createdAt: new Date().toISOString(),
+              // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
+              ...(state.turnStep !== null ? { step: state.turnStep } : {}),
             },
           ],
           thinking: closeThinking(state.thinking),
@@ -394,6 +437,35 @@ export const useSessionStore = create<SessionState>((set) => ({
   noteInvalidFrame: () =>
     set((state) => ({ invalidFrames: state.invalidFrames + 1 })),
 
+  seedLecture: (step, content) => {
+    let seeded = false;
+    set((state) => {
+      // 该步骤已经有消息（学生问过 / 已注入过）就不动 —— 讲稿只负责开场。
+      if (state.messages.some((message) => message.step === step)) {
+        return state;
+      }
+      seeded = true;
+      return {
+        messages: [
+          ...state.messages,
+          {
+            id: newId(),
+            role: "assistant" as const,
+            content,
+            // 与实时路径的 agent 标识同源（SSE thinking 事件里就是它），
+            // 时间线与消息徽标两种来源显示一致。
+            agent: TEACHING_AGENT_ID,
+            status: "done" as const,
+            citations: [],
+            createdAt: new Date().toISOString(),
+            step,
+          },
+        ],
+      };
+    });
+    return seeded;
+  },
+
   reset: () =>
     set({
       messages: [],
@@ -404,6 +476,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       error: null,
       tokens: null,
       invalidFrames: 0,
+      turnStep: null,
     }),
 }));
 

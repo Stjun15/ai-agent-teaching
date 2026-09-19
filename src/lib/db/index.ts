@@ -30,6 +30,9 @@ export { projectDb } from "./projects";
 export { questionResultDb } from "./question-results";
 export { validationResultDb } from "./validation-results";
 export { questionDb } from "./questions";
+// 讲稿预生成缓存（2026-09-19）：运行期只读，写入仅限预生成脚本，见 lecture-cache.ts 文件头。
+export { lectureCacheDb } from "./lecture-cache";
+export type { LectureCacheEntry, LectureCacheStep } from "./lecture-cache";
 
 // 健康检查。与 repository 一样走本出口，让路由不必碰 ./sqlite。
 export { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "./health";

@@ -154,8 +154,9 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   );
   assert.match(
     launcher,
-    /messageCount !== 0\s*\) return|messages\.length !== 0/,
-    "对话已有内容时不得自动插话",
+    /messages\.some\(\(message\) => message\.step === step\)\) return/,
+    "该步骤已有消息时不得自动插话 —— 按 step 判而不是按 messages.length 判：" +
+      "讲解三步共用一个对话区，讲解步留下的消息不该挡死示范步的开场（2026-09-19 改）",
   );
 
   const workspace = readFileSync(

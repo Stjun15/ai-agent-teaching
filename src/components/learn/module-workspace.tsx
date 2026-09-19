@@ -3,6 +3,8 @@ import { ChevronRight, Clock } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { MasteryCard } from "@/components/learn/mastery-card";
+import { MasteryCheck } from "@/components/learn/mastery-check";
+import { PracticePanel } from "@/components/learn/practice-panel";
 import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
 import { ChatPanel } from "@/components/chat/chat-panel";
@@ -10,6 +12,7 @@ import { CitationPanel } from "@/components/chat/citation-panel";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
+import { lectureOpenerPrompt } from "@/lib/lecture-openers";
 import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +66,9 @@ export function ModuleWorkspace({
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
   );
+  // 依赖顺序的下一讲（allModules 已按拓扑序排列）。最后一讲为 null。
+  const nextModule =
+    allModules.find((m) => m.order === teachingModule.order + 1) ?? null;
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
@@ -161,17 +167,50 @@ export function ModuleWorkspace({
               */}
               {currentStepId === "explain" || currentStepId === "observe" ? (
                 <LectureLauncher
+                  moduleId={teachingModule.id}
                   step={currentStepId}
-                  prompt={
-                    currentStepId === "explain"
-                      ? `请开始讲解「${teachingModule.name}」这一讲的核心概念。`
-                      : `请给我看一个「${teachingModule.name}」的完整示范：一段写得好的示例（Prompt 或代码），并逐段说明它为什么好、每个部分在起什么作用。`
-                  }
+                  prompt={lectureOpenerPrompt(
+                    currentStepId,
+                    teachingModule.name,
+                  )}
                 />
               ) : null}
               <Composer step={currentStepId} />
             </CardContent>
           </Card>
+
+          {/*
+            变式练习（2026-09-19 接线）：此前这一步点进去没有任何界面内容，
+            学生不知道该干什么 —— 而出题与评分端点早就建好了，缺的只是消费方。
+          */}
+          {currentStepId === "practice" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>变式练习</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PracticePanel moduleId={teachingModule.id} />
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/*
+            掌握判定（同日接线）：给出「过没过、过了去哪、没过怎么办」的答案。
+            判定线与学习路径解锁用同一档（MASTERY_PASS_SCORE），两条口径不分叉。
+          */}
+          {currentStepId === "mastery" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>掌握判定</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MasteryCheck
+                  teachingModule={teachingModule}
+                  nextModule={nextModule}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>

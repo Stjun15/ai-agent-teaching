@@ -117,7 +117,12 @@ export function useChatStream(
       activeController.current = controller;
 
       const session = useSessionStore.getState();
-      session.beginTurn(request.content, options);
+      // step 随轮次进 store：学生消息直接带标签，助手消息经 turnStep 继承
+      // —— LectureLauncher 的「这一步开过场没有」按消息的 step 判断。
+      session.beginTurn(request.content, {
+        silent: options?.silent,
+        step: request.step,
+      });
 
       try {
         await handleSSE(
