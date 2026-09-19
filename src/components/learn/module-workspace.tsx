@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceholderPanel } from "@/components/ui/placeholder-panel";
 import type { StepType } from "@/lib/db";
 import { SCENE_LABELS, isSceneId } from "@/lib/agent/scene-ids";
+import { LEARNING_STEPS, stepIndex } from "@/lib/learning-steps";
 import type { TeachingModule } from "@/lib/modules";
 
 /**
@@ -69,6 +70,10 @@ export function ModuleWorkspace({
   // 依赖顺序的下一讲（allModules 已按拓扑序排列）。最后一讲为 null。
   const nextModule =
     allModules.find((m) => m.order === teachingModule.order + 1) ?? null;
+  // 当前步的展示数据。LEARNING_STEPS 与 StepType 的一致性由编译期断言钉住，
+  // find 理论上不会落空；万一落空就不渲染横幅，而不是让页面挂掉。
+  const currentStep =
+    LEARNING_STEPS.find((step) => step.id === currentStepId) ?? null;
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
@@ -148,6 +153,22 @@ export function ModuleWorkspace({
 
         {/* 中栏 */}
         <div className="flex min-w-0 flex-col gap-4">
+          {/*
+            当前步横幅：七步共用同一工作区，切步只换左栏高亮 —— 零基础
+            走查实测学生感知不到「切步发生了」。在中栏顶部常驻一条横幅，
+            把「我在第几步、这一步要做什么」放进视线主轴。
+          */}
+          {currentStep ? (
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2">
+              <span className="text-sm font-medium">
+                第 {stepIndex(currentStep.id) + 1} / {LEARNING_STEPS.length} 步
+                · {currentStep.label}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {currentStep.detail}
+              </span>
+            </div>
+          ) : null}
           {/*
             对话卡片用**定高**而不是 min-h：ChatPanel 的自动滚动依赖一个
             高度有界的滚动容器 —— auto 高度下 overflow 容器只会被内容撑开，

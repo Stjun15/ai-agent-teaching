@@ -88,3 +88,20 @@ test("学生界面不泄漏开发者术语", () => {
     "场景徽标必须显示中文名（SCENE_LABELS），不能渲染 scene-xxx 原始 id",
   );
 });
+
+test("工作区常驻当前步横幅（切步反馈不能只靠左栏高亮）", () => {
+  // 零基础走查（2026-09-19）：七步共用同一工作区，步骤 1–4 切步只有左栏
+  // 高亮和描述在变，学生感知不到「切步发生了」。守卫钉住中栏顶部的横幅：
+  // 它渲染当前步序号与名称，数据必须来自 LEARNING_STEPS（不写第二份步骤表）。
+  const workspace = read("../src/components/learn/module-workspace.tsx");
+  assert.match(
+    workspace,
+    /LEARNING_STEPS\.find\(\(step\) => step\.id === currentStepId\)/,
+    "横幅数据必须来自 LEARNING_STEPS —— 在模块元数据之外抄步骤表是禁忌",
+  );
+  assert.match(
+    workspace,
+    /第 \{stepIndex\(currentStep\.id\) \+ 1\} \/ \{LEARNING_STEPS\.length\} 步/,
+    "中栏必须常驻「第 N / 7 步 · 名称」横幅，只换左栏高亮不算切步反馈",
+  );
+});
