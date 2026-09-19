@@ -72,6 +72,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "提交点评接线",
+    file: "scripts/validate-wiring-spec.ts",
+    model: false,
+  },
+  {
     name: "讲解步骤身份层",
     file: "scripts/teaching-step-spec.ts",
     model: false,

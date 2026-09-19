@@ -7,7 +7,7 @@ import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { CitationPanel } from "@/components/chat/citation-panel";
-import { CodeEditor } from "@/components/code/code-editor";
+import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
 import { TokenCounter } from "@/components/chat/token-counter";
@@ -16,7 +16,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlaceholderPanel } from "@/components/ui/placeholder-panel";
 import type { StepType } from "@/lib/db";
+import { SCENE_LABELS, isSceneId } from "@/lib/agent/scene-ids";
 import type { TeachingModule } from "@/lib/modules";
+
+/**
+ * 场景 id → 学生可读的名字（「scene-request-response」这类内部 id 不该
+ * 出现在界面上）。id 不在登记表里时退回通用叫法，不硬编码。
+ */
+function sceneLabel(sceneId: string): string {
+  return isSceneId(sceneId) ? SCENE_LABELS[sceneId] : "流程演示";
+}
 
 /**
  * 模块学习工作区 —— 三栏布局本体（`04-frontend.md`「模块学习页（三栏）」）。
@@ -80,7 +89,9 @@ export function ModuleWorkspace({
           {teachingModule.estimatedTime}
         </Badge>
         {teachingModule.sceneId !== null ? (
-          <Badge variant="muted">{teachingModule.sceneId}</Badge>
+          <Badge variant="muted">
+            配套动画：{sceneLabel(teachingModule.sceneId)}
+          </Badge>
         ) : null}
         {prerequisiteNames.length > 0 ? (
           <span className="text-xs text-muted-foreground">
@@ -123,8 +134,8 @@ export function ModuleWorkspace({
 
           <div className="hidden xl:block">
             <PlaceholderPanel
-              title="学习路径缩略图"
-              note="Phase 3 提交点「feat(store): add student store」接入学习路径后启用"
+              title="学习路径总览"
+              note="整条学习路径的进度图还没画好。先按顺序把模块一个个通关，图上线后能在这里看到自己走到哪了。"
             />
           </div>
         </aside>
@@ -163,11 +174,10 @@ export function ModuleWorkspace({
             </CardHeader>
             <CardContent>
               {/*
-                编辑器本体（`CodeEditor`）是客户端组件，但卡片与标题留在
-                这个服务端组件里：标题是静态文案，没必要为它把整块中栏
-                变成客户端组件。
+                接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体
+                只管编辑 —— 见 validate-submit.tsx 文件头。
               */}
-              <CodeEditor />
+              <ValidateSubmit moduleId={teachingModule.id} />
             </CardContent>
           </Card>
 

@@ -136,7 +136,7 @@ export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
           size="sm"
           onClick={onSubmit}
           disabled={!canSubmit}
-          title={onSubmit === undefined ? "点评链路尚未接入" : undefined}
+          title={onSubmit === undefined ? "点评功能还没接好" : undefined}
         >
           {submitting ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -148,7 +148,7 @@ export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
 
         <span className="text-xs text-muted-foreground">
           {onSubmit === undefined
-            ? "点评链路尚未接入（接线提交点：feat(integration)）。编辑与切换语言已可用。"
+            ? "点评功能还没接好，先自由练习。"
             : empty
               ? "先写下点什么，再提交点评。"
               : "提交后点评 Agent 按评分维度逐项给分，并给出改进建议。"}
