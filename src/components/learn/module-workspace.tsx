@@ -10,6 +10,7 @@ import { CitationPanel } from "@/components/chat/citation-panel";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
+import { lectureOpenerPrompt } from "@/lib/lecture-openers";
 import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
@@ -161,12 +162,12 @@ export function ModuleWorkspace({
               */}
               {currentStepId === "explain" || currentStepId === "observe" ? (
                 <LectureLauncher
+                  moduleId={teachingModule.id}
                   step={currentStepId}
-                  prompt={
-                    currentStepId === "explain"
-                      ? `请开始讲解「${teachingModule.name}」这一讲的核心概念。`
-                      : `请给我看一个「${teachingModule.name}」的完整示范：一段写得好的示例（Prompt 或代码），并逐段说明它为什么好、每个部分在起什么作用。`
-                  }
+                  prompt={lectureOpenerPrompt(
+                    currentStepId,
+                    teachingModule.name,
+                  )}
                 />
               ) : null}
               <Composer step={currentStepId} />
