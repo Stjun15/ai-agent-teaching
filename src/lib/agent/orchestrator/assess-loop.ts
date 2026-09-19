@@ -70,20 +70,40 @@ function normalize(text: string): string {
 }
 
 /**
+ * 剥离答案里的括号备注。
+ *
+ * 出题 Agent 实测会把可接受变体的说明写进 correct_answer（如
+ * 「晴（或任何合理的天气描述，如多云、小雨等）」）—— 备注不是答案本身，
+ * 拿整串去比对，学生答「晴，东南风 3 级」也会被判错。生成侧已在提示词
+ * 约束（见 examiner.ts），这里兜住存量题与漏网之鱼。
+ */
+function canonicalAnswer(correct: string): string {
+  return correct.replace(/[（(][^（）()]*[）)]/g, "");
+}
+
+/**
  * 客观题规则判分（纯函数，可脱离模型直接断言）。
  *
- * 为什么只用归一化精确比对
- * ----------------------
- * 选择题/填空题的正确答案唯一且短，归一化后比对足够稳；简答题的正确答案
- * 是模型给出的参考文本，逐字比对必误，因此交给模型（见 runAssessLoop）。
+ * 为什么不只用归一化精确比对
+ * ------------------------
+ * 选择题答案是单个选项，精确比对足够稳；填空题的学生答案经常比标准答案
+ * 长（答题时会写成完整短句），在精确比对失败时退一步做**包含**比对：
+ * 学生答案覆盖标准答案即算对。方向是单向的 —— 标准答案比学生答案长仍然
+ * 判错（少答不算对），不会把没答的内容放进来。
+ *
+ * 简答题的正确答案是模型给出的参考文本，逐字比对必误，因此交给模型
+ * （见 runAssessLoop）。
  */
 export function gradeObjective(
   question: GradeableQuestion,
   studentAnswer: string,
 ): Assessment {
-  const correct = normalize(question.correctAnswer);
+  const correct = normalize(canonicalAnswer(question.correctAnswer));
   const given = normalize(studentAnswer);
-  const isCorrect = correct.length > 0 && correct === given;
+  const isCorrect =
+    correct.length > 0 &&
+    (correct === given ||
+      (question.type === "填空题" && given.includes(correct)));
   return {
     isCorrect,
     score: isCorrect ? 100 : 0,

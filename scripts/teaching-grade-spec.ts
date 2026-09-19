@@ -94,6 +94,37 @@ test("gradeObjective：客观题规则判分（正确/错误 + feedback 含解�
   assert.match(wrong.feedback, /正确答案：北京/, "feedback 应给出正确答案");
 });
 
+test("gradeObjective：填空题剥离答案备注并接受覆盖标准答案的完整短句", () => {
+  // 实测失败模式：出题 Agent 把可接受变体写进 correct_answer，
+  // 学生答「晴，东南风 3 级」被精确比对判错 —— 界面点评自己都说
+  // 「或任何合理的天气描述」，判分与解析口径矛盾。
+  const q = {
+    type: "填空题",
+    correctAnswer: "晴（或任何合理的天气描述，如多云、小雨等）",
+    explanation: "weather 字段应填入一个描述天气的词语或短句。",
+  };
+
+  const exact = gradeObjective(q, "晴");
+  assert.equal(exact.isCorrect, true, "标准答案本身应判对");
+
+  const longer = gradeObjective(q, "晴，东南风 3 级");
+  assert.equal(longer.isCorrect, true, "覆盖标准答案的完整短句应判对");
+
+  const empty = gradeObjective(q, "不知道");
+  assert.equal(empty.isCorrect, false, "不含标准答案仍应判错");
+});
+
+test("gradeObjective：选择题保持精确比对（不做包含放行）", () => {
+  const q = {
+    type: "选择题",
+    correctAnswer: "B",
+    explanation: "system message 用于设定角色与风格。",
+  };
+  // 学生把答案抄成带解释的长句不是选择题的作答方式，不因「包含 B」而放行。
+  const padded = gradeObjective(q, "我的选择是 B，因为 system message 管角色");
+  assert.equal(padded.isCorrect, false, "选择题应精确比对选项");
+});
+
 test("runAssessLoop：客观题不调模型直接走规则", async () => {
   const q = {
     type: "填空题",
