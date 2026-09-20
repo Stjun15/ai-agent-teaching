@@ -40,8 +40,10 @@ import {
 } from "@/lib/client-identity";
 import {
   LOCAL_USERS_STORAGE_KEY,
+  clearCurrentUser,
   loginUser,
   registerUser,
+  setCurrentUser,
   type LocalUsersStorage,
   type RegisterError,
 } from "@/lib/local-users";
@@ -104,9 +106,10 @@ export default function AuthPage() {
     };
   }, []);
 
-  /** 登录成功后替换身份并返回首页。 */
-  function adoptIdentity(id: string) {
+  /** 登录成功后替换身份、记录当前会话用户，并返回首页。 */
+  function adoptIdentity(id: string, username: string, preferredName: string) {
     rememberStudentId(id, browserStorage());
+    setCurrentUser(browserStorage(), { id, username, preferredName });
     router.push("/");
   }
 
@@ -120,7 +123,7 @@ export default function AuthPage() {
         password: loginPassword,
       });
       if (result.ok) {
-        adoptIdentity(result.id);
+        adoptIdentity(result.id, result.username, result.preferredName);
         return;
       }
       setLoginError(result.message);
@@ -140,7 +143,7 @@ export default function AuthPage() {
         confirmPassword: regConfirm,
       });
       if (result.ok) {
-        adoptIdentity(result.id);
+        adoptIdentity(result.id, result.username, result.preferredName);
         return;
       }
       setRegErrors(result.errors);
@@ -149,9 +152,10 @@ export default function AuthPage() {
     }
   }
 
-  /** 退出：清空身份回种子，并回到首页。 */
+  /** 退出：清空身份与会话用户，回到种子，再去首页。 */
   function handleLogout() {
     clearStudentId(browserStorage());
+    clearCurrentUser(browserStorage());
     router.push("/");
   }
 

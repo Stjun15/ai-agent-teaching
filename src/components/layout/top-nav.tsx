@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { UserMenu } from "./user-menu";
 
 interface NavItem {
   href: string;
@@ -108,6 +109,8 @@ export function TopNav() {
             );
           })}
         </nav>
+
+        <UserMenu className="ml-auto" />
       </div>
     </header>
   );
