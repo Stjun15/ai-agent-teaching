@@ -203,7 +203,9 @@ export function ModuleWorkspace({
             变式练习（practice）与动手模仿（imitate）两步去掉顶上的对话卡：
             学生在此动手，不再需要一直挂着一个大对话框(2026-09-20)。
           */}
-          {currentStepId !== "practice" && currentStepId !== "imitate" ? (
+          {currentStepId !== "practice" &&
+          currentStepId !== "imitate" &&
+          currentStepId !== "validate" ? (
             <Card className="h-[560px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
@@ -296,7 +298,8 @@ export function ModuleWorkspace({
 
           {showWorkspacePanels &&
           currentStepId !== "practice" &&
-          currentStepId !== "imitate" ? (
+          currentStepId !== "imitate" &&
+          currentStepId !== "validate" ? (
             <Card>
               <CardHeader>
                 <CardTitle>可视化</CardTitle>

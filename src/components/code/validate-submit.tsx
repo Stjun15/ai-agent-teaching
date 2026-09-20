@@ -30,6 +30,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CircleCheck, Loader2 } from "lucide-react";
 
 import { CodeEditor } from "@/components/code/code-editor";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ApiError, apiPost } from "@/lib/client-api";
@@ -159,7 +160,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <CodeEditor onSubmit={handleSubmit} submitting={submitting} />
-      <ValidationReport usedFallback={usedFallback} />
+      <ValidationReport usedFallback={usedFallback} moduleId={moduleId} />
     </div>
   );
 }
@@ -179,7 +180,14 @@ function ValidatingNotice() {
 }
 
 /** 点评结果面板：状态（批改中 / 失败 / 结果）三分支。 */
-function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
+function ValidationReport({
+  usedFallback,
+  moduleId,
+}: {
+  usedFallback: boolean;
+  moduleId: string;
+}) {
+  const router = useRouter();
   const status = useCodeStore((state) => state.validationStatus);
   const result = useCodeStore((state) => state.validationResult);
   const error = useCodeStore((state) => state.validationError);
@@ -295,6 +303,15 @@ function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {result.totalScore > 90 ? (
+        <Button
+          onClick={() => router.push(`/learn/${moduleId}/visualize`)}
+          className="self-start"
+        >
+          演示代码执行过程
+        </Button>
       ) : null}
     </div>
   );
