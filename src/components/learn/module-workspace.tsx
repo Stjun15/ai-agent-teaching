@@ -205,7 +205,8 @@ export function ModuleWorkspace({
           */}
           {currentStepId !== "practice" &&
           currentStepId !== "imitate" &&
-          currentStepId !== "validate" ? (
+          currentStepId !== "validate" &&
+          currentStepId !== "visualize" ? (
             <Card className="h-[560px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
@@ -266,7 +267,9 @@ export function ModuleWorkspace({
             </Card>
           ) : null}
 
-          {showWorkspacePanels ? (
+          {showWorkspacePanels &&
+          currentStepId !== "visualize" &&
+          currentStepId !== "mastery" ? (
             <Card>
               <CardHeader>
                 <CardTitle>动手模仿</CardTitle>
@@ -299,7 +302,8 @@ export function ModuleWorkspace({
           {showWorkspacePanels &&
           currentStepId !== "practice" &&
           currentStepId !== "imitate" &&
-          currentStepId !== "validate" ? (
+          currentStepId !== "validate" &&
+          currentStepId !== "mastery" ? (
             <Card>
               <CardHeader>
                 <CardTitle>可视化</CardTitle>
