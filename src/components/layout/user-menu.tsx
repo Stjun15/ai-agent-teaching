@@ -20,7 +20,6 @@
  */
 import * as React from "react";
 import { useSyncExternalStore } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -120,8 +119,9 @@ export function UserMenu({ className }: Props) {
   // 未登录：只给登录入口。
   if (user === null) {
     return (
-      <Link
-        href="/auth"
+      <button
+        type="button"
+        onClick={() => router.push("/auth")}
         className={cn(
           "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
           className,
@@ -129,7 +129,7 @@ export function UserMenu({ className }: Props) {
       >
         <UserIcon className="size-4" aria-hidden />
         登录
-      </Link>
+      </button>
     );
   }
 
@@ -157,10 +157,13 @@ export function UserMenu({ className }: Props) {
           onMouseDown={(e) => e.stopPropagation()}
           className="absolute top-full right-0 z-50 mt-1 w-52 rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-md"
         >
-          <Link
-            href="/settings"
-            onClick={() => setMenuOpen(false)}
-            className="flex flex-col rounded-md border-b px-2.5 py-1.5 hover:bg-accent/60"
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/settings");
+            }}
+            className="flex w-full flex-col rounded-md border-b px-2.5 py-1.5 text-left hover:bg-accent/60"
           >
             <span className="truncate text-sm font-medium">
               {user.preferredName ?? user.username}
@@ -171,27 +174,33 @@ export function UserMenu({ className }: Props) {
             <span className="mt-1">
               <Badge variant="muted">个人信息</Badge>
             </span>
-          </Link>
+          </button>
 
           <div className="py-1">
-            <Link
-              href="/auth/change-password"
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setMenuOpen(false)}
+              onClick={() => {
+                setMenuOpen(false);
+                router.push("/auth/change-password");
+              }}
               className={menuItem}
             >
               <KeyRound className="size-4" aria-hidden />
               修改密码
-            </Link>
-            <Link
-              href="/auth"
+            </button>
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setMenuOpen(false)}
+              onClick={() => {
+                setMenuOpen(false);
+                router.push("/auth");
+              }}
               className={menuItem}
             >
               <Repeat className="size-4" aria-hidden />
               切换用户
-            </Link>
+            </button>
             <button
               type="button"
               role="menuitem"
