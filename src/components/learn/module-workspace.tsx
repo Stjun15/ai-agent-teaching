@@ -19,7 +19,7 @@ import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlaceholderPanel } from "@/components/ui/placeholder-panel";
+
 import type { StepType } from "@/lib/db";
 import { SCENE_LABELS, isSceneId } from "@/lib/agent/scene-ids";
 import { LEARNING_STEPS, stepIndex } from "@/lib/learning-steps";
@@ -139,6 +139,14 @@ export function ModuleWorkspace({
             无前置，从这里开始
           </span>
         )}
+        <Card className="ml-auto w-full max-w-[280px] min-w-[220px] sm:w-auto">
+          <CardContent>
+            <MasteryCard
+              moduleId={teachingModule.id}
+              moduleName={teachingModule.name}
+            />
+          </CardContent>
+        </Card>
       </header>
 
       {teachingModule.summary ? (
@@ -148,33 +156,10 @@ export function ModuleWorkspace({
       ) : null}
 
       {/* ---------- 三栏 ---------- */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_320px]">
         {/* 左栏 */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
-          <Card>
-            <CardContent>
-              <StepNav
-                moduleId={teachingModule.id}
-                currentStepId={currentStepId}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent>
-              <MasteryCard
-                moduleId={teachingModule.id}
-                moduleName={teachingModule.name}
-              />
-            </CardContent>
-          </Card>
-
-          <div className="hidden xl:block">
-            <PlaceholderPanel
-              title="学习路径总览"
-              note="整条学习路径的进度图还没画好。先按顺序把模块一个个通关，图上线后能在这里看到自己走到哪了。"
-            />
-          </div>
+          <StepNav moduleId={teachingModule.id} currentStepId={currentStepId} />
         </aside>
 
         {/* 中栏 */}

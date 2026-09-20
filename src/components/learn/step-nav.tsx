@@ -1,20 +1,19 @@
+"use client";
+
 import Link from "next/link";
-import { Check, Circle } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Circle } from "lucide-react";
 
 import type { StepType } from "@/lib/db";
 import { LEARNING_STEPS } from "@/lib/learning-steps";
 import { cn } from "@/lib/utils";
 
 /**
- * 步骤导航（模块页左栏）。
- *
- * 三种状态各有明确含义，不混用：
+ * 步骤导航（模块页左栏）。横向折叠：收起时整块收窄成一条竖排的窄按钮，
+ * 点击再展开成完整步骤列表。三种状态有明确含义不混用：
  * - `done`：已完成（将来由学习路径数据决定）
  * - `current`：当前所在步骤
  * - `todo`：尚未开始
- *
- * 目前没有持久化的学习进度（`StudentStore` 与 `learning-path` 表的接线在后面
- * 的提交点），所以状态由调用方以 `currentStepId` 传入 —— 组件本身不猜。
  */
 export function StepNav({
   moduleId,
@@ -26,12 +25,44 @@ export function StepNav({
   doneStepIds?: readonly StepType[];
 }) {
   const done = new Set(doneStepIds);
+  const [collapsed, setCollapsed] = useState(false);
+  const toggle = () => setCollapsed((c) => !c);
+
+  if (collapsed) {
+    return (
+      <div className="w-fit rounded-md border bg-card p-2">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="展开学习步骤"
+          title="展开学习步骤"
+          aria-expanded={false}
+          className="flex flex-col items-center gap-3 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronRight className="size-4" aria-hidden />
+          <span className="text-xs [writing-mode:vertical-rl]">学习步骤</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <nav aria-label="学习步骤">
-      <h2 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        学习步骤
-      </h2>
+    <nav aria-label="学习步骤" className="w-fit rounded-md border bg-card p-3">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          学习步骤
+        </h2>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="收起学习步骤"
+          title="收起学习步骤"
+          aria-expanded={true}
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" aria-hidden />
+        </button>
+      </div>
       <ol className="flex flex-col gap-0.5">
         {LEARNING_STEPS.map((step, index) => {
           const isDone = done.has(step.id) && step.id !== currentStepId;
