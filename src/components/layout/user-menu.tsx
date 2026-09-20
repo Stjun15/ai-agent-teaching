@@ -13,14 +13,14 @@
  *
  * SSR/hydration 安全
  * -----------------
- * 渲染期直接读 `localStorage` 会让服务端首帧与客户端不一致（见
- * `settings-view.tsx` 注释）。所以当前用户状态放进 effect 里、在异步回调中
- * 读取（同时满足 `react-hooks/set-state-in-effect` 的 lint 约束）。依赖
- * `pathname` 让登录/退出跳转后组件也能重新读到最新会话。
+ * `useSyncExternalStore` 读取当前会话（见下方 hook）：首帧服务端与客户端
+ * 快照一致（均 null 或读不到 storage），从根上避免 effect+setState 的
+ * `react-hooks/set-state-in-effect` 拦截与首帧 hydration 不一致。
  */
 import * as React from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   KeyRound,
@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { clearStudentId } from "@/lib/client-identity";
 import {
+  CURRENT_USER_STORAGE_KEY,
   changePassword,
   clearCurrentUser,
   getCurrentUser,
@@ -51,6 +52,35 @@ function browserStorage(): LocalUsersStorage | null {
   }
 }
 
+// -- 用 useSyncExternalStore 读当前会话 -------------------------------
+// 外部存储（localStorage）的正确 React 接入点是 useSyncExternalStore，
+// 而不是 useEffect+setState（后者会被 react-hooks/set-state-in-effect 标记，
+// 且依赖 then 调度容易在首帧误读）。getSnapshot 用缓存保持对象引用稳定，
+// 避免「快照每次都是新引用」导致 React 无限重渲染。
+let _cuCache: { raw: string | null; val: CurrentUser | null } | null = null;
+function currentUserSnapshot(): CurrentUser | null {
+  const storage = browserStorage();
+  const raw = storage?.getItem(CURRENT_USER_STORAGE_KEY) ?? null;
+  if (_cuCache !== null && _cuCache.raw === raw) return _cuCache.val;
+  const val = getCurrentUser(storage);
+  _cuCache = { raw, val };
+  return val;
+}
+function subscribeCurrentUser(onChange: () => void): () => void {
+  window.addEventListener("storage", onChange);
+  // 同一标签页里登录/退出会写 localStorage，但不会触发 storage 事件。
+  // 用自定义事件补上，登出/切换后本组件能即时反映最新会话。
+  window.addEventListener("sso:current-user", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("sso:current-user", onChange);
+  };
+}
+/** 派发「当前用户已变化」，供顶栏菜单即时刷新。 */
+export function notifyCurrentUserChanged(): void {
+  window.dispatchEvent(new Event("sso:current-user"));
+}
+
 const inputClass = cn(
   "w-full rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring",
 );
@@ -61,11 +91,13 @@ interface Props {
 
 export function UserMenu({ className }: Props) {
   const router = useRouter();
-  const pathname = usePathname();
 
-  // undefined = 还没读；null = 读完、未登录；其余 = 当前用户。
-  const [user, setUser] = React.useState<CurrentUser | null | undefined>(
-    undefined,
+  // null = 未登录（种子/访客）；其余 = 当前用户。外部存储由
+  // useSyncExternalStore 接管，登录/退出在任意标签页写 storage 都会即时反映。
+  const user = useSyncExternalStore(
+    subscribeCurrentUser,
+    currentUserSnapshot,
+    () => null,
   );
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [pwOpen, setPwOpen] = React.useState(false);
@@ -75,17 +107,6 @@ export function UserMenu({ className }: Props) {
   const [newPassword, setNewPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-
-  // 读当前会话——异步回调里读，避免首帧 hydration 不一致与 effect 同步 setState。
-  React.useEffect(() => {
-    let alive = true;
-    void Promise.resolve().then(() => {
-      if (alive) setUser(getCurrentUser(browserStorage()));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [pathname]);
 
   // 点菜单外任意处关闭。
   React.useEffect(() => {
@@ -135,18 +156,13 @@ export function UserMenu({ className }: Props) {
   function handleLogout() {
     clearStudentId(browserStorage());
     clearCurrentUser(browserStorage());
+    notifyCurrentUserChanged();
     setMenuOpen(false);
-    setUser(null);
     router.push("/");
   }
 
   const menuItem =
     "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-accent/60";
-
-  // 加载中：占位防止顶栏跳动。
-  if (user === undefined) {
-    return <div className={cn("w-20", className)} aria-hidden />;
-  }
 
   // 未登录：只给登录入口。
   if (user === null) {
