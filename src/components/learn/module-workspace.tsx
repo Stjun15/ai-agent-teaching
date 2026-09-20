@@ -199,32 +199,37 @@ export function ModuleWorkspace({
             对话卡片用**定高**而不是 min-h：ChatPanel 的自动滚动依赖一个
             高度有界的滚动容器 —— auto 高度下 overflow 容器只会被内容撑开，
             overflow-y-auto 永远不会真的滚起来。
+
+            变式练习（practice）与动手模仿（imitate）两步去掉顶上的对话卡：
+            学生在此动手，不再需要一直挂着一个大对话框(2026-09-20)。
           */}
-          <Card className="h-[560px]">
-            <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-              <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
-              {/*
-                输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
-                底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
-                滚过整个中栏才够得到输入框。
-              */}
-              {/*
-                step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19 修正，
-                此前一律是答疑口径，「概念讲解就一句话」）。
-              */}
-              {currentStepId === "explain" || currentStepId === "observe" ? (
-                <LectureLauncher
-                  moduleId={teachingModule.id}
-                  step={currentStepId}
-                  prompt={lectureOpenerPrompt(
-                    currentStepId,
-                    teachingModule.name,
-                  )}
-                />
-              ) : null}
-              <Composer step={currentStepId} moduleId={teachingModule.id} />
-            </CardContent>
-          </Card>
+          {currentStepId !== "practice" && currentStepId !== "imitate" ? (
+            <Card className="h-[560px]">
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
+                {/*
+                  输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
+                  底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
+                  滚过整个中栏才够得到输入框。
+                */}
+                {/*
+                  step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19
+                  修正，此前一律是答疑口径，「概念讲解就一句话」）。
+                */}
+                {currentStepId === "explain" || currentStepId === "observe" ? (
+                  <LectureLauncher
+                    moduleId={teachingModule.id}
+                    step={currentStepId}
+                    prompt={lectureOpenerPrompt(
+                      currentStepId,
+                      teachingModule.name,
+                    )}
+                  />
+                ) : null}
+                <Composer step={currentStepId} moduleId={teachingModule.id} />
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/*
             变式练习（2026-09-19 接线）：此前这一步点进去没有任何界面内容，
@@ -289,7 +294,9 @@ export function ModuleWorkspace({
             </Card>
           ) : null}
 
-          {showWorkspacePanels ? (
+          {showWorkspacePanels &&
+          currentStepId !== "practice" &&
+          currentStepId !== "imitate" ? (
             <Card>
               <CardHeader>
                 <CardTitle>可视化</CardTitle>

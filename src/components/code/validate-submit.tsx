@@ -26,6 +26,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, CircleCheck, Loader2 } from "lucide-react";
 
 import { CodeEditor } from "@/components/code/code-editor";
@@ -89,6 +90,7 @@ function normalizeIssue(
 }
 
 export function ValidateSubmit({ moduleId }: { moduleId: string }) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   // 兜底点评标记：store 的 ValidationResult 没有这个字段（那是库行的形状），
   // 放在组件 state 里，随结果一起交给面板做「这次分数不算数」的提示。
@@ -144,6 +146,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         suggestions: result.suggestions.map(normalizeSuggestion),
         createdAt: new Date().toISOString(),
       });
+      router.push(`/learn/${moduleId}/validate`);
     } catch (error) {
       const message =
         error instanceof ApiError ? error.message : "网络异常，请重试。";
@@ -151,7 +154,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [moduleId, submitting]);
+  }, [moduleId, submitting, router]);
 
   return (
     <div className="flex flex-col gap-4">
