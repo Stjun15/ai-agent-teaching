@@ -19,10 +19,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  changePassword,
+  clearCurrentUser,
+  CURRENT_USER_STORAGE_KEY,
+  getCurrentUser,
   hashPassword,
   LOCAL_USERS_STORAGE_KEY,
   loginUser,
   registerUser,
+  setCurrentUser,
   validateRegister,
   type LocalUsersStorage,
 } from "@/lib/local-users";
@@ -220,4 +225,114 @@ test("登录得到的 id 能被 rememberStudentId 写入身份存储", () => {
     },
   });
   assert.equal(identity.value, login.id, "登录后的 id 应作为学生身份写进去");
+});
+
+// ---------------------------------------------------------------------------
+// 当前会话用户（`sso.currentUser`）
+// ---------------------------------------------------------------------------
+
+test("setCurrentUser/getCurrentUser：写入后能读回，preferredName 可选", () => {
+  const storage = memoryStorage();
+  setCurrentUser(storage, {
+    id: "aaaaaaaa-0000-4000-8000-000000000001",
+    username: "alice",
+    preferredName: "Alice",
+  });
+  assert.equal(getCurrentUser(storage)?.username, "alice");
+  assert.equal(getCurrentUser(storage)?.preferredName, "Alice");
+
+  setCurrentUser(storage, {
+    id: "aaaaaaaa-0000-4000-8000-000000000001",
+    username: "alice",
+  });
+  assert.equal(getCurrentUser(storage)?.preferredName, undefined);
+});
+
+test("getCurrentUser：无值或损坏时返回 null", () => {
+  assert.equal(getCurrentUser(memoryStorage()), null);
+
+  const bad = memoryStorage();
+  bad.setItem(CURRENT_USER_STORAGE_KEY, "{not-json");
+  assert.equal(getCurrentUser(bad), null);
+});
+
+test("clearCurrentUser：清空会话", () => {
+  const storage = memoryStorage();
+  setCurrentUser(storage, {
+    id: "aaaaaaaa-0000-4000-8000-000000000001",
+    username: "alice",
+  });
+  clearCurrentUser(storage);
+  assert.equal(
+    storage.map.get(CURRENT_USER_STORAGE_KEY),
+    "",
+    "仅 getItem/setItem 的存储清空后键应为空串",
+  );
+  assert.equal(getCurrentUser(storage), null);
+});
+
+// ---------------------------------------------------------------------------
+// 修改密码（演示级）
+// ---------------------------------------------------------------------------
+
+test("changePassword：旧密码正确则改成功，且新密码能登录", () => {
+  const storage = memoryStorage();
+  const reg = registerUser(storage, VALID);
+  if (!reg.ok) throw new Error("注册应当成功");
+
+  const changed = changePassword(storage, {
+    id: reg.id,
+    oldPassword: "secret123",
+    newPassword: "brandNew1",
+  });
+  assert.equal(changed.ok, true);
+
+  const ok = loginUser(storage, { username: "alice", password: "brandNew1" });
+  assert.equal(ok.ok, true);
+  const old = loginUser(storage, { username: "alice", password: "secret123" });
+  assert.equal(old.ok, false, "旧密码应已失效");
+});
+
+test("changePassword：旧密码错误、新密码过短、新旧相同、账号不存在都被拒", () => {
+  const storage = memoryStorage();
+  const reg = registerUser(storage, VALID);
+  if (!reg.ok) throw new Error("注册应当成功");
+  const id = reg.id;
+
+  assert.equal(
+    changePassword(storage, {
+      id,
+      oldPassword: "wrong-old",
+      newPassword: "aaa",
+    }).ok,
+    false,
+    "旧密码错误",
+  );
+  assert.equal(
+    changePassword(storage, {
+      id,
+      oldPassword: "secret123",
+      newPassword: "123",
+    }).ok,
+    false,
+    "新密码过短",
+  );
+  assert.equal(
+    changePassword(storage, {
+      id,
+      oldPassword: "secret123",
+      newPassword: "secret123",
+    }).ok,
+    false,
+    "新旧相同",
+  );
+  assert.equal(
+    changePassword(storage, {
+      id: "00000000-0000-4000-8000-000000000000",
+      oldPassword: "secret123",
+      newPassword: "brandNew1",
+    }).ok,
+    false,
+    "账号不存在",
+  );
 });

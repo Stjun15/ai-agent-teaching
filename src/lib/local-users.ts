@@ -34,10 +34,12 @@ export interface LocalUser {
   createdAt: string;
 }
 
-/** 只用到读写的存储抽象 —— 便于脱离浏览器测试。 */
+/** 只用到读写（删除可选）的存储抽象 —— 便于脱离浏览器测试。 */
 export interface LocalUsersStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  /** 可选：清空时若实现支持可直接删键；不支持则退回写空串。 */
+  removeItem?(key: string): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -273,4 +275,110 @@ function isLocalUser(value: unknown): value is LocalUser {
     typeof candidate.passwordHash === "string" &&
     typeof candidate.createdAt === "string"
   );
+}
+
+// ---------------------------------------------------------------------------
+// 当前用户会话（`sso.currentUser`）
+// ---------------------------------------------------------------------------
+
+/** 当前会话用户;key 与账号不同 —— 只存「当前登录的是谁」，便于顶栏展示用户名。 */
+export const CURRENT_USER_STORAGE_KEY = "sso.currentUser";
+
+/** 当前会话用户。`id` 与 `LocalUser.id` 相同，是学生身份。 */
+export interface CurrentUser {
+  id: string;
+  username: string;
+  preferredName?: string;
+}
+
+/** 读出当前会话用户；格式损坏/不可用时按未登录处理。 */
+export function getCurrentUser(
+  storage: LocalUsersStorage | null | undefined,
+): CurrentUser | null {
+  const raw = storage?.getItem(CURRENT_USER_STORAGE_KEY) ?? null;
+  if (raw === null) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return isCurrentUser(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 记录当前会话用户（登录/注册成功时写）。 */
+export function setCurrentUser(
+  storage: LocalUsersStorage | null | undefined,
+  user: CurrentUser,
+): void {
+  storage?.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+}
+
+/** 清空当前会话用户（退出/切换时写）。 */
+export function clearCurrentUser(
+  storage: LocalUsersStorage | null | undefined,
+): void {
+  if (!storage) return;
+  if (typeof storage.removeItem === "function") {
+    storage.removeItem(CURRENT_USER_STORAGE_KEY);
+  } else {
+    storage.setItem(CURRENT_USER_STORAGE_KEY, "");
+  }
+}
+
+/** `CurrentUser` 形状校验 —— 读取只采用字段齐全的合法值。 */
+function isCurrentUser(value: unknown): value is CurrentUser {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    isStudentId(candidate.id) &&
+    typeof candidate.username === "string"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 修改密码（演示级）
+// ---------------------------------------------------------------------------
+
+export interface ChangePasswordInput {
+  id: string;
+  oldPassword: string;
+  newPassword: string;
+}
+
+export type ChangePasswordResult =
+  { ok: true } | { ok: false; message: string };
+
+/**
+ * 修改某账号的密码（按 `id` 匹配，即当前学生身份）。
+ *
+ * 同样**演示级**：只做 `hashPassword` 摘要替换，没有真实安全语义。
+ * 内置评审账号（test/eval）不在 `sso.localUsers` 数组里，按 id 匹配不上，
+ * 会如实返回「账号不存在」—— 不偷偷给内置账号改密码。
+ */
+export function changePassword(
+  storage: LocalUsersStorage | null | undefined,
+  input: ChangePasswordInput,
+): ChangePasswordResult {
+  if (!isStudentId(input.id)) {
+    return { ok: false, message: "无法定位当前账号。" };
+  }
+  if (input.newPassword.length < 6) {
+    return { ok: false, message: "新密码至少 6 个字符。" };
+  }
+  const oldHash = hashPassword(input.oldPassword);
+  const newHash = hashPassword(input.newPassword);
+  if (oldHash === newHash) {
+    return { ok: false, message: "新密码不能与旧密码相同。" };
+  }
+
+  const users = readUsers(storage);
+  const user = users.find((item) => item.id === input.id);
+  if (!user || user.passwordHash !== oldHash) {
+    return { ok: false, message: "旧密码不正确或账号不存在。" };
+  }
+
+  user.passwordHash = newHash;
+  writeUsers(storage, users);
+  return { ok: true };
 }
