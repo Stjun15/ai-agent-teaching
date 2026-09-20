@@ -78,24 +78,21 @@ export function ModuleWorkspace({
     LEARNING_STEPS.find((step) => step.id === currentStepId) ?? null;
 
   /**
-   * 步骤分屏原型（2026-09-19，待用户确认后批量到全部模块）。
+   * 步骤分屏（2026-09-20 从 llm-api 原型推广到全部 9 讲）。
    *
    * 教学法上 explain（建立心智模型）与 observe（看清「对的」长什么样）
-   * 目的不同，此前却共用同一屏 —— 走查实测学生感知不到切步。原型改法：
+   * 目的不同，此前却共用同一屏 —— 走查实测学生感知不到切步。分屏改法：
    *   - explain：讲稿 + 问答聊天（不再同屏展示动手模仿与可视化）；
    *   - observe：示范代码卡（从讲稿提取）+ 问答聊天；
-   *   - 其余步骤与其余模块暂维持原样。
-   * 确认后删除本常量，把条件推广到全部模块。
+   *   - 其余五步照常不展示这些卡位。
    */
-  const stepSeparationPrototype = teachingModule.id === "llm-api";
+  // explain/observe 步收起面板，其余步展开。
   const showWorkspacePanels =
-    !stepSeparationPrototype ||
-    (currentStepId !== "explain" && currentStepId !== "observe");
+    currentStepId !== "explain" && currentStepId !== "observe";
   // 分屏后每一步的聊天只渲染本步消息；讲解稿在本步的呈现方式见
   // lib/lecture-split.ts（truncate=截到作业前 / skip=整条不显示）。
-  const chatStepProps = !stepSeparationPrototype
-    ? {}
-    : currentStepId === "explain"
+  const chatStepProps =
+    currentStepId === "explain"
       ? { stepFilter: "explain", lectureMode: "truncate" as const }
       : currentStepId === "observe"
         ? { stepFilter: "observe", lectureMode: "skip" as const }
@@ -202,7 +199,7 @@ export function ModuleWorkspace({
             观察示范卡（分屏原型）：示范代码是这一步的主角，卡位排在
             聊天**之前** —— 聊天退居其下，学生先读代码、再提问。
           */}
-          {stepSeparationPrototype && currentStepId === "observe" ? (
+          {currentStepId === "observe" ? (
             <Card>
               <CardHeader>
                 <CardTitle>观察示范</CardTitle>
@@ -283,7 +280,7 @@ export function ModuleWorkspace({
                 <CardTitle>动手模仿</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {stepSeparationPrototype && currentStepId === "imitate" ? (
+                {currentStepId === "imitate" ? (
                   <>
                     <AssignmentCard moduleId={teachingModule.id} />
                     <p className="text-xs text-muted-foreground">

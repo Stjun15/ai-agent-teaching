@@ -45,15 +45,18 @@ export function usePractice(moduleId: string) {
   const elapsed = useElapsed(busy);
 
   /** 首次作答前为本模块开一个真实会话（answer-grade 校验归属）。 */
-  const ensureSession = async (studentId: string): Promise<string> => {
-    if (sessionIdRef.current !== null) return sessionIdRef.current;
-    const created = await apiPost<{ sessionId: string }>("/api/session", {
-      studentId,
-      moduleId,
-    });
-    sessionIdRef.current = created.sessionId;
-    return created.sessionId;
-  };
+  const ensureSession = useCallback(
+    async (studentId: string): Promise<string> => {
+      if (sessionIdRef.current !== null) return sessionIdRef.current;
+      const created = await apiPost<{ sessionId: string }>("/api/session", {
+        studentId,
+        moduleId,
+      });
+      sessionIdRef.current = created.sessionId;
+      return created.sessionId;
+    },
+    [moduleId],
+  );
 
   const generate = useCallback(async (): Promise<void> => {
     setPhase("generating");
@@ -111,7 +114,7 @@ export function usePractice(moduleId: string) {
       );
       setPhase("idle");
     }
-  }, [moduleId]);
+  }, [moduleId, ensureSession]);
 
   const submit = useCallback(async (): Promise<void> => {
     if (phase !== "answering" || sessionIdRef.current === null) return;

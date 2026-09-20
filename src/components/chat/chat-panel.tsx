@@ -62,8 +62,7 @@ export function ChatPanel({
 
   // 模块切换的第一帧 store 里还是旧模块的消息：渲染空态而不是闪现
   // 旧内容（effect 清空后下一帧恢复正常）。
-  const moduleMismatch =
-    moduleId !== undefined && activeModuleId !== moduleId;
+  const moduleMismatch = moduleId !== undefined && activeModuleId !== moduleId;
 
   function handleScroll(): void {
     const element = scrollRef.current;
@@ -77,8 +76,19 @@ export function ChatPanel({
     if (!stickToBottomRef.current) return;
     const element = scrollRef.current;
     if (element === null) return;
+    // 概念讲解步（lectureMode==="truncate"）初进时只有一条讲稿：默认
+    // 把滚动停在最上方（显示讲稿开头），而不是自动滚到底部。学生开始
+    // 追问产生多条消息后照常滚到底跟随对话。
+    if (
+      lectureMode === "truncate" &&
+      messages.length === 1 &&
+      messages[0].role === "assistant"
+    ) {
+      element.scrollTop = 0;
+      return;
+    }
     element.scrollTop = element.scrollHeight;
-  }, [messages]);
+  }, [messages, lectureMode]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
