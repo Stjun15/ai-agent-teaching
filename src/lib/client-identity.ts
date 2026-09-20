@@ -43,6 +43,8 @@ import {
 export interface StudentIdStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  /** 可选：退出去除时若实现支持则可直接删键；不支持则退回写空串。 */
+  removeItem?(key: string): void;
 }
 
 /**
@@ -67,6 +69,24 @@ export function rememberStudentId(
 ): void {
   if (!isStudentId(studentId)) return;
   storage?.setItem(STUDENT_ID_STORAGE_KEY, studentId.trim());
+}
+
+/**
+ * 清空学生身份，退回种子学生。
+ *
+ * 退出登录时用。实现支持 `removeItem` 就直接删键；只实现了 `setItem` 的
+ * 存储则写一个空串 —— `resolveStudentId` 会把空串视为非法、退回种子身份，
+ * 效果等价。
+ */
+export function clearStudentId(
+  storage: StudentIdStorage | null | undefined,
+): void {
+  if (!storage) return;
+  if (typeof storage.removeItem === "function") {
+    storage.removeItem(STUDENT_ID_STORAGE_KEY);
+  } else {
+    storage.setItem(STUDENT_ID_STORAGE_KEY, "");
+  }
 }
 
 /**
