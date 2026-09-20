@@ -206,7 +206,8 @@ export function ModuleWorkspace({
           {currentStepId !== "practice" &&
           currentStepId !== "imitate" &&
           currentStepId !== "validate" &&
-          currentStepId !== "visualize" ? (
+          currentStepId !== "visualize" &&
+          currentStepId !== "mastery" ? (
             <Card className="h-[560px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
@@ -272,7 +273,9 @@ export function ModuleWorkspace({
           currentStepId !== "mastery" ? (
             <Card>
               <CardHeader>
-                <CardTitle>动手模仿</CardTitle>
+                <CardTitle>
+                  {currentStepId === "practice" ? "代码作答" : "动手模仿"}
+                </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {currentStepId === "imitate" ? (
