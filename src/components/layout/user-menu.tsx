@@ -210,7 +210,11 @@ export function UserMenu({ className }: Props) {
             </p>
           ) : null}
 
-          <div className="flex flex-col border-b px-2.5 py-1.5">
+          <Link
+            href="/settings"
+            onClick={() => setMenuOpen(false)}
+            className="flex flex-col rounded-md border-b px-2.5 py-1.5 hover:bg-accent/60"
+          >
             <span className="truncate text-sm font-medium">
               {user.preferredName ?? user.username}
             </span>
@@ -218,9 +222,9 @@ export function UserMenu({ className }: Props) {
               {user.username}
             </span>
             <span className="mt-1">
-              <Badge variant="muted">演示账号</Badge>
+              <Badge variant="muted">个人信息</Badge>
             </span>
-          </div>
+          </Link>
 
           <div className="py-1">
             <button
