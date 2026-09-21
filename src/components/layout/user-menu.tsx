@@ -29,7 +29,6 @@ import {
   User as UserIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { clearStudentId } from "@/lib/client-identity";
 import {
   CURRENT_USER_STORAGE_KEY,
@@ -95,14 +94,22 @@ export function UserMenu({ className }: Props) {
   );
   const [menuOpen, setMenuOpen] = React.useState(false);
 
-  // 点菜单外任意处关闭。
+  // 点菜单外任意处关闭。(使用 React onClick 捕获冒泡，
+  // 配合菜单内部的 stopPropagation，统一走 React 合成事件体系，
+  // 避免原生 DOM 事件绕过 stopPropagation 提前触发 setMenuOpen(false)。)
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (!menuOpen) return;
-    function onMouseDown() {
-      setMenuOpen(false);
+    function onClick(event: MouseEvent) {
+      if (
+        wrapperRef.current !== null &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
     }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
   }, [menuOpen]);
 
   function handleLogout() {
@@ -134,7 +141,7 @@ export function UserMenu({ className }: Props) {
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div ref={wrapperRef} className={cn("relative", className)}>
       <button
         type="button"
         onClick={() => setMenuOpen((value) => !value)}
@@ -154,32 +161,14 @@ export function UserMenu({ className }: Props) {
       {menuOpen ? (
         <div
           role="menu"
-          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className="absolute top-full right-0 z-50 mt-1 w-52 rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-md"
         >
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              router.push("/settings");
-            }}
-            className="flex w-full flex-col rounded-md border-b px-2.5 py-1.5 text-left hover:bg-accent/60"
-          >
-            <span className="truncate text-sm font-medium">
-              {user.preferredName ?? user.username}
-            </span>
-            <span className="truncate text-xs text-muted-foreground">
-              {user.username}
-            </span>
-            <span className="mt-1">
-              <Badge variant="muted">个人信息</Badge>
-            </span>
-          </button>
-
           <div className="py-1">
             <button
               type="button"
               role="menuitem"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/auth/change-password");
@@ -192,6 +181,7 @@ export function UserMenu({ className }: Props) {
             <button
               type="button"
               role="menuitem"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/auth");
@@ -204,6 +194,7 @@ export function UserMenu({ className }: Props) {
             <button
               type="button"
               role="menuitem"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={handleLogout}
               className={cn(
                 menuItem,
