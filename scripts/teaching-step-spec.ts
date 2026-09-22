@@ -24,14 +24,31 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
-import { TEACHING_CHAT_SYSTEM_PROMPT } from "@/lib/agent/prompts/teaching-chat";
+import {
+  TEACHING_CHAT_SYSTEM_PROMPT,
+  TEACHING_EXPLAIN_PROMPT,
+} from "@/lib/agent/prompts/teaching-chat";
 import { ChatRequestSchema } from "@/schemas";
 
 test("讲解三步由讲解导师接管", () => {
-  for (const step of ["explain", "observe", "imitate"] as const) {
+  // explain 拿专用提示词（无动手），observe / imitate 拿完整版（含动手）
+  {
+    const spec = resolveStepAgent("explain");
+    assert.equal(spec.teaching, true, "explain 应由讲解导师接管");
+    assert.equal(
+      spec.systemPrompt,
+      TEACHING_EXPLAIN_PROMPT,
+      "explain 应走无动手版提示词",
+    );
+  }
+  for (const step of ["observe", "imitate"] as const) {
     const spec = resolveStepAgent(step);
     assert.equal(spec.teaching, true, `${step} 应由讲解导师接管`);
-    assert.equal(spec.systemPrompt, TEACHING_CHAT_SYSTEM_PROMPT);
+    assert.equal(
+      spec.systemPrompt,
+      TEACHING_CHAT_SYSTEM_PROMPT,
+      `${step} 应走含动手版提示词`,
+    );
   }
 });
 
@@ -49,29 +66,46 @@ test("其余步骤保持通用答疑口径", () => {
   }
 });
 
-test("教学提示词要求讲透 + 实例 + 学生动手", () => {
+test("教学提示词要求讲透 + 实例", () => {
+  // observe / imitate 版：讲透 + 实例 + 学生动手
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /禁止一句话回答/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /打个比方/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /正经说清楚/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /看一个完整例子/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /容易引起|容易踩的坑/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /现在轮到你/);
-  // 停在这里等学生动手 —— 不许自问自答
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /做完发给我/);
+  // explain 版：讲透 + 实例，但**没有**动手环节
+  assert.match(TEACHING_EXPLAIN_PROMPT, /禁止一句话回答/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /打个比方/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /正经说清楚/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /看一个完整例子/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /容易引起|容易踩的坑/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /检验理解/);
+  assert.ok(
+    !/现在轮到你/.test(TEACHING_EXPLAIN_PROMPT),
+    "概念讲解版提示词不得包含动手环节（第五节必须是'检验理解'）",
+  );
+  assert.ok(
+    !/做完发给我/.test(TEACHING_EXPLAIN_PROMPT),
+    "概念讲解版提示词不得包含模仿任务（'做完发给我'是 observe/imitate 的收尾）",
+  );
 });
 
 test("教学提示词不带任何 JSON 输出契约", () => {
-  for (const marker of [
-    "严格返回 JSON",
-    "check_question",
-    "next_action",
-    "expected_keywords",
-    "hint_levels",
-  ]) {
-    assert.ok(
-      !TEACHING_CHAT_SYSTEM_PROMPT.includes(marker),
-      `教学提示词不该要求输出 ${marker}：SSE 逐字吐给学生，学生会看到原始报文`,
-    );
+  for (const prompt of [TEACHING_CHAT_SYSTEM_PROMPT, TEACHING_EXPLAIN_PROMPT]) {
+    for (const marker of [
+      "严格返回 JSON",
+      "check_question",
+      "next_action",
+      "expected_keywords",
+      "hint_levels",
+    ]) {
+      assert.ok(
+        !prompt.includes(marker),
+        `教学提示词不该要求输出 ${marker}：SSE 逐字吐给学生，学生会看到原始报文`,
+      );
+    }
   }
 });
 
@@ -168,8 +202,19 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   // 动手模仿不得自动开场 —— 那一步的主体是学生自己写。
   assert.match(
     workspace,
-    /currentStepId === "explain" \|\| currentStepId === "observe"/,
-    "讲解与观察示范两步都应自动开场",
+    /currentStepId === "explain"/,
+    "概念讲解步必须挂自动开讲组件",
+  );
+  assert.match(
+    workspace,
+    /currentStepId === "observe"/,
+    "观察示范步必须挂自动开讲组件",
+  );
+  assert.match(workspace, /LectureLauncher/g, "讲解与观察示范两步都应自动开场");
+  const launcherCount = (workspace.match(/<LectureLauncher\b/g) || []).length;
+  assert.ok(
+    launcherCount >= 2,
+    `LectureLauncher 应在 explain 与 observe 两步各出现一次（当前 ${launcherCount} 次）`,
   );
   assert.match(
     workspace,

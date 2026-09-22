@@ -3,6 +3,7 @@ import { ChevronRight, Clock } from "lucide-react";
 
 import { AssignmentCard } from "@/components/learn/assignment-card";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import { ExplainFullscreen } from "@/components/learn/explain-fullscreen";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
 import { ObservePanel } from "@/components/learn/observe-panel";
@@ -202,25 +203,15 @@ export function ModuleWorkspace({
 
             变式练习（practice）与动手模仿（imitate）两步去掉顶上的对话卡：
             学生在此动手，不再需要一直挂着一个大对话框(2026-09-20)。
+
+            概念讲解步包裹 ExplainFullscreen：学生可切换全屏沉浸阅读讲稿，
+            此时对话卡片充满整个视口。其余步（观察示范等）不提供全屏开关。
           */}
-          {currentStepId !== "practice" &&
-          currentStepId !== "imitate" &&
-          currentStepId !== "validate" &&
-          currentStepId !== "visualize" &&
-          currentStepId !== "mastery" ? (
-            <Card className="h-[560px]">
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
-                {/*
-                  输入区放进对话卡片、而不是单独一张卡：组件树里它就是对话区的
-                  底部。拆成两张卡它会被挤到可视化面板下面，学生每发一句话都要
-                  滚过整个中栏才够得到输入框。
-                */}
-                {/*
-                  step 随每条消息发给后端：讲解三步由讲解导师接管（2026-09-19
-                  修正，此前一律是答疑口径，「概念讲解就一句话」）。
-                */}
-                {currentStepId === "explain" || currentStepId === "observe" ? (
+          {currentStepId === "explain" ? (
+            <ExplainFullscreen>
+              <Card className="h-[560px]">
+                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                  <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
                   <LectureLauncher
                     moduleId={teachingModule.id}
                     step={currentStepId}
@@ -229,7 +220,22 @@ export function ModuleWorkspace({
                       teachingModule.name,
                     )}
                   />
-                ) : null}
+                  <Composer step={currentStepId} moduleId={teachingModule.id} />
+                </CardContent>
+              </Card>
+            </ExplainFullscreen>
+          ) : currentStepId === "observe" ? (
+            <Card className="h-[560px]">
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
+                <LectureLauncher
+                  moduleId={teachingModule.id}
+                  step={currentStepId}
+                  prompt={lectureOpenerPrompt(
+                    currentStepId,
+                    teachingModule.name,
+                  )}
+                />
                 <Composer step={currentStepId} moduleId={teachingModule.id} />
               </CardContent>
             </Card>
