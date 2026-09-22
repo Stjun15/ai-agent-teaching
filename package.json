@@ -17,6 +17,7 @@
     "check": "eslint && prettier --check . && tsc --noEmit",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed:student": "node scripts/seed-test-student.mjs",
+    "db:seed:auth": "node scripts/seed-auth-accounts.mjs",
     "wiki:seed": "node scripts/seed-wiki.mjs",
     "test": "node scripts/run-tests.mjs",
     "test:markdown": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/markdown-spec.ts",
