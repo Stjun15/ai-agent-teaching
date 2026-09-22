@@ -1,46 +1,30 @@
 "use client";
 
 /**
- * 顶栏右上角「个人信息」菜单（演示级）
+ * 顶栏右上角「个人信息」菜单
  *
- * 读 `sso.currentUser`（`local-users.ts`）决定显示什么：
- *   有当前用户 → 下拉菜单（用户名 / 修改密码 / 切换用户 / 退出登录）；
- *   没有（种子/访客）→ 只给一个「登录」入口，跳 `/auth`。
+ * 判别逻辑：
+ *   - 有 JWT 令牌 → 视为已登录 → 显示用户名、修改密码、退出登录
+ *   - 无 JWT 令牌 → 显示「登录」按钮
  *
- * 与登录一样是**前端演示级**：账号在 `localStorage`，修改密码只做
- * `hashPassword` 摘要替换，不是真实安全方案。修改密码与切换用户都走真实
- * 路由跳转（`/auth/change-password` 与 `/auth`），退出登录则清会话后跳
- * `/auth`；账号节点上如实标注「演示级」，绝不把它描述成安全功能。
- *
- * SSR/hydration 安全
- * -----------------
- * `useSyncExternalStore` 读取当前会话（见下方 hook）：首帧服务端与客户端
- * 快照一致（均 null 或读不到 storage），从根上避免 effect+setState 的
- * `react-hooks/set-state-in-effect` 拦截与首帧 hydration 不一致。
+ * 与 client-identity.ts 的 token 体系对接，不再依赖 localStorage 账号数组。
  */
+
 import * as React from "react";
 import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ChevronDown,
-  KeyRound,
-  LogOut,
-  Repeat,
-  User as UserIcon,
-} from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, User as UserIcon } from "lucide-react";
 
-import { clearStudentId } from "@/lib/client-identity";
 import {
-  CURRENT_USER_STORAGE_KEY,
-  clearCurrentUser,
-  getCurrentUser,
-  type CurrentUser,
-  type LocalUsersStorage,
-} from "@/lib/local-users";
+  clearAuthToken as clearToken,
+  clearStudentId,
+  currentAuthToken as getToken,
+} from "@/lib/client-identity";
 import { cn } from "@/lib/utils";
 
-/** `localStorage` 同时满足账号与会话两种读写的形状（含删除）。不可用时返回 null。 */
-function browserStorage(): LocalUsersStorage | null {
+const USERNAME_STORAGE_KEY = "ai-teaching:currentUsername";
+
+function browserStorage() {
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage;
@@ -49,33 +33,33 @@ function browserStorage(): LocalUsersStorage | null {
   }
 }
 
-// -- 用 useSyncExternalStore 读当前会话 -------------------------------
-// 外部存储（localStorage）的正确 React 接入点是 useSyncExternalStore，
-// 而不是 useEffect+setState（后者会被 react-hooks/set-state-in-effect 标记，
-// 且依赖 then 调度容易在首帧误读）。getSnapshot 用缓存保持对象引用稳定，
-// 避免「快照每次都是新引用」导致 React 无限重渲染。
-let _cuCache: { raw: string | null; val: CurrentUser | null } | null = null;
-function currentUserSnapshot(): CurrentUser | null {
+function readUsername(): string | null {
   const storage = browserStorage();
-  const raw = storage?.getItem(CURRENT_USER_STORAGE_KEY) ?? null;
-  if (_cuCache !== null && _cuCache.raw === raw) return _cuCache.val;
-  const val = getCurrentUser(storage);
-  _cuCache = { raw, val };
-  return val;
+  if (!storage) return null;
+  const raw = storage.getItem(USERNAME_STORAGE_KEY);
+  return raw && raw.length > 0 ? raw : null;
 }
-function subscribeCurrentUser(onChange: () => void): () => void {
+
+// useSyncExternalStore 读当前登录状态
+let _tokenCache: { val: boolean } | null = null;
+function tokenSnapshot(): boolean {
+  const v = getToken() !== null;
+  if (_tokenCache !== null && _tokenCache.val === v) return _tokenCache.val;
+  _tokenCache = { val: v };
+  return v;
+}
+function subscribeToken(onChange: () => void): () => void {
   window.addEventListener("storage", onChange);
-  // 同一标签页里登录/退出会写 localStorage，但不会触发 storage 事件。
-  // 用自定义事件补上，登出/切换后本组件能即时反映最新会话。
-  window.addEventListener("sso:current-user", onChange);
+  window.addEventListener("auth:changed", onChange);
   return () => {
     window.removeEventListener("storage", onChange);
-    window.removeEventListener("sso:current-user", onChange);
+    window.removeEventListener("auth:changed", onChange);
   };
 }
-/** 派发「当前用户已变化」，供顶栏菜单即时刷新。 */
-export function notifyCurrentUserChanged(): void {
-  window.dispatchEvent(new Event("sso:current-user"));
+
+/** 派发鉴权状态变化事件，供顶栏菜单即时刷新。 */
+export function notifyAuthChanged(): void {
+  window.dispatchEvent(new Event("auth:changed"));
 }
 
 interface Props {
@@ -85,18 +69,24 @@ interface Props {
 export function UserMenu({ className }: Props) {
   const router = useRouter();
 
-  // null = 未登录（种子/访客）；其余 = 当前用户。外部存储由
-  // useSyncExternalStore 接管，登录/退出在任意标签页写 storage 都会即时反映。
-  const user = useSyncExternalStore(
-    subscribeCurrentUser,
-    currentUserSnapshot,
-    () => null,
+  const loggedIn = useSyncExternalStore(
+    subscribeToken,
+    tokenSnapshot,
+    () => false,
   );
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [username, setUsername] = React.useState<string | null>(null);
 
-  // 点菜单外任意处关闭。(使用 React onClick 捕获冒泡，
-  // 配合菜单内部的 stopPropagation，统一走 React 合成事件体系，
-  // 避免原生 DOM 事件绕过 stopPropagation 提前触发 setMenuOpen(false)。)
+  React.useEffect(() => {
+    let alive = true;
+    void Promise.resolve().then(() => {
+      if (alive) setUsername(readUsername());
+    });
+    return () => {
+      alive = false;
+    };
+  }, [loggedIn]);
+
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (!menuOpen) return;
@@ -114,17 +104,17 @@ export function UserMenu({ className }: Props) {
 
   function handleLogout() {
     clearStudentId(browserStorage());
-    clearCurrentUser(browserStorage());
-    notifyCurrentUserChanged();
+    clearToken(browserStorage());
+    browserStorage()?.removeItem?.(USERNAME_STORAGE_KEY);
     setMenuOpen(false);
+    notifyAuthChanged();
     router.push("/auth");
   }
 
   const menuItem =
     "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-accent/60";
 
-  // 未登录：只给登录入口。
-  if (user === null) {
+  if (!loggedIn || !username) {
     return (
       <button
         type="button"
@@ -150,11 +140,9 @@ export function UserMenu({ className }: Props) {
         className="flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
       >
         <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[11px]">
-          {(user.preferredName ?? user.username).slice(0, 1)}
+          {username.slice(0, 1)}
         </span>
-        <span className="max-w-[8rem] truncate">
-          {user.preferredName ?? user.username}
-        </span>
+        <span className="max-w-[8rem] truncate">{username}</span>
         <ChevronDown className="size-3.5" aria-hidden />
       </button>
 
@@ -182,19 +170,6 @@ export function UserMenu({ className }: Props) {
               type="button"
               role="menuitem"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setMenuOpen(false);
-                router.push("/auth");
-              }}
-              className={menuItem}
-            >
-              <Repeat className="size-4" aria-hidden />
-              切换用户
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onMouseDown={(e) => e.preventDefault()}
               onClick={handleLogout}
               className={cn(
                 menuItem,
@@ -207,7 +182,7 @@ export function UserMenu({ className }: Props) {
           </div>
 
           <p className="border-t px-2.5 pt-1.5 text-[10px] text-muted-foreground">
-            演示级身份：账号仅存本机 localStorage，非真实鉴权。
+            JWT 令牌鉴权
           </p>
         </div>
       ) : null}

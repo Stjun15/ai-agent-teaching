@@ -31,7 +31,7 @@
  * 用 Server Action 会把数据请求和渲染生命周期绑在一起，且拿不到 `AbortSignal`。
  */
 
-import { currentStudentId, studentHeaders } from "./client-identity";
+import { authHeaders } from "./client-identity";
 import { isAbortError } from "./sse";
 
 /** 服务端错误码，与 `api-error.ts` 的表一一对应。 */
@@ -92,7 +92,7 @@ async function request<T>(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<TimedResult<T>> {
-  const headers: Record<string, string> = studentHeaders(currentStudentId());
+  const headers: Record<string, string> = authHeaders();
   if (body !== undefined) headers["content-type"] = "application/json";
 
   const startedAt = performance.now();

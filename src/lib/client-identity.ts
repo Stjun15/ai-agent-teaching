@@ -29,6 +29,8 @@
 
 import demoStudent from "./demo-student.json" with { type: "json" };
 import {
+  AUTH_TOKEN_HEADER,
+  AUTH_TOKEN_STORAGE_KEY,
   STUDENT_ID_HEADER,
   STUDENT_ID_STORAGE_KEY,
   isStudentId,
@@ -108,6 +110,53 @@ export function studentHeaders(studentId: string): Record<string, string> {
  */
 export function currentStudentId(): string {
   return resolveStudentId(browserStorage());
+}
+
+// ---------------------------------------------------------------------------
+// 鉴权令牌
+// ---------------------------------------------------------------------------
+
+/** 取当前鉴权令牌；不存在或浏览器不可用时返回 null。 */
+export function resolveAuthToken(
+  storage: StudentIdStorage | null | undefined,
+): string | null {
+  const raw = storage?.getItem(AUTH_TOKEN_STORAGE_KEY) ?? null;
+  return raw && raw.length > 0 ? raw : null;
+}
+
+/** 记住鉴权令牌。传 null 等同清空。 */
+export function rememberAuthToken(
+  token: string | null,
+  storage: StudentIdStorage | null | undefined,
+): void {
+  if (!storage) return;
+  if (token === null) {
+    storage.setItem(AUTH_TOKEN_STORAGE_KEY, "");
+  } else {
+    storage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  }
+}
+
+/** 清空鉴权令牌。 */
+export function clearAuthToken(
+  storage: StudentIdStorage | null | undefined,
+): void {
+  rememberAuthToken(null, storage);
+}
+
+/**
+ * 给请求加身份头 —— 有令牌优先令牌，无令牌退回 student-id。
+ * 调用方只管传这个返回值，不用判断走的是哪条路。
+ */
+export function authHeaders(): Record<string, string> {
+  const token = currentAuthToken();
+  if (token) return { [AUTH_TOKEN_HEADER]: token };
+  return { [STUDENT_ID_HEADER]: currentStudentId() };
+}
+
+/** 当前浏览器里的鉴权令牌；不可用时返回 null。 */
+export function currentAuthToken(): string | null {
+  return resolveAuthToken(browserStorage());
 }
 
 /** 读写当前浏览器的存储；不可用时返回 null（见 `currentStudentId` 的注释）。 */

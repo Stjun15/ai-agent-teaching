@@ -1,27 +1,19 @@
 "use client";
 
 /**
- * 登录 / 注册（演示级）
+ * 登录 / 注册 —— 真实鉴权（JWT 令牌）
  *
- * 这页是「前端演示级」登录：账号只存当前浏览器的 `localStorage`
- * （key `sso.localUsers`，见 `src/lib/local-users.ts`），没有任何后端。
- * 页面上常驻一条「演示模式」提示，明确它是非真实鉴权 —— 与项目『不要假装
- * 有能力』纪律一致，这里不出现任何假后端、假安全的描述。
+ * 登录：POST /api/auth/login → { token, studentId, username }
+ * 注册：POST /api/auth/register → { token, studentId, username }
  *
- * 登录/注册成功后发生什么
- * --------------------
- * 并不是「认证」，而是**替换种子身份**：把新账号生成的 `id`（本身就是合法
- * 学生 UUID）写进现有学生身份存储（`clearStudentId` / `rememberStudentId`），
- * 让报告 / 掌握度 / 学习路径按新身份走。退出登录则清空身份、退回种子学生。
- *
- * 身份为什么在回调里读、不在渲染时读
- * --------------------------------
- * 见 `settings-view.tsx` 同款注释：渲染期读 `localStorage` 会让服务端首帧与
- * 客户端不一致触发 hydration 报错。放进 effect 里读则首帧两边都是「读取中」。
+ * 令牌存浏览器 localStorage（key `ai-teaching:authToken`），
+ * 后续所有需要认证的请求由 `authHeaders()` 自动带 token 头。
+ * 未登录时回退到种子学生身份的 `x-student-id` 头。
  */
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Info, LogOut, ShieldOff } from "lucide-react";
+import { Info, LogOut } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,25 +26,16 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
+  clearAuthToken,
   clearStudentId,
-  currentStudentId,
+  currentAuthToken,
+  rememberAuthToken,
   rememberStudentId,
 } from "@/lib/client-identity";
-import {
-  LOCAL_USERS_STORAGE_KEY,
-  clearCurrentUser,
-  loginUser,
-  registerUser,
-  setCurrentUser,
-  type LocalUsersStorage,
-  type RegisterError,
-} from "@/lib/local-users";
 
 type Tab = "login" | "register";
 
-/** `localStorage` 同时满足两种读写的形状（含删除）。不可用时返回 null。 */
-function browserStorage():
-  (LocalUsersStorage & { removeItem: (k: string) => void }) | null {
+function browserStorage() {
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage;
@@ -61,20 +44,11 @@ function browserStorage():
   }
 }
 
-/** 展示型输入框的共享外观（与 `LabInput` 一致）。 */
 const inputClass = (hasError: boolean) =>
   cn(
     "w-full rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring",
     hasError && "border-destructive",
   );
-
-/** 字段错误文案（以最后一次为准；同一字段可能有多条）。 */
-function fieldError(errors: RegisterError[], field: RegisterError["field"]) {
-  return errors
-    .filter((item) => item.field === field)
-    .map((item) => item.message)
-    .join("；");
-}
 
 export default function AuthPage() {
   const router = useRouter();
@@ -89,94 +63,136 @@ export default function AuthPage() {
   const [regUsername, setRegUsername] = React.useState("");
   const [regPassword, setRegPassword] = React.useState("");
   const [regConfirm, setRegConfirm] = React.useState("");
-  const [regErrors, setRegErrors] = React.useState<RegisterError[]>([]);
+  const [regError, setRegError] = React.useState<string | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
 
-  // 当前身份（用于展示 + 退出）—— 在异步回调里读，避免首帧 hydration 不一致
-  // 与 effect 同步 setState（见设置页同款取舍，`react-hooks/set-state-in-effect`）。
+  // 当前身份展示。渲染期不读 localStorage（hydration）。
   const [currentId, setCurrentId] = React.useState<string | null>(null);
   React.useEffect(() => {
     let alive = true;
     void Promise.resolve().then(() => {
-      if (alive) setCurrentId(currentStudentId());
+      if (!alive) return;
+      // 优先显示 token 里解析出的 studentId；没有则退回种子身份。
+      const token = currentAuthToken();
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1])) as {
+            sub: string;
+          };
+          setCurrentId(payload.sub);
+        } catch {
+          setCurrentId(null);
+        }
+      }
     });
     return () => {
       alive = false;
     };
   }, []);
 
-  /** 登录成功后替换身份、记录当前会话用户，并返回首页。 */
-  function adoptIdentity(id: string, username: string, preferredName: string) {
+  function adoptIdentity(id: string, token: string, username: string) {
     rememberStudentId(id, browserStorage());
-    setCurrentUser(browserStorage(), { id, username, preferredName });
+    rememberAuthToken(token, browserStorage());
+    // 同时记一个简单用户名供顶栏展示
+    browserStorage()?.setItem("ai-teaching:currentUsername", username);
     router.push("/");
   }
 
-  function handleLogin(event: React.FormEvent) {
+  async function handleLogin(event: React.FormEvent) {
     event.preventDefault();
     setLoginError(null);
     setSubmitting(true);
     try {
-      const result = loginUser(browserStorage(), {
-        username: loginUsername,
-        password: loginPassword,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: loginUsername.trim(),
+          password: loginPassword,
+        }),
       });
-      if (result.ok) {
-        adoptIdentity(result.id, result.username, result.preferredName);
+      if (!res.ok) {
+        let message = "登录失败，请稍后再试。";
+        try {
+          const body = (await res.json()) as {
+            error?: { message?: string };
+          };
+          message = body.error?.message ?? message;
+        } catch {
+          /* ignore parse error */
+        }
+        setLoginError(message);
         return;
       }
-      setLoginError(result.message);
+      const data = (await res.json()) as {
+        token: string;
+        studentId: string;
+        username: string;
+      };
+      adoptIdentity(data.studentId, data.token, data.username);
+    } catch {
+      setLoginError("网络错误，请检查连接后重试。");
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleRegister(event: React.FormEvent) {
+  async function handleRegister(event: React.FormEvent) {
     event.preventDefault();
-    setRegErrors([]);
+    setRegError(null);
+
+    if (regPassword !== regConfirm) {
+      setRegError("两次输入的密码不一致。");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const result = registerUser(browserStorage(), {
-        username: regUsername,
-        password: regPassword,
-        confirmPassword: regConfirm,
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: regUsername.trim(),
+          password: regPassword,
+        }),
       });
-      if (result.ok) {
-        adoptIdentity(result.id, result.username, result.preferredName);
+      if (!res.ok) {
+        let message = "注册失败，请稍后再试。";
+        try {
+          const body = (await res.json()) as {
+            error?: { message?: string };
+          };
+          message = body.error?.message ?? message;
+        } catch {
+          /* ignore */
+        }
+        setRegError(message);
         return;
       }
-      setRegErrors(result.errors);
+      const data = (await res.json()) as {
+        token: string;
+        studentId: string;
+        username: string;
+      };
+      adoptIdentity(data.studentId, data.token, data.username);
+    } catch {
+      setRegError("网络错误，请检查连接后重试。");
     } finally {
       setSubmitting(false);
     }
   }
 
-  /** 退出：清空身份与会话用户，回到种子，再去首页。 */
   function handleLogout() {
     clearStudentId(browserStorage());
-    clearCurrentUser(browserStorage());
+    clearAuthToken(browserStorage());
+    browserStorage()?.removeItem?.("ai-teaching:currentUsername");
     router.push("/");
   }
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:py-16">
       <div className="flex flex-col gap-6">
-        {/* 常驻「演示模式」诚实提示 */}
-        <div
-          role="note"
-          className="flex items-start gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200"
-        >
-          <ShieldOff className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">演示模式</span>
-            <span className="text-xs leading-relaxed">
-              账号只存在这台浏览器的本机 localStorage，没有后端、不是真实鉴权，
-              清除浏览器数据即丢失。仅用于演示登录形态，请勿用于真实场景。
-            </span>
-          </div>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>账户登录</CardTitle>
@@ -185,7 +201,6 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            {/* 双 tab */}
             <div className="flex gap-2">
               {(
                 [
@@ -199,7 +214,7 @@ export default function AuthPage() {
                   onClick={() => {
                     setTab(item.id);
                     setLoginError(null);
-                    setRegErrors([]);
+                    setRegError(null);
                   }}
                   aria-pressed={tab === item.id}
                   className={cn(
@@ -283,15 +298,8 @@ export default function AuthPage() {
                     value={regUsername}
                     onChange={(e) => setRegUsername(e.target.value)}
                     placeholder="用户名（2–32 个字符）"
-                    className={inputClass(
-                      fieldError(regErrors, "username") !== "",
-                    )}
+                    className={inputClass(false)}
                   />
-                  {fieldError(regErrors, "username") ? (
-                    <p className="text-[11px] text-destructive">
-                      {fieldError(regErrors, "username")}
-                    </p>
-                  ) : null}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="reg-password" className="text-xs font-medium">
@@ -304,15 +312,8 @@ export default function AuthPage() {
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="密码（至少 6 个字符）"
-                    className={inputClass(
-                      fieldError(regErrors, "password") !== "",
-                    )}
+                    className={inputClass(false)}
                   />
-                  {fieldError(regErrors, "password") ? (
-                    <p className="text-[11px] text-destructive">
-                      {fieldError(regErrors, "password")}
-                    </p>
-                  ) : null}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label htmlFor="reg-confirm" className="text-xs font-medium">
@@ -325,16 +326,18 @@ export default function AuthPage() {
                     value={regConfirm}
                     onChange={(e) => setRegConfirm(e.target.value)}
                     placeholder="再次输入密码"
-                    className={inputClass(
-                      fieldError(regErrors, "confirmPassword") !== "",
-                    )}
+                    className={inputClass(false)}
                   />
-                  {fieldError(regErrors, "confirmPassword") ? (
-                    <p className="text-[11px] text-destructive">
-                      {fieldError(regErrors, "confirmPassword")}
-                    </p>
-                  ) : null}
                 </div>
+
+                {regError ? (
+                  <p
+                    role="alert"
+                    className="text-xs leading-relaxed text-destructive"
+                  >
+                    {regError}
+                  </p>
+                ) : null}
 
                 <Button type="submit" disabled={submitting}>
                   注册并登录
@@ -349,7 +352,7 @@ export default function AuthPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               当前身份
-              <Badge variant="muted">演示</Badge>
+              <Badge variant="muted">JWT 鉴权</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -374,7 +377,7 @@ export default function AuthPage() {
         </Card>
 
         <p className="text-center text-[11px] text-muted-foreground">
-          账号数据存储键：<code>{LOCAL_USERS_STORAGE_KEY}</code>
+          JWT 令牌存储在浏览器的 localStorage。
         </p>
       </div>
     </main>
