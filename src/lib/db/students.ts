@@ -129,6 +129,25 @@ export const studentDb = {
     };
   },
 
+  /** 按学生 id 取密码哈希 —— 仅供改密等已验证身份的操作用。 */
+  async getPasswordHashById(id: string): Promise<string | null> {
+    const row = getDb()
+      .prepare("SELECT password_hash FROM students WHERE id = ?")
+      .get(id) as Row | undefined;
+    if (!row) return null;
+    const hash = asString(row.password_hash);
+    return hash.length > 0 ? hash : null;
+  },
+
+  /** 更新学生密码哈希。 */
+  async updatePassword(id: string, hash: string): Promise<void> {
+    getDb()
+      .prepare(
+        "UPDATE students SET password_hash = ?, updated_at = ? WHERE id = ?",
+      )
+      .run(hash, nowIso(), id);
+  },
+
   /** 部分更新学生；updatedAt 自动刷新 */
   async update(id: string, data: Partial<Student>): Promise<void> {
     const { assignments, values } = buildUpdateSet(STUDENT_UPDATE, data);

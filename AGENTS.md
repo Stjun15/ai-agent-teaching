@@ -153,9 +153,13 @@ pnpm test:mastery                                 # 掌握度卡 M0–M3（store
    不是配置工作。`docs/deployment.md` 已把它列为上线前置。
 7. **部署形态未定** —— Serverless（EdgeOne Makers）上数据库这条腿是断的，运行期读
    `llm-wiki/` 的路径也读不到内容（构建期预渲染的页面不受影响）。两条路径的取舍见 `docs/deployment.md`。
-8. **`api-auth.ts` 不是真鉴权** —— 它自述「挡住假冒属于 Phase 7 打磨与提交（含安全加固）」，
-   但 Phase 7 的 12 个提交点里**没有「认证」这一项**：文档与计划不一致，未裁定。
-   当前限流按学生 id 计数，而 id 来自请求头、可伪造。
+8. **~~`api-auth.ts` 不是真鉴权~~（已关闭）** —— `src/lib/auth/index.ts` 提供了
+   密码哈希（scrypt）+ JWT 签名验证（HS256，7 天有效期）；`src/lib/api-auth.ts`
+   的 `resolveStudent` 支持两路认证：优先 JWT 令牌（`x-auth-token` 头），
+   退回旧 `x-student-id` 头（已有接口兼容）。`/api/auth/register`、
+   `/api/auth/login`、`/api/auth/change-password` 三个端点已开发完成，
+   前端 `AuthGate` 组件拦截未登录用户。相关测试：`scripts/seed-auth-accounts.mjs`
+   （播种内置账号）、`scripts/test-auth-quick.mjs`（快速验证脚本）。
 
 ## 九、不要做的事
 

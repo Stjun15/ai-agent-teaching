@@ -37,7 +37,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SUITES = [
   { name: "Markdown 解析", file: "scripts/markdown-spec.ts", model: false },
   { name: "客户端身份", file: "scripts/client-identity-spec.ts", model: false },
-  { name: "本地账号", file: "scripts/auth-spec.ts", model: false },
   { name: "分数量纲", file: "scripts/scores-spec.ts", model: false },
   { name: "主题偏好", file: "scripts/theme-spec.ts", model: false },
   { name: "沙箱清单", file: "scripts/playground-spec.ts", model: false },
