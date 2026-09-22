@@ -22,6 +22,15 @@ export const STUDENT_ID_QUERY = "studentId";
 /** 浏览器里记学生 id 用的存储键。 */
 export const STUDENT_ID_STORAGE_KEY = "ai-teaching:studentId";
 
+/** 鉴权令牌的请求头名（替代 x-student-id 的真鉴权路径）。 */
+export const AUTH_TOKEN_HEADER = "x-auth-token";
+
+/** 鉴权令牌的 query 参数名（SSE 端点用）。 */
+export const AUTH_TOKEN_QUERY = "token";
+
+/** 浏览器里记鉴权令牌用的存储键。 */
+export const AUTH_TOKEN_STORAGE_KEY = "ai-teaching:authToken";
+
 /**
  * 合法学生 id 的形状。
  *
