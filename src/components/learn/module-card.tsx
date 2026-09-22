@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ArrowRight, Clock, Film } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import { ModuleProgress } from "@/components/learn/module-progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { MAX_DIFFICULTY, type TeachingModule } from "@/lib/modules";
+import type { TeachingModule } from "@/lib/modules";
 
 /**
  * 学习中心的模块卡片。
@@ -61,11 +61,9 @@ export function ModuleCard({
         ) : null}
 
         <div className="mt-auto flex flex-col gap-2">
-          <Progress
-            value={teachingModule.difficulty}
-            max={MAX_DIFFICULTY}
-            label={`${teachingModule.name} 的难度`}
-            className="h-1.5"
+          <ModuleProgress
+            moduleId={teachingModule.id}
+            moduleName={teachingModule.name}
           />
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
