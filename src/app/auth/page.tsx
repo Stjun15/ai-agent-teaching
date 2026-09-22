@@ -15,7 +15,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Info, LogOut } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +31,7 @@ import {
   rememberAuthToken,
   rememberStudentId,
 } from "@/lib/client-identity";
+import { useSessionStore } from "@/stores/session";
 
 type Tab = "login" | "register";
 
@@ -52,6 +52,11 @@ const inputClass = (hasError: boolean) =>
 
 export default function AuthPage() {
   const router = useRouter();
+
+  React.useEffect(() => {
+    if (currentAuthToken()) router.replace("/learn");
+  }, [router]);
+
   const [tab, setTab] = React.useState<Tab>("login");
 
   // 登录表单
@@ -96,6 +101,8 @@ export default function AuthPage() {
     rememberAuthToken(token, browserStorage());
     // 同时记一个简单用户名供顶栏展示
     browserStorage()?.setItem("ai-teaching:currentUsername", username);
+    // 清空前一个身份的对话缓存，避免账号切换后看到旧对话
+    useSessionStore.getState().reset();
     router.push("/");
   }
 
@@ -187,6 +194,8 @@ export default function AuthPage() {
     clearStudentId(browserStorage());
     clearAuthToken(browserStorage());
     browserStorage()?.removeItem?.("ai-teaching:currentUsername");
+    // 清空对话缓存，退出后不再显示前一个身份的对话
+    useSessionStore.getState().reset();
     router.push("/");
   }
 
@@ -350,10 +359,7 @@ export default function AuthPage() {
         {/* 当前身份 + 退出 */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              当前身份
-              <Badge variant="muted">JWT 鉴权</Badge>
-            </CardTitle>
+            <CardTitle>当前身份</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <code className="block overflow-x-auto rounded bg-muted px-2 py-1.5 text-xs">
@@ -375,10 +381,6 @@ export default function AuthPage() {
             </Button>
           </CardContent>
         </Card>
-
-        <p className="text-center text-[11px] text-muted-foreground">
-          JWT 令牌存储在浏览器的 localStorage。
-        </p>
       </div>
     </main>
   );

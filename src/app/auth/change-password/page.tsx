@@ -21,8 +21,6 @@
  */
 import * as React from "react";
 import Link from "next/link";
-import { ShieldOff } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -109,21 +107,6 @@ export default function ChangePasswordPage() {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:py-16">
       <div className="flex flex-col gap-6">
-        {/* 常驻「演示模式 / 非真实安全」诚实提示 */}
-        <div
-          role="note"
-          className="flex items-start gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200"
-        >
-          <ShieldOff className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">演示模式</span>
-            <span className="text-xs leading-relaxed">
-              本页仅在本机 localStorage 内改动密码摘要，没有后端、不是真实鉴权，
-              换浏览器 / 清缓存即失效。请勿用于真实场景。
-            </span>
-          </div>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>修改密码</CardTitle>

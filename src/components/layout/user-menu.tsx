@@ -20,6 +20,7 @@ import {
   clearStudentId,
   currentAuthToken as getToken,
 } from "@/lib/client-identity";
+import { useSessionStore } from "@/stores/session";
 import { cn } from "@/lib/utils";
 
 const USERNAME_STORAGE_KEY = "ai-teaching:currentUsername";
@@ -106,6 +107,8 @@ export function UserMenu({ className }: Props) {
     clearStudentId(browserStorage());
     clearToken(browserStorage());
     browserStorage()?.removeItem?.(USERNAME_STORAGE_KEY);
+    // 清空对话缓存，退出后不再显示前一个身份的对话
+    useSessionStore.getState().reset();
     setMenuOpen(false);
     notifyAuthChanged();
     router.push("/auth");
@@ -180,10 +183,6 @@ export function UserMenu({ className }: Props) {
               退出登录
             </button>
           </div>
-
-          <p className="border-t px-2.5 pt-1.5 text-[10px] text-muted-foreground">
-            JWT 令牌鉴权
-          </p>
         </div>
       ) : null}
     </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthGate } from "@/components/auth/auth-gate";
 import { TopNav } from "@/components/layout/top-nav";
 import { StudentBootstrap } from "@/components/student/student-bootstrap";
 import { ThemeBootstrap } from "@/components/settings/theme-choice";
@@ -35,9 +36,11 @@ export default function RootLayout({
     <html lang={siteConfig.locale}>
       <body className="flex min-h-dvh flex-col antialiased">
         <ThemeBootstrap />
-        <StudentBootstrap />
-        <TopNav />
-        {children}
+        <AuthGate>
+          <StudentBootstrap />
+          <TopNav />
+          {children}
+        </AuthGate>
       </body>
     </html>
   );
