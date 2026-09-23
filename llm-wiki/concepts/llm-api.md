@@ -3,7 +3,7 @@ type: concept
 last_updated: 2026-09-17
 id: llm-api
 name: LLM API 入门
-prerequisites: []
+prerequisites: [python-basics, ts-basics]
 difficulty: 1
 estimated_time: 30min
 tags: [core, api, prompt, token]

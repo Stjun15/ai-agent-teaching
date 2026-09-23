@@ -72,6 +72,8 @@ export interface TeachingModule {
   sceneId: string | null;
   /** 相对教学顺序，从 0 开始。 */
   order: number;
+  /** 卡片上显示的序号文案。空串表示用默认「第 N 讲」。 */
+  orderLabel: string;
   /** 模块学习页路径。 */
   href: string;
 }
@@ -173,8 +175,11 @@ export async function loadModules(): Promise<TeachingModule[]> {
   const pages = await listPages();
   const concepts = pages.filter((page) => page.type === "concept");
 
+  let regularNo = 0;
   return sortByPrerequisites(concepts).map((page, order) => {
     const id = asString(page.frontmatter.id);
+    const isLanguageModule = id === "python-basics" || id === "ts-basics";
+    if (!isLanguageModule) regularNo++;
     return {
       id,
       name: asString(page.frontmatter.name, id),
@@ -185,6 +190,7 @@ export async function loadModules(): Promise<TeachingModule[]> {
       prerequisites: asStringArray(page.frontmatter.prerequisites),
       sceneId: MODULE_SCENE_IDS[id] ?? null,
       order,
+      orderLabel: isLanguageModule ? "0" : `${regularNo}`,
       href: `/learn/${id}`,
     };
   });

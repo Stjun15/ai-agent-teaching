@@ -35,7 +35,7 @@ export function ModuleCard({
             </Link>
           </CardTitle>
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            第 {teachingModule.order + 1} 讲
+            {teachingModule.orderLabel || `第 ${teachingModule.order + 1} 讲`}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">

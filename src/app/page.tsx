@@ -71,12 +71,7 @@ export default async function HomePage() {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           {siteConfig.name}
         </h1>
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          面向零基础学习者，教你在真实项目里学会「做 Agent」。
-          不教语法，训练的是把意图变成 AI
-          可执行指令、并判断与迭代这个过程的能力。
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
             <Link href="/learn">
               开始学习
@@ -196,6 +191,68 @@ export default async function HomePage() {
           </Button>
         </div>
 
+        {/* 写在最前面 */}
+        <div className="mt-6 rounded-2xl border bg-muted/20 px-6 py-6 sm:px-8 sm:py-7">
+          <Badge variant="outline" className="mb-3">
+            写在最前面
+          </Badge>
+          <h3 className="text-lg font-semibold tracking-tight">
+            你的最终目标：做一个带 Agent 的 AI 教学网页
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            这门课不是让你"学过一遍概念"。你要亲手复刻一个 AI
+            教学平台——就是你正在用的这个。
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs sm:gap-3">
+            {[
+              { label: "你", icon: "👤" },
+              { label: "教学网页", icon: "🌐" },
+              { label: "AI Agent", icon: "🤖" },
+              { label: "出题 · 对话 · 追踪", icon: "⚙️" },
+            ].map((item, i, arr) => (
+              <span key={item.label} className="flex items-center gap-1">
+                <span className="rounded-md border bg-background px-2 py-1 font-medium">
+                  {item.icon} {item.label}
+                </span>
+                {i < arr.length - 1 && (
+                  <span className="text-muted-foreground">→</span>
+                )}
+              </span>
+            ))}
+            <span className="mt-2 w-full text-center text-xs text-muted-foreground sm:mt-0 sm:w-auto">
+              ── 你交付的，是一个<strong>能教别人学 AI 的 AI 教学平台</strong>
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { title: "LLM API", detail: "让网页能调 AI——发请求、收回复" },
+              { title: "Agent Loop", detail: "AI 推教学流程、切换步骤，不只是聊天" },
+              { title: "出题 Agent", detail: "根据概念自动出题、批改、给反馈" },
+              { title: "SSE 流式对话", detail: "逐字打字的效果——不是刷一下弹出来" },
+              { title: "掌握度追踪", detail: "记录哪个概念会了、哪个还不行" },
+            ].map((item) => (
+              <div key={item.title} className="rounded-lg border bg-background px-3 py-2">
+                <span className="text-xs font-semibold">{item.title}</span>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {item.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-sm font-medium text-muted-foreground">
+            用 AI 教 AI。用 Agent 教 Agent。
+          </p>
+          <div className="mt-3 text-center">
+            <Link
+              href="/learn/welcome"
+              className="inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
+            >
+              进来坐
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        </div>
+
         <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((teachingModule) => (
             <li key={teachingModule.id}>
@@ -204,7 +261,7 @@ export default async function HomePage() {
                 className="flex h-full items-start gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-ring/60"
               >
                 <span className="w-5 shrink-0 pt-0.5 text-sm text-muted-foreground tabular-nums">
-                  {teachingModule.order + 1}
+                  {teachingModule.orderLabel || teachingModule.order + 1}
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">
