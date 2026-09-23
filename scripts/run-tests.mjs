@@ -97,6 +97,21 @@ const SUITES = [
     model: false,
   },
   {
+    name: "鉴权流程",
+    file: "scripts/auth-flow-spec.ts",
+    model: false,
+  },
+  {
+    name: "数据隔离",
+    file: "scripts/data-isolation-spec.ts",
+    model: false,
+  },
+  {
+    name: "SSE 协议",
+    file: "scripts/sse-protocol-spec.ts",
+    model: false,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
@@ -104,6 +119,11 @@ const SUITES = [
   {
     name: "讲解 Agent",
     file: "scripts/agent-regression-teacher.ts",
+    model: true,
+  },
+  {
+    name: "出题 Agent",
+    file: "scripts/agent-regression-examiner.ts",
     model: true,
   },
 ];

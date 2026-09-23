@@ -77,14 +77,15 @@ test("教学提示词要求讲透 + 实例", () => {
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /做完发给我/);
   // explain 版：讲透 + 实例，但**没有**动手环节
   assert.match(TEACHING_EXPLAIN_PROMPT, /禁止一句话回答/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /打个比方/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /正经说清楚/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /看一个完整例子/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /容易引起|容易踩的坑/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /检验理解/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /门禁确认/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /为什么需要/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /核心概念/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /防踩坑/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /概念测验/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /通关宣告/);
   assert.ok(
     !/现在轮到你/.test(TEACHING_EXPLAIN_PROMPT),
-    "概念讲解版提示词不得包含动手环节（第五节必须是'检验理解'）",
+    "概念讲解版提示词不得包含动手环节（第四节必须是'概念测验'）",
   );
   assert.ok(
     !/做完发给我/.test(TEACHING_EXPLAIN_PROMPT),

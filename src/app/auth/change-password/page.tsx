@@ -11,7 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { currentAuthToken, AUTH_TOKEN_HEADER } from "@/lib/client-identity";
+import { currentAuthToken } from "@/lib/client-identity";
+import { AUTH_TOKEN_HEADER } from "@/lib/student-id";
 import { cn } from "@/lib/utils";
 
 const inputClass = cn(

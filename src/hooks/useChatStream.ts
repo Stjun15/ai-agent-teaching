@@ -129,6 +129,28 @@ export function useChatStream(
         }
         session.ensureModule(options.moduleId);
       }
+
+      // ---- 构建历史 ----
+      // silent（自动开讲）不带历史：开场讲稿应从零生成，不该受上一模块
+      // 残余消息干扰。学生追问才带历史，让模型理解「你刚才提到的…」。
+      if (options?.silent !== true) {
+        // 在 beginTurn 之前取：当前这条学生消息还没进 messages，
+        // 历史只包含「已经说过的话」。
+        const priorMessages = request.step
+          ? session.messages.filter((m) => m.step === request.step)
+          : session.messages;
+        const recent = priorMessages.slice(-10);
+        if (recent.length > 0) {
+          request = {
+            ...request,
+            history: recent.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+          };
+        }
+      }
+
       // step 随轮次进 store：学生消息直接带标签，助手消息经 turnStep 继承
       // —— LectureLauncher 的「这一步开过场没有」按消息的 step 判断。
       session.beginTurn(request.content, {

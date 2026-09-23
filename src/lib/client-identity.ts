@@ -36,8 +36,6 @@ import {
   isStudentId,
 } from "./student-id";
 
-export { AUTH_TOKEN_HEADER };
-
 /**
  * 只用到这两个方法的存储抽象。
  *

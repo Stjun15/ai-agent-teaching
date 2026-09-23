@@ -107,6 +107,7 @@ export async function POST(req: Request): Promise<Response> {
     agent: parsed.data.agent ?? stepAgent.id,
     // 浏览器关闭标签页 / 前端点「停止」时，让 SSE 的取消动作一路传到 SDK 的 abort()。
     signal: req.signal,
+    history: parsed.data.history,
   };
   if (stepAgent.systemPrompt !== "") {
     loopOptions.systemPrompt = stepAgent.systemPrompt;

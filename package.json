@@ -45,7 +45,11 @@
     "test:report-details": "node scripts/report-details-spec.mjs",
     "test:mastery": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/mastery-hydrate-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
-    "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts"
+    "test:agent:teacher": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-teacher.ts",
+    "test:agent:examiner": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-examiner.ts",
+    "test:auth": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/auth-flow-spec.ts",
+    "test:isolation": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/data-isolation-spec.ts",
+    "test:sse": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/sse-protocol-spec.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",

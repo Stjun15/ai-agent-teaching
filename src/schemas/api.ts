@@ -159,6 +159,26 @@ export const ChatRequestSchema = z.object({
       "mastery",
     ])
     .optional(),
+  /**
+   * 本轮之前的对话历史（按时间升序）。
+   *
+   * 为什么需要：缓存讲稿（`seedLecture`）是前端侧注入的，后端从未见过；
+   * 即便是实时生成路径，`/api/chat` 每条都是独立调用，模型也不知道上一轮
+   * 说了什么。带上历史后模型才能理解「你刚才提到的那个…」指的是什么。
+   *
+   * 只传 `student` / `assistant` 两种角色：多 Agent 在模型眼里都是「助手说过
+   * 的话」。最多保留最近 20 条；后端另有一道 `HISTORY_CHAR_BUDGET`（4000 字）
+   * 裁剪，防止 prompt 随会话膨胀。
+   */
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["student", "assistant"]),
+        content: z.string(),
+      }),
+    )
+    .max(20)
+    .optional(),
 });
 
 /**
