@@ -37,6 +37,7 @@ import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
+import { buildTeachingScript } from "@/lib/teaching-script";
 import { ChatRequestSchema } from "@/schemas";
 
 // Agent 内核依赖 node:sqlite 与 pi SDK，不能跑在 Edge Runtime。
@@ -96,21 +97,41 @@ export async function POST(req: Request): Promise<Response> {
   // 提示词必须是 Markdown 而非 JSON，见 step-prompt.ts 与
   // prompts/teaching-chat.ts 的头部注释。
   const stepAgent = resolveStepAgent(parsed.data.step);
+
+  // 读概念页作为教学脚本注入系统提示词。
+  // 不靠前端把数千字的内容硬塞进 `content`：那样会突破 5000 字限制，
+  // 并且内容类数据不该挤在用户消息里。有 moduleId 才会读；读不到不报错
+  //（可能该模块没有概念页），静默回退到纯身份层提示词。
+  //
+  // 2026-09-24 重构：不再用 `readFileSync` 裸读文件，改走 `@/wiki` 引擎 +
+  // `buildTeachingScript` 按教学步骤裁剪段落。裸读绕过了 schema 校验
+  //（frontmatter 缺字段不报错），而且全文注入浪费 token：
+  // explain 阶段不需要"动手任务"，imitate 阶段不需要"定义"。
+  let conceptScript = "";
+  if (parsed.data.moduleId) {
+    const result = buildTeachingScript(parsed.data.moduleId, parsed.data.step);
+    if (result.sectionCount === 0 && result.script === "") {
+      // 页面不存在或步骤无匹配段落：静默回退到纯身份层。
+    } else {
+      conceptScript = result.script;
+    }
+  }
+
   const loopOptions: AgentLoopOptions = {
     prompt: parsed.data.content,
-    // 学生附带的代码。⚠️ 这两行是后补的：schema 首版没这两个字段时，
-    // 前端「附带代码」按钮发出去的内容会被 Zod 静默剥离（详见
-    // ChatRequestSchema 上方的注释）。组装成模型可见输入在 loop.ts 的
-    // composeUserPrompt；Phase 5 换成落库端点后由提示词构造层统一组装。
     code: parsed.data.code,
     language: parsed.data.language,
     agent: parsed.data.agent ?? stepAgent.id,
-    // 浏览器关闭标签页 / 前端点「停止」时，让 SSE 的取消动作一路传到 SDK 的 abort()。
     signal: req.signal,
     history: parsed.data.history,
   };
-  if (stepAgent.systemPrompt !== "") {
-    loopOptions.systemPrompt = stepAgent.systemPrompt;
+  // 身份层系统提示词 + 概念页教学脚本拼接。
+  // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」。
+  const parts = [conceptScript, stepAgent.systemPrompt].filter(
+    (p) => p !== "",
+  );
+  if (parts.length > 0) {
+    loopOptions.systemPrompt = parts.join("\n\n");
   }
   const { response } = runAgentLoop(loopOptions);
 

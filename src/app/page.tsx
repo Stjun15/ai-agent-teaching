@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Sparkles, Workflow } from "lucide-react";
 
+import { AnimatedGrid, AnimatedSection } from "@/components/layout/animated-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +65,15 @@ export default async function HomePage() {
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
       {/* ---------- Hero ---------- */}
-      <section className="mx-auto max-w-3xl text-center">
+      <AnimatedSection className="relative mx-auto max-w-3xl text-center">
+        {/* 暖色渐变背景 */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 rounded-3xl opacity-50 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 80% at 50% 30%, oklch(0.72 0.15 65 / 0.22), transparent 70%)",
+          }}
+        />
         <Badge variant="secondary" className="mb-4">
           <Sparkles className="size-3" />用 Agent 教 Agent
         </Badge>
@@ -116,19 +125,19 @@ export default async function HomePage() {
             </dd>
           </div>
         </dl>
-      </section>
+      </AnimatedSection>
 
       {/* ---------- 六个子能力 ---------- */}
-      <section className="mt-20">
+      <AnimatedSection className="mt-20">
         <h2 className="text-xl font-semibold tracking-tight">
           我们训练的是这六件事
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           所有功能都服务于这六个子能力 —— 不训练它们的功能，不做。
         </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatedGrid className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ABILITIES.map((ability) => (
-            <Card key={ability.name}>
+            <Card key={ability.name} className="transition-shadow duration-300 hover:shadow-md">
               <CardHeader>
                 <CardTitle>{ability.name}</CardTitle>
               </CardHeader>
@@ -139,21 +148,21 @@ export default async function HomePage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </section>
+        </AnimatedGrid>
+      </AnimatedSection>
 
       {/* ---------- 教学流程 ---------- */}
-      <section className="mt-20">
+      <AnimatedSection className="mt-20">
         <div className="flex items-center gap-2">
           <Workflow className="size-5 text-muted-foreground" />
           <h2 className="text-xl font-semibold tracking-tight">
             一次学习的完整过程
           </h2>
         </div>
-        <ol className="mt-6 grid gap-4 md:grid-cols-5">
+        <AnimatedGrid className="mt-6 grid gap-4 md:grid-cols-5">
           {TEACHING_FLOW.map((item) => (
             <li key={item.step}>
-              <Card className="h-full">
+              <Card className="h-full transition-shadow duration-300 hover:shadow-md">
                 <CardHeader>
                   <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                     {item.step}
@@ -168,11 +177,12 @@ export default async function HomePage() {
               </Card>
             </li>
           ))}
-        </ol>
-      </section>
+        </AnimatedGrid>
+      </AnimatedSection>
 
       {/* ---------- 课程大纲 ---------- */}
-      <section id="modules" className="mt-20 scroll-mt-20">
+      <div id="modules" className="scroll-mt-20">
+        <AnimatedSection className="mt-20">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -200,7 +210,7 @@ export default async function HomePage() {
             你的最终目标：做一个带 Agent 的 AI 教学网页
           </h3>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            这门课不是让你"学过一遍概念"。你要亲手复刻一个 AI
+            这门课不是让你「学过一遍概念」。你要亲手复刻一个 AI
             教学平台——就是你正在用的这个。
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs sm:gap-3">
@@ -226,12 +236,21 @@ export default async function HomePage() {
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { title: "LLM API", detail: "让网页能调 AI——发请求、收回复" },
-              { title: "Agent Loop", detail: "AI 推教学流程、切换步骤，不只是聊天" },
+              {
+                title: "Agent Loop",
+                detail: "AI 推教学流程、切换步骤，不只是聊天",
+              },
               { title: "出题 Agent", detail: "根据概念自动出题、批改、给反馈" },
-              { title: "SSE 流式对话", detail: "逐字打字的效果——不是刷一下弹出来" },
+              {
+                title: "SSE 流式对话",
+                detail: "逐字打字的效果——不是刷一下弹出来",
+              },
               { title: "掌握度追踪", detail: "记录哪个概念会了、哪个还不行" },
             ].map((item) => (
-              <div key={item.title} className="rounded-lg border bg-background px-3 py-2">
+              <div
+                key={item.title}
+                className="rounded-lg border bg-background px-3 py-2"
+              >
                 <span className="text-xs font-semibold">{item.title}</span>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {item.detail}
@@ -253,12 +272,12 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatedGrid className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((teachingModule) => (
             <li key={teachingModule.id}>
               <Link
                 href={teachingModule.href}
-                className="flex h-full items-start gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-ring/60"
+                className="flex h-full items-start gap-3 rounded-xl border bg-card p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-sm"
               >
                 <span className="w-5 shrink-0 pt-0.5 text-sm text-muted-foreground tabular-nums">
                   {teachingModule.orderLabel || teachingModule.order + 1}
@@ -275,8 +294,9 @@ export default async function HomePage() {
               </Link>
             </li>
           ))}
-        </ol>
-      </section>
+        </AnimatedGrid>
+      </AnimatedSection>
+      </div>
     </main>
   );
 }

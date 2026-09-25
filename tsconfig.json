@@ -33,5 +33,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "_backup", "_day0_test"]
+  "exclude": ["node_modules", "_backup", "_day0_test", "walkthrough-output"]
 }

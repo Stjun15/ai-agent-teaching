@@ -100,10 +100,12 @@ export function ChatPanel({
         aria-busy={status === "streaming"}
       >
         {moduleMismatch || messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-            <MessageSquare className="size-6" />
-            <p className="text-sm">还没有对话</p>
-            <p className="max-w-xs text-xs leading-relaxed">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+              <MessageSquare className="size-5 text-primary/60" />
+            </div>
+            <p className="text-sm text-muted-foreground">还没有对话</p>
+            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
               在下面输入你的问题，或先说说你打算怎么写。
               导师不会直接给答案，会先问你几个问题。
             </p>

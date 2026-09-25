@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { AlertTriangle, Bot, User } from "lucide-react";
 
 import { MarkdownView } from "@/components/chat/markdown-view";
@@ -27,8 +28,15 @@ import { cn } from "@/lib/utils";
  *
  * 两者都保留 `whitespace-pre-wrap`：换行与空格照旧保真，Markdown 只是
  * 在结构上**叠加**（列表、代码块、标题），不是替换原有呈现。
+ *
+ * 视觉层次（2026-09-24 Warm Minimal 改造）
+ * -------------------------------------
+ * 助手气泡加了一条暖色左边线（`border-l-primary/50`），学生气泡用暖色背景
+ * （`bg-secondary`），两色来自全局 CSS 变量，不在组件里写死。光标动画用
+ * `animate-pulse` —— taste 禁令允许在关键行动点上使用。
  */
-export function MessageItem({ message }: { message: ChatMessage }) {
+export const MessageItem = memo(
+  function MessageItem({ message }: { message: ChatMessage }) {
   const isStudent = message.role === "student";
   const isStreaming = message.status === "streaming";
   const isError = message.status === "error";
@@ -77,7 +85,7 @@ export function MessageItem({ message }: { message: ChatMessage }) {
             "rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
             isStudent
               ? "bg-secondary text-secondary-foreground"
-              : "border bg-card",
+              : "border border-l-2 border-l-primary/50 bg-primary/5",
             isError && "border-destructive/40",
           )}
         >
@@ -107,4 +115,15 @@ export function MessageItem({ message }: { message: ChatMessage }) {
       </div>
     </article>
   );
-}
+},
+(prev, next) => {
+  const p = prev.message;
+  const n = next.message;
+  if (p.status !== n.status) {
+    return false;
+  }
+  if (p.status === "done") {
+    return p.content === n.content;
+  }
+  return false;
+});

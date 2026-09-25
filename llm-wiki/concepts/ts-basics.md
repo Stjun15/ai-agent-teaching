@@ -13,179 +13,38 @@ tags: [language, typescript, beginner, reading]
 
 ---
 
-## 🎯 最终目标：做一个带 Agent 的 AI 教学网页
+## 这是哪一站
 
-先告诉你这门课最后要做成什么——免得你学了 10 个模块还不知道自己在干嘛。
-
-你要**复刻一个 AI 教学平台**。就是你正在用的这个。
-
-```mermaid
-graph LR
-    YOU[你] -->|提问| WEB[教学网页]
-    WEB -->|调用| AGENT[AI Agent]
-    AGENT -->|出题| QUIZ[自动批改系统]
-    AGENT -->|讲解| CHAT[对话界面·SSE 流式]
-    WEB -->|记录| DB[(掌握度追踪)]
-
-    YOU -->|毕业| FINAL[🔗 一个</br>能教别人学 AI</br>的 AI 教学平台]
-```
-
-它不是一个静态教程页面。它有自己的 **Agent**：
-
-| 模块 | 你的网页能干什么 |
-|---|---|
-| LLM API | 让网页"调 AI"——发请求、收回复 |
-| Agent Loop | AI 不只是聊天，能推教学流程、切换步骤 |
-| 出题 Agent | 根据你学的概念自动出题、批改、给反馈 |
-| SSE 流式对话 | 逐字打字的效果——不是刷一下弹出来 |
-| 掌握度追踪 | 记录你哪个概念会了、哪个还不行 |
-
-**用 AI 教 AI。用 Agent 教 Agent。**
-
-> 听起来复杂？拆开来你会发现，每个模块只需要你会**读懂代码 + 改几个参数**。
-> 所以这一讲的目标很简单：过一遍最基础的语法，够用就行。
+你正在用的这个网页，每一个按钮、每一次打字效果，背后都是 TypeScript。后面所有模块的前端代码都是这个味道。这一讲不是要你学会它——**认识最基本的几个词、能看懂一段代码在干嘛，就够了。** 看完开场白就可以进 LLM API，后面遇到看不懂的，随时回来看偷懒版的三招。
 
 ---
 
-## 🔭 先看一眼终点
+## 编程这件事
 
-后面 9 个模块，你要做的事大致是这样——
-
-你会拿到一段代码，比如这个平台处理 AI 对话的核心组件：
+TypeScript 是 JavaScript 的"加护栏版"——比 Python 多打几个字，换来的是：一眼就知道每个变量是什么类型。
 
 ```typescript
-"use client";
-
-import { useState, useRef, useCallback } from "react";
-import type { SSEMessage } from "@/schemas/sse";
-
-interface ChatState {
-  messages: { role: "student" | "assistant"; content: string }[];
-  streaming: boolean;
-  error: string | null;
-}
-
-export function useChat(step: string) {
-  const [state, setState] = useState<ChatState>({
-    messages: [],
-    streaming: false,
-    error: null,
-  });
-  const abortRef = useRef<AbortController | null>(null);
-
-  const send = useCallback(
-    async (content: string) => {
-      setState((prev) => ({
-        ...prev,
-        streaming: true,
-        error: null,
-        messages: [
-          ...prev.messages,
-          { role: "student", content },
-        ],
-      }));
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content, step }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const reader = response.body?.getReader();
-        if (!reader) return;
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const event: SSEMessage = JSON.parse(line.slice(6));
-            if (event.type === "token") {
-              setState((prev) => {
-                const msgs = [...prev.messages];
-                const last = msgs[msgs.length - 1];
-                if (last?.role === "assistant") {
-                  msgs[msgs.length - 1] = {
-                    ...last,
-                    content: last.content + event.data.content,
-                  };
-                } else {
-                  msgs.push({
-                    role: "assistant",
-                    content: event.data.content,
-                  });
-                }
-                return { ...prev, messages: msgs };
-              });
-            }
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          setState((prev) => ({ ...prev, error: err.message }));
-        }
-      } finally {
-        setState((prev) => ({ ...prev, streaming: false }));
-        abortRef.current = null;
-      }
-    },
-    [step],
-  );
-
-  return { ...state, send };
+const name = "小明";
+let score = 95;
+if (score >= 90) {
+  console.log(`${name}，优秀！`);
 }
 ```
 
-### 你要做的事
-
-| 场景 | 你需要的能力 |
-|---|---|
-| 课程让你"观察这段代码" | 认出 `interface`=字段说明书，`async/await`=异步，`try/catch`=兜底 |
-| AI 说"这里的 `useState` 让组件记住数据" | 知道 `use` 开头的是 React Hook，不用会写 |
-| 动手环节让你把 `retries` 从 2 改成 3 | 能定位那一行，改数字 |
-
-### 你不需要做的事
-
-| | 你不需要 |
-|---|---|
-| ❌ | 从零写出 `useChat` 这个 Hook |
-| ❌ | 背下 `SSEMessage` 的类型定义 |
-| ❌ | 手写 SSE 流式解析的 `while(true)` 循环 |
-| ❌ | 解释 `AbortController` 和 `TextDecoder` 的底层机制 |
-
----
-
-看完这个，你觉得需要花 30 分钟系统学语法，还是花 10 分钟学会看懂就够了？
+↑ 和 Python 长得不一样，但做的事一样：存数据、做判断、输出结果。
 
 ---
 
 ## 🤔 你想怎么学？
 
-| | 📚 完整版 | 🏃 偷懒版 |
-|---|---|---|
-| 时长 | 30 分钟 | 10 分钟 |
-| 方式 | 6 讲系统学习，覆盖所有基础语法 | 3 招直击要害，只看不背 |
-| 内容 | 变量、函数、接口、泛型、异步、JSX | 认关键词 + 认结构 + 读一段 |
-| 你会的 | 能系统解释 TS 语法 | 能看懂 TS 代码 |
+|        | 📚 完整版                         | 🏃 偷懒版                  |
+| ------ | --------------------------------- | -------------------------- |
+| 时长   | 30 分钟                           | 10 分钟                    |
+| 方式   | 6 讲系统学习，覆盖所有基础语法    | 3 招直击要害，只看不背     |
+| 内容   | 变量、函数、接口、泛型、异步、JSX | 认关键词 + 认结构 + 读一段 |
+| 你会的 | 能系统解释 TS 语法                | 能看懂 TS 代码             |
 
 **选哪个都行。随时可以切回去。**
-
-> **AI：** 学生做出选择后，只读对应段落。如果是完整版，语气要像"这课很深"；如果是偷懒版，语气要像"你赚到了"。
 
 ---
 
@@ -307,8 +166,8 @@ export default ModuleCard;
 
 ```typescript
 // TypeScript 里声明变量必须用 let 或 const
-let count: number = 0;        // 可变
-const name: string = "AI助教";  // 不可变
+let count: number = 0; // 可变
+const name: string = "AI助教"; // 不可变
 
 // 基础类型
 let score: number = 95;
@@ -366,10 +225,7 @@ function process(input: string | number): string | number {
 }
 
 // 泛型函数（<T> = "我不管是什么类型，反正是某种类型"）
-function retry<T>(
-  fn: () => Promise<T>,
-  maxAttempts: number = 3
-): Promise<T> {
+function retry<T>(fn: () => Promise<T>, maxAttempts: number = 3): Promise<T> {
   return fn().catch((error) => {
     if (maxAttempts <= 1) throw error;
     return retry(fn, maxAttempts - 1);
@@ -395,7 +251,8 @@ interface Student {
   name: string;
   level: "beginner" | "intermediate" | "advanced";
   completedModules: string[];
-  preferences?: {           // ? = 可选
+  preferences?: {
+    // ? = 可选
     language?: "python" | "typescript";
     theme?: "light" | "dark";
   };
@@ -411,15 +268,21 @@ function enroll(student: Student, moduleId: string): void {
 // 泛型约束（<T extends ...> = "T 必须是某种类型"）
 function findByName<T extends { name: string }>(
   items: T[],
-  name: string
+  name: string,
 ): T | undefined {
   return items.find((item) => item.name === name);
 }
 
 // type 和 interface 可以混合使用
 type ModuleId = string;
-type StepType = "explain" | "observe" | "imitate"
-  | "validate" | "visualize" | "practice" | "mastery";
+type StepType =
+  | "explain"
+  | "observe"
+  | "imitate"
+  | "validate"
+  | "visualize"
+  | "practice"
+  | "mastery";
 
 interface ModuleStep {
   type: StepType;
@@ -458,9 +321,7 @@ async function loadModule(id: string): Promise<void> {
 
 // 并发（Promise.all = 同时等好几个）
 async function loadAll(ids: string[]): Promise<void> {
-  const results = await Promise.allSettled(
-    ids.map((id) => fetchModule(id))
-  );
+  const results = await Promise.allSettled(ids.map((id) => fetchModule(id)));
 
   for (const result of results) {
     if (result.status === "fulfilled") {
@@ -600,7 +461,7 @@ async function* streamChat(prompt: string): AsyncGenerator<string> {
     for (const line of lines) {
       if (line.startsWith("data: ")) {
         const json = JSON.parse(line.slice(6));
-        yield json.content;     // ← 一个字一个字地产出
+        yield json.content; // ← 一个字一个字地产出
       }
     }
   }
@@ -643,9 +504,17 @@ type AgentLoopResult<T> = {
 };
 
 async function executeAgent<Id extends keyof AgentOutputMap>(
-  options: RunAgentOptions<Id> & { maxRetries?: number }
+  options: RunAgentOptions<Id> & { maxRetries?: number },
 ): Promise<AgentLoopResult<AgentOutputMap[Id]>> {
-  const { agent, skill, input, maxRetries = 1, signal, env, fallback } = options;
+  const {
+    agent,
+    skill,
+    input,
+    maxRetries = 1,
+    signal,
+    env,
+    fallback,
+  } = options;
   const schema = AGENT_OUTPUT_SCHEMAS[agent];
 
   const startedAt = Date.now();
@@ -743,15 +612,15 @@ async function executeAgent<Id extends keyof AgentOutputMap>(
 
 不要求你写代码。只标注以下要点：
 
-| 检查项 | 回答 |
-|--------|------|
-| `import` 从哪里借了东西？ | |
-| `async function` 定义了什么？ | |
-| `for` 循环在做什么？（重试几次？） | |
-| `try / catch` 在做什么？ | |
-| `if (result.success)` 之后发生了什么？ | |
-| `fallback` 是什么？（兜底函数） | |
-| 这段代码大致在做什么？（一句话） | |
+| 检查项                                 | 回答 |
+| -------------------------------------- | ---- |
+| `import` 从哪里借了东西？              |      |
+| `async function` 定义了什么？          |      |
+| `for` 循环在做什么？（重试几次？）     |      |
+| `try / catch` 在做什么？               |      |
+| `if (result.success)` 之后发生了什么？ |      |
+| `fallback` 是什么？（兜底函数）        |      |
+| 这段代码大致在做什么？（一句话）       |      |
 
 ---
 
@@ -760,6 +629,32 @@ async function executeAgent<Id extends keyof AgentOutputMap>(
 <!-- PATH:SHARED START -->
 
 ---
+
+# 🧠 顺手扔掉一件事
+
+完整版 30 分钟还是偷懒版 10 分钟——你是不是在纠结这个？
+
+你有没有发现，纠结本身就暴露了一种很旧的习惯：
+
+> **「老师教 → 我听课 → 考试打分 → 过关」**
+
+十六年。从小学一年级起你就被按在这个模型里。坐好，听讲，做题，等分数。语法要全会、概念要背熟、选择题不能错——然后你才有资格往下走。
+
+但现在你要做的这件事，**和考试没有半点关系**。
+
+没有人给你打「TypeScript 语法等级」。没有标准答案。`interface` 还是 `type`？`useCallback` 什么时候用？`T extends { name: string }` 叫什么？
+
+**——你交付的那个网页跑不跑得起来，才是唯一算数的东西。**
+
+所以完整版和偷懒版**没有区别**。不是安慰你。这是实话：你学了 30 分钟还是 10 分钟，不重要。语法背了几个，不重要。重要的是你看到代码不害怕了——知道自己看不懂什么，知道怎么去查。
+
+你不需要学到 100 分才能开始。「看得懂」就够了。
+
+从这一讲开始，记住一句话：
+
+> **你不是来考试的。你是来造东西的。**
+
+<br>
 
 # 🎯 结算
 
@@ -811,16 +706,16 @@ async function executeAgent<Id extends keyof AgentOutputMap>(
 
 <br>
 
-| 检查项 | 自己回答 |
-|--------|---------|
-| `let` 和 `const` 有什么区别？ | |
-| `function` 在做什么？ | |
-| `interface` 在做什么？ | |
-| `async / await` 在处理什么场景？ | |
-| `try / catch` 在做什么？ | |
-| 花括号 `{ }` 在 JSX 里有什么含义？ | |
-| `useState` 在做什么？ | |
-| 能看懂上面那段 Agent 执行器的 50% 吗？ | |
+| 检查项                                 | 自己回答 |
+| -------------------------------------- | -------- |
+| `let` 和 `const` 有什么区别？          |          |
+| `function` 在做什么？                  |          |
+| `interface` 在做什么？                 |          |
+| `async / await` 在处理什么场景？       |          |
+| `try / catch` 在做什么？               |          |
+| 花括号 `{ }` 在 JSX 里有什么含义？     |          |
+| `useState` 在做什么？                  |          |
+| 能看懂上面那段 Agent 执行器的 50% 吗？ |          |
 
 ---
 

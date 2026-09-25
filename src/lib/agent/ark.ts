@@ -78,13 +78,20 @@ export {
 export type { ArkEnv, ArkSettings };
 
 /**
- * 上下文窗口与最大输出 token 的保守取值。
+ * 上下文窗口与最大输出 token。
  *
- * 这两个数字**不参与请求构造**，只影响 pi 内部的上下文占用估算与自动压缩阈值，
- * 因此取保守值（宁可早压缩，也不要超出真实窗口）。待方舟控制台确认实际参数后对齐。
+ * `contextWindow` 只影响 pi 内部的上下文占用估算与自动压缩阈值，取保守值。
+ * `maxTokens` **参与请求构造**（传入 `max_tokens`），与模型实际输出上限一致。
+ *
+ * maxTokens 取值说明
+ * -----------------
+ * 方舟 DeepSeek 系模型会把 thinking（推理）token 计入输出预算。取 8192 时，
+ * 一次深度推理能把全部额度烧在 thinking 上，导致可见输出为 0 字（走测已复现：
+ * system-prompt T1、ai-safety T1）。提高到 16384 后模型有足够空间同时完成
+ * 推理与输出。若后续观察到同样问题，可进一步抬到 32768。
  */
 const TEXT_CONTEXT_WINDOW = 128_000;
-const TEXT_MAX_TOKENS = 8_192;
+const TEXT_MAX_TOKENS = 16_384;
 const VISION_CONTEXT_WINDOW = 256_000;
 const VISION_MAX_TOKENS = 8_192;
 

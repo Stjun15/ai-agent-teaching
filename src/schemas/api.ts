@@ -100,6 +100,18 @@ export const WikiQuerySchema = z.object({
     .optional(),
 });
 
+/** POST /api/wiki/ingest —— 把外部 Markdown 文件编译进 LLM Wiki。 */
+export const WikiIngestSchema = z.object({
+  /** 源文件路径（相对 cwd 或绝对路径）。 */
+  source: z.string().min(1).max(2000),
+  /** 目标 wiki 路径（相对 wiki 根，如 `concepts/new.md`）。 */
+  target: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/\.md$/, "target 必须是以 .md 结尾的相对路径"),
+});
+
 // ---------------------------------------------------------------------------
 // Phase 3 最小端点：POST /api/chat
 // ---------------------------------------------------------------------------
@@ -179,6 +191,18 @@ export const ChatRequestSchema = z.object({
     )
     .max(20)
     .optional(),
+  /**
+   * 当前模块 ID。与 `/api/module-content` 同源的 `[a-z0-9-]+` 校验。
+   *
+   * 线路侧收到此字段时，读取 `llm-wiki/concepts/{moduleId}.md` 的概念页正文，
+   * 作为教学脚本注入系统提示词——不靠前端把数千字的内容硬塞进 `content` 字段。
+   * 缺省时不读文件，行为与之前一致。
+   */
+  moduleId: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
 });
 
 /**
@@ -216,3 +240,4 @@ export type GenerateQuestionInput = z.infer<typeof GenerateQuestionSchema>;
 export type AnswerInput = z.infer<typeof AnswerSchema>;
 export type AnswerGradeInput = z.infer<typeof AnswerGradeSchema>;
 export type WikiQueryInput = z.infer<typeof WikiQuerySchema>;
+export type WikiIngestInput = z.infer<typeof WikiIngestSchema>;

@@ -19,7 +19,7 @@
  * - `200`：数据库可用。数据库是本应用的硬依赖（所有功能都要读它），
  *   它坏了整个应用就是不可用。这也是 Phase 1 要求的「返回 200」。
  * - `503`：数据库不可用。
- * - 缺少 `ARK_API_KEY` **不**影响状态码，只体现在 body 的 `status: "degraded"`。
+ * - 缺少 `DASHSCOPE_API_KEY` **不**影响状态码，只体现在 body 的 `status: "degraded"`。
  *   理由：密钥是调用期才需要的，进程与静态资源仍可正常服务；把它算作不可用会导致
  *   一个还没配密钥的部署永远健康检查失败。
  *
@@ -29,11 +29,10 @@
  * （basename），不回显本机绝对路径。
  *
  * ⚠️ 为什么 import `@/lib/agent/ark-config` 而不是 `@/lib/agent/ark`
- * ---------------------------------------------------------------
+ * -----------------------------------------------------------------
  * `ark.ts` 为注册 provider 必须 import pi-coding-agent SDK。若本路由从那里取
- * `readArkSettings`，构建产物会把整个 SDK 一起追踪进来 —— 实测追踪到 530 个文件
- * （266 个来自 pi-coding-agent、41 个来自 pi-tui，还带进一个 WASM 图像库），
- * 只为读四个环境变量。`ark-config.ts` 是纯逻辑、不 import SDK，故本路由只依赖它。
+ * `readArkSettings`，构建产物会把整个 SDK 一起追踪进来。`ark-config.ts`
+ * 是纯逻辑、不 import SDK，故本路由只依赖它。
  */
 
 import { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "@/lib/db";
@@ -42,6 +41,7 @@ import {
   isArkApiKeyConfigured,
   readArkSettings,
 } from "@/lib/agent/ark-config";
+import { maintain } from "@/wiki";
 
 // node:sqlite 是 Node 专有模块，不能跑在 Edge Runtime。
 export const runtime = "nodejs";
@@ -58,6 +58,53 @@ interface ConfigHealth {
   baseUrl: string;
   textModel: string;
   visionModel: string;
+}
+
+interface WikiHealth {
+  ok: boolean;
+  /** 总页面数 */
+  pageCount: number;
+  /** 死链数 */
+  deadLinks: number;
+  /** 孤立页数 */
+  orphans: number;
+  /** Schema 校验问题数 */
+  schemaIssues: number;
+  /** 可被自动修复的 index.md 状态列差值 */
+  indexAutoFixed: number;
+}
+
+function checkWikiHealth(): WikiHealth {
+  try {
+    const report = maintain();
+    const issues = report.issues ?? [];
+    const deadLinks = issues.filter((i) => i.category === "dead-link").length;
+    const orphans = issues.filter((i) => i.category === "orphan-page").length;
+    const schemaIssues = issues.filter(
+      (i) =>
+        i.category === "missing-frontmatter" ||
+        i.category === "missing-required-field" ||
+        i.category === "unknown-page-type",
+    ).length;
+
+    return {
+      ok: deadLinks === 0 && schemaIssues === 0,
+      pageCount: report.checked,
+      deadLinks,
+      orphans,
+      schemaIssues,
+      indexAutoFixed: report.fixed.length,
+    };
+  } catch {
+    return {
+      ok: false,
+      pageCount: 0,
+      deadLinks: -1,
+      orphans: -1,
+      schemaIssues: -1,
+      indexAutoFixed: 0,
+    };
+  }
 }
 
 function checkConfig(): ConfigHealth {
@@ -79,6 +126,7 @@ function checkConfig(): ConfigHealth {
 export function GET(): Response {
   const database = checkDatabaseHealth();
   const config = checkConfig();
+  const wiki = checkWikiHealth();
 
   const body = {
     status: database.ok && config.ok ? "ok" : "degraded",
@@ -91,6 +139,7 @@ export function GET(): Response {
         expectedBusinessTables: EXPECTED_BUSINESS_TABLES,
       },
       config,
+      wiki,
     },
   };
 

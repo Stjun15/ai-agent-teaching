@@ -67,6 +67,10 @@ export function Composer({
         content,
         // 步骤随消息走：后端按它选讲解导师或答疑口径（见 step-prompt.ts）。
         ...(step !== undefined ? { step } : {}),
+        // 模块 ID 随消息走：后端用它读概念页注入教学脚本。
+        // 不靠「开始对聊」那条消息单次携带——学生选完路径后 AI
+        // 还要接着讲，第二轮丢了 moduleId 上下文就断了。
+        ...(moduleId ? { moduleId } : {}),
         // 空代码不发送：让请求体保持最简，也免得后端把空字符串当成
         // 「学生提交了空代码」。
         ...(showCode && code.trim() !== ""
@@ -101,7 +105,7 @@ export function Composer({
           spellCheck={false}
           rows={6}
           placeholder="把你的 Prompt / 工具定义 / 核心逻辑贴在这里，导师会按评分标准逐项点评。"
-          className="w-full resize-y rounded-md border bg-background p-2.5 font-mono text-xs leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="w-full resize-y rounded-md border bg-background p-2.5 font-mono text-xs leading-relaxed outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         />
       ) : null}
 
@@ -112,7 +116,7 @@ export function Composer({
           onKeyDown={handleKeyDown}
           rows={2}
           placeholder="说说你的思路，或问一个具体的问题…（Enter 发送，Shift+Enter 换行）"
-          className="min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 placeholder:text-muted-foreground/60"
         />
 
         <div className="flex flex-col gap-2">
@@ -152,9 +156,20 @@ export function Composer({
       </div>
 
       {streaming ? (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p
+          className={cn(
+            "flex items-center gap-1.5 text-xs",
+            elapsed >= 30
+              ? "text-amber-600"
+              : "text-muted-foreground",
+          )}
+        >
           <Loader2 className="size-3 animate-spin" />
-          模型正在输出，已等 {elapsed} 秒，可以随时停止
+          {elapsed < 20
+            ? `模型正在输出，已等 ${elapsed} 秒，可以随时停止`
+            : elapsed < 40
+              ? `模型仍在思考，已等 ${elapsed} 秒 — 请耐心等待或点击停止`
+              : `模型响应较慢，已等 ${elapsed} 秒 — 建议停止后重试`}
         </p>
       ) : null}
     </div>

@@ -112,6 +112,55 @@ const SUITES = [
     model: false,
   },
   {
+    name: "冷启动 + 模块内容",
+    file: "scripts/explain-cold-start-spec.ts",
+    model: false,
+  },
+  {
+    name: "冷启动组件渲染",
+    file: "scripts/explain-cold-start-component-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "概念页注入链路",
+    file: "scripts/concept-injection-spec.ts",
+    model: false,
+  },
+  {
+    name: "Composer 发送链路",
+    file: "scripts/composer-module-id-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "ChatRequestSchema 安全",
+    file: "scripts/chat-schema-spec.ts",
+    model: false,
+  },
+  {
+    name: "ChatStream 静默与历史",
+    file: "scripts/chat-stream-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "模块会话隔离",
+    file: "scripts/module-switch-spec.ts",
+    model: false,
+  },
+  {
+    name: "SSE dispatch 翻译",
+    file: "scripts/sse-dispatch-spec.ts",
+    model: false,
+  },
+  {
+    name: "ChatPanel 渲染",
+    file: "scripts/chat-render-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
     name: "点评 Agent",
     file: "scripts/agent-regression-reviewer.ts",
     model: true,
@@ -131,16 +180,20 @@ const SUITES = [
 /** 跑一组，返回 { failed, passed, ok, output }。 */
 function runSuite(suite) {
   return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "--experimental-strip-types",
-        "--import",
-        "./scripts/ts-loader.mjs",
-        suite.file,
-      ],
-      { cwd: root, env: { ...process.env, NODE_OPTIONS: "" } },
-    );
+    const args = [
+      "--experimental-strip-types",
+      "--import",
+      "./scripts/ts-loader.mjs",
+    ];
+
+    // 组件测试需要 JSDOM 环境（React / testing-library 依赖浏览器 API）
+    if (suite.jsdom) {
+      args.push("--import", "./scripts/jsdom-setup.mjs");
+    }
+
+    args.push(suite.file);
+
+    const child = spawn(process.execPath, args, { cwd: root, env: { ...process.env, NODE_OPTIONS: "" } });
 
     let output = "";
     child.stdout.on("data", (chunk) => (output += chunk));

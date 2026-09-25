@@ -14,6 +14,7 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { CitationPanel } from "@/components/chat/citation-panel";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
+import { ExplainColdStart } from "@/components/learn/explain-cold-start";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
 import { lectureOpenerPrompt } from "@/lib/lecture-openers";
 import { TokenCounter } from "@/components/chat/token-counter";
@@ -33,6 +34,19 @@ import type { TeachingModule } from "@/lib/modules";
 function sceneLabel(sceneId: string): string {
   return isSceneId(sceneId) ? SCENE_LABELS[sceneId] : "流程演示";
 }
+
+/**
+ * explain 步不走 AI 自动讲课、而是直接渲染概念页内容的模块。
+ *
+ * 这些模块的概念页正文是给人读的（路径选择 / 三板斧 / 结算），
+ * 不是给 TEACHING_EXPLAIN_PROMPT 当参考资料的。渲染 ExplainColdStart
+ * 卡片后学生自己决定要不要启动 AI 对聊。
+ */
+const INTERACTIVE_EXPLAIN_MODULES = new Set([
+  "platform-replica",
+  "python-basics",
+  "ts-basics",
+]);
 
 /**
  * 模块学习工作区 —— 三栏布局本体（`04-frontend.md`「模块学习页（三栏）」）。
@@ -208,22 +222,40 @@ export function ModuleWorkspace({
             此时对话卡片充满整个视口。其余步（观察示范等）不提供全屏开关。
           */}
           {currentStepId === "explain" ? (
-            <ExplainFullscreen>
-              <Card className="h-[560px]">
-                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                  <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
-                  <LectureLauncher
-                    moduleId={teachingModule.id}
-                    step={currentStepId}
-                    prompt={lectureOpenerPrompt(
-                      currentStepId,
-                      teachingModule.name,
+            <>
+              {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) ? (
+                <ExplainColdStart
+                  moduleId={teachingModule.id}
+                  moduleName={teachingModule.name}
+                />
+              ) : null}
+              <ExplainFullscreen>
+                <Card className="h-[560px]">
+                  <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                    <ChatPanel
+                      moduleId={teachingModule.id}
+                      {...chatStepProps}
+                    />
+                    {INTERACTIVE_EXPLAIN_MODULES.has(
+                      teachingModule.id,
+                    ) ? null : (
+                      <LectureLauncher
+                        moduleId={teachingModule.id}
+                        step={currentStepId}
+                        prompt={lectureOpenerPrompt(
+                          currentStepId,
+                          teachingModule.name,
+                        )}
+                      />
                     )}
-                  />
-                  <Composer step={currentStepId} moduleId={teachingModule.id} />
-                </CardContent>
-              </Card>
-            </ExplainFullscreen>
+                    <Composer
+                      step={currentStepId}
+                      moduleId={teachingModule.id}
+                    />
+                  </CardContent>
+                </Card>
+              </ExplainFullscreen>
+            </>
           ) : currentStepId === "observe" ? (
             <Card className="h-[560px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">

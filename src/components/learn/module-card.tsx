@@ -7,6 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TeachingModule } from "@/lib/modules";
 
+const ACCENT_COLORS = [
+  "oklch(0.62 0.19 50)",  /* amber */
+  "oklch(0.55 0.16 160)", /* teal */
+  "oklch(0.50 0.14 230)", /* blue */
+  "oklch(0.55 0.18 320)", /* purple */
+  "oklch(0.58 0.20 20)",  /* coral */
+  "oklch(0.50 0.16 185)", /* cyan */
+  "oklch(0.55 0.14 270)", /* indigo */
+  "oklch(0.56 0.20 140)", /* green */
+  "oklch(0.60 0.18 80)",  /* gold */
+  "oklch(0.58 0.16 10)",  /* rose */
+  "oklch(0.50 0.14 200)", /* sky */
+];
+
 /**
  * 学习中心的模块卡片。
  *
@@ -23,7 +37,10 @@ export function ModuleCard({
   prerequisites: ReadonlyMap<string, string>;
 }) {
   return (
-    <Card className="h-full gap-3 transition-colors hover:border-ring/60">
+    <Card
+      className="h-full gap-3 overflow-hidden border-t-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ borderTopColor: ACCENT_COLORS[teachingModule.order % ACCENT_COLORS.length] }}
+    >
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-base">

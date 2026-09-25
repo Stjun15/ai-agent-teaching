@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SkeletonGrid } from "@/components/ui/skeleton-card";
 import {
   ErrorBookSection,
   PromptHistorySection,
@@ -113,7 +114,12 @@ export function ReportView() {
   }, [run, attempt]);
 
   if (state.status === "loading") {
-    return <p className="text-sm text-muted-foreground">正在汇总学习数据…</p>;
+    return (
+      <div className="flex flex-col gap-8">
+        <SkeletonGrid count={4} />
+        <SkeletonGrid count={2} className="sm:grid-cols-2" />
+      </div>
+    );
   }
 
   if (state.status === "error") {

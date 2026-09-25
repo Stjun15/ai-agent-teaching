@@ -218,8 +218,11 @@ export function useChatStream(
   return { send, abort, reset };
 }
 
-/** 单个事件 → 对应 Store 的改动。 */
-function dispatch(
+/** 单个事件 → 对应 Store 的改动。
+ *
+ * 导出供测试验证 10 种 SSE 事件到 3 个 Store 的映射。
+ */
+export function dispatch(
   event: SSEEventInput,
   onUiEvent?: (event: {
     component: string;

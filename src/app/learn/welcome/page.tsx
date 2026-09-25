@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import { AnimatedGrid, AnimatedSection } from "@/components/layout/animated-section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,264 +22,243 @@ const SUBSYSTEMS = [
   {
     icon: MessageSquare,
     title: "LLM API 调用",
-    detail: "让网页能「调 AI」——发请求、收回复",
-    module: "模块 2",
+    detail: "网页能「调 AI」——发请求、收回复",
   },
   {
     icon: Workflow,
     title: "Agent Loop",
     detail: "AI 不只是聊天——能推教学流程、切换步骤",
-    module: "模块 3",
   },
   {
     icon: ScrollText,
     title: "出题 Agent",
     detail: "根据概念自动出题、批改、给反馈",
-    module: "模块 7",
   },
   {
     icon: Code2,
     title: "SSE 流式传输",
-    detail: "逐字打字的效果——不是刷一下弹出来",
-    module: "模块 6",
+    detail: "逐字打字——不是刷一下弹出来",
   },
   {
     icon: Brain,
     title: "掌握度追踪",
-    detail: "记录你哪个概念会了、哪个还不行",
-    module: "模块 10",
-  },
-];
-
-const ABILITIES = [
-  { name: "意图表达", detail: "说人话，让 AI 听懂你到底要什么" },
-  { name: "任务分解", detail: "大事化小，别一下甩 500 字需求" },
-  { name: "上下文管理", detail: "给 AI 的信息不多不少、刚好够用" },
-  { name: "质量判断", detail: "AI 给的代码能不能跑？哪里不对劲？" },
-  { name: "迭代调优", detail: "第一版不行就改，改到行为止" },
-  {
-    name: "理解 AI 行为模式",
-    detail: "知道 AI 会胡扯、会讨好你、会编 API",
+    detail: "记录哪个概念会了、哪个还不行",
   },
 ];
 
 const ROADMAP = [
-  { color: "text-emerald-500", label: "第一步：选语言", items: "Python 基础速通 / TypeScript 基础速通" },
-  { color: "text-amber-500", label: "第二步：学会让 AI 做事", items: "LLM API → System Prompt → Agent Loop → 工具调用" },
-  { color: "text-orange-500", label: "第三步：让 AI 更聪明", items: "RAG → LLM Wiki" },
-  { color: "text-red-500", label: "第四步：进阶玩法", items: "多 Agent 协作 → MCP → AI 安全" },
+  {
+    color: "text-emerald-500",
+    label: "选语言",
+    items: "Python 基础速通 / TypeScript 基础速通",
+  },
+  {
+    color: "text-amber-500",
+    label: "让 AI 动起来",
+    items: "LLM API → System Prompt → Agent Loop → 工具调用",
+  },
+  { color: "text-orange-500", label: "让 AI 变聪明", items: "RAG → LLM Wiki" },
+  {
+    color: "text-red-500",
+    label: "让 AI 协作",
+    items: "多 Agent → MCP → AI 安全",
+  },
 ];
 
 export default function WelcomePage() {
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
       {/* ---------- 冷水 ---------- */}
-      <section>
+      <AnimatedSection>
         <Badge variant="outline" className="mb-4">
           写在最前面
         </Badge>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          先泼你一盆冷水
+          先给你看一样东西
         </h1>
         <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p>停。别往下翻。抬头看看你现在的屏幕。</p>
           <p>
-            如果你期待的是「学完 10 节课，拿下 Python 高级证书，面试对答如流」——
+            你正在一个网页里。左边是模块列表，中间是聊天框，AI
+            正在回复你。右边可能还有进度条。这个页面知道自己是谁——它知道你在学什么、学到哪了、哪里卡住了。
+          </p>
+          <p>
+            你有没有想过一个问题：
+            <strong className="text-foreground">
+              这个页面是谁写的？怎么跑起来的？
+            </strong>
+          </p>
+          <p>
+            答案可能让你不太舒服——接下来这几个月，你要亲手把它写出来。一模一样的。
           </p>
           <p className="font-semibold text-foreground">
-            出门左转。这门课不教这个。
-          </p>
-          <p>
-            如果你期待的是「跟着教程敲完一个 Todo List，截图发朋友圈打卡」——
-          </p>
-          <p className="font-semibold text-foreground">
-            也请出门左转。Todo List 不会自己出题，也不会跟你聊天。
+            不是你学会怎么用 AI。是你要让 AI 自己跑起来，替别人上课。
           </p>
         </div>
-      </section>
+      </AnimatedSection>
 
       <hr className="my-10" />
 
-      {/* ---------- 教什么 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          那这门课教什么？
-        </h2>
-        <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <p>
-            你打开的每一个网页，背后都是代码。但{" "}
-            <strong className="text-foreground">2026 年了</strong>{" "}
-            ——一行一行背代码，和拿着算盘考会计证有什么区别？
-          </p>
-          <p>这门课只让你做一件事：</p>
-          <pre className="overflow-x-auto rounded-lg border bg-muted/50 px-4 py-3 text-sm">
-            {`把你脑子里的想法 → 告诉 AI → AI 帮你写成代码 → 你跑起来看看`}
-          </pre>
-          <p>
-            而你要交付的作品，是一个
-            <strong className="text-foreground">带 AI 大脑的教学网页</strong>。
-          </p>
-          <p className="font-semibold text-foreground">
-            不是闹着玩的 Demo。不是 Hello World。
-            是——一个真正会运转的 AI 教学平台。
-          </p>
-        </div>
-      </section>
-
-      <hr className="my-10" />
-
-      {/* ---------- 魔幻现实 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          你正在用的这个网页，就是你的作业
-        </h2>
+      {/* ---------- 这不是比喻 ---------- */}
+      <AnimatedSection>
+        <h2 className="text-xl font-semibold tracking-tight">这不是一个比喻</h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          来，抬头看看四周。你现在看的这个页面、这个学习中心、这个聊天框、这个逐字打出来的 AI
-          回复——<strong className="text-foreground">它的每一个部件，都是你后面 10 个模块要亲手搭出来的。</strong>
+          我没有在跟你玩修辞。你正在看的这个页面，拆开来看就是下面这几块东西。
+          后面每一步都是在搭其中一块。
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <AnimatedGrid className="mt-6 grid gap-3 sm:grid-cols-2">
           {SUBSYSTEMS.map((item) => (
             <div
               key={item.title}
-              className="flex items-start gap-3 rounded-lg border bg-background px-4 py-3"
+              className="flex items-start gap-3 rounded-lg border bg-background px-4 py-3 transition-shadow duration-300 hover:shadow-sm"
             >
               <item.icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{item.title}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {item.module}
-                  </Badge>
-                </div>
+                <span className="text-sm font-semibold">{item.title}</span>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {item.detail}
                 </p>
               </div>
             </div>
           ))}
-        </div>
+        </AnimatedGrid>
 
-        <p className="mt-6 text-sm font-medium">
-          你在用它学它。学完你把它再造一遍。
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          这是不是有点魔幻现实主义？你站在一栋楼里学建筑，教授说：期末作业是把这栋楼复刻出来。
-        </p>
-      </section>
+        <div className="mt-6 rounded-xl border bg-muted/30 px-5 py-4">
+          <p className="text-sm font-medium">你站在一面镜子里。</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            镜子外面是现在的你——在看这一页。镜子里面是做完这一切的你——你交付的网页上，
+            另一个人正坐在同样的位置，看着他的 AI
+            助教给他讲课。他不知道这段对话是怎么 生成的、Agent
+            是怎么切换步骤的、出题逻辑是谁写的。他只知道自己学会了。
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            他不需要知道。因为他用的东西，
+            <strong className="text-foreground">是你写的。</strong>
+          </p>
+        </div>
+      </AnimatedSection>
 
       <hr className="my-10" />
 
-      {/* ---------- 你需要变程序员吗 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          你需要变成程序员吗？
-        </h2>
-        <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <p>
-            不需要。而且坦白讲——<strong className="text-foreground">你也变不成。</strong>
-          </p>
-          <p>
-            一个能独立工作的程序员至少要写几百个小时的代码。你有几百个小时吗？有的话你也不会来学这门课了。
-          </p>
-          <p>
-            你需要的是另一种能力，叫{" "}
-            <strong className="text-foreground">AI 协作能力</strong>。六件事：
-          </p>
-        </div>
-
-        <ol className="mt-5 grid gap-2.5 sm:grid-cols-2">
-          {ABILITIES.map((item, i) => (
-            <li
-              key={item.name}
-              className="flex items-start gap-2.5 rounded-lg border bg-background px-4 py-3"
-            >
-              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
-                {i + 1}
-              </span>
-              <div>
-                <span className="text-sm font-semibold">{item.name}</span>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {item.detail}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <p className="mt-5 text-sm text-muted-foreground">
-          这六件事，<strong className="text-foreground">不需要你会写代码</strong>。
-          需要的是你会想、会判断、会沟通。
+      {/* ---------- 你要交付什么 ---------- */}
+      <AnimatedSection>
+        <h2 className="text-xl font-semibold tracking-tight">你要交付什么</h2>
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          一个完整的 AI 教学平台。不是
+          Demo。不是截图。是一个人点开浏览器、输入网址、 然后开始跟着 AI
+          学东西——从第一课到最后一课，全程不需要你的参与。
         </p>
-      </section>
+
+        <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <div className="flex items-start gap-3 rounded-lg border bg-background px-4 py-3 transition-shadow duration-300 hover:shadow-sm">
+            <span className="mt-0.5 shrink-0 text-lg">🏗️</span>
+            <div>
+              <span className="font-semibold text-foreground">
+                它是一个独立运行的系统，不是你的笔记本。
+              </span>
+              <p className="mt-1">
+                不是你电脑 localhost
+                上跑的一串脚本。是部署到服务器上、有自己域名、
+                任何人打开就能用的完整应用。你关掉电脑去睡觉，它还在那里。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-lg border bg-background px-4 py-3 transition-shadow duration-300 hover:shadow-sm">
+            <span className="mt-0.5 shrink-0 text-lg">🧠</span>
+            <div>
+              <span className="font-semibold text-foreground">
+                它有自己的大脑。
+              </span>
+              <p className="mt-1">
+                不是那种「点一下按钮弹出一段固定文字」的网页。它能根据学生
+                说的话自己决定下一步——讲什么、出什么题、什么时候说你过关了。
+                关掉再打开，它还记得你上次卡在哪里。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-lg border bg-background px-4 py-3 transition-shadow duration-300 hover:shadow-sm">
+            <span className="mt-0.5 shrink-0 text-lg">👤</span>
+            <div>
+              <span className="font-semibold text-foreground">
+                它的用户不是你。
+              </span>
+              <p className="mt-1">
+                找一个人——室友、同学、网友都行——让他用你做的平台学点东西。
+                他不关心你这学期绩点多少。他只关心这东西能不能教会他。
+              </p>
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
 
       <hr className="my-10" />
 
       {/* ---------- 语言选择 ---------- */}
-      <section>
+      <AnimatedSection>
         <h2 className="text-xl font-semibold tracking-tight">
-          那语言呢？Python 还是 TypeScript？
+          那你用什么语言来造？
         </h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          两个都行。<strong className="text-foreground">效果一样。</strong>{" "}
-          因为你不是去当 Python 工程师或前端工程师——你要的只是：
+          两个选项。效果一样——最后造出来的东西没有区别。你只需要：
         </p>
 
-        <pre className="mt-4 overflow-x-auto rounded-lg border bg-muted/50 px-4 py-3 text-sm">
+        <pre className="mt-3 overflow-x-auto rounded-lg border bg-muted/50 px-4 py-3 text-sm">
           {`读得懂代码 → 能把报错信息贴给 AI → 能改个参数 → 能跑起来`}
         </pre>
 
-        <p className="mt-4 text-sm text-muted-foreground">所以别纠结。看眼缘：</p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <AnimatedGrid className="mt-4 grid gap-3 sm:grid-cols-2">
           <Link
             href="/learn/python-basics"
-            className="group rounded-xl border bg-background px-5 py-4 transition-colors hover:border-ring/60"
+            className="group rounded-xl border bg-background px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-sm"
           >
             <span className="text-2xl">🐍</span>
             <h3 className="mt-2 text-base font-semibold">Python</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              对后台逻辑更感兴趣？选它。处理数据、调 AI、写脚本，`def
-              main():` 开局。
+              处理数据、调 AI、写后端逻辑，简单直接。
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium group-hover:underline">
-              进入
+              选这个
               <ArrowRight className="size-3.5" />
             </span>
           </Link>
 
           <Link
             href="/learn/ts-basics"
-            className="group rounded-xl border bg-background px-5 py-4 transition-colors hover:border-ring/60"
+            className="group rounded-xl border bg-background px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-sm"
           >
             <span className="text-2xl">💙</span>
             <h3 className="mt-2 text-base font-semibold">TypeScript</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              对网页界面更感兴趣？选它。写界面、做网页、管状态，`function
-              main() {}` 开局。
+              写界面、做网页、管状态，浏览器里跑。
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium group-hover:underline">
-              进入
+              选这个
               <ArrowRight className="size-3.5" />
             </span>
           </Link>
-        </div>
+        </AnimatedGrid>
 
-        <blockquote className="mt-5 border-l-2 pl-4 text-sm text-muted-foreground">
-          实在选不出来？抛硬币。正面 Python，反面 TypeScript。抛完你心里如果闪过「再来一次」——那就选另一面。人只有在硬币飞起来的时候才知道自己真正想要什么。
+        <blockquote className="mt-4 border-l-2 pl-4 text-sm text-muted-foreground">
+          选不出来的话——抛硬币。硬币飞起来的那一刻你心里想的是哪个，就选哪个。
         </blockquote>
-      </section>
+      </AnimatedSection>
 
       <hr className="my-10" />
 
-      {/* ---------- 路线图 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          十个模块，一条路
-        </h2>
+      {/* ---------- 建造路线 ---------- */}
+      <AnimatedSection>
+        <h2 className="text-xl font-semibold tracking-tight">建造顺序</h2>
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          从毛坯到交付。每一层依赖下一层——跳不过的。踩实了，再往上。
+        </p>
+
         <div className="mt-5 space-y-0">
           <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3">
             <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
-            <span className="text-sm font-medium">写在最前面（你正在看）</span>
+            <span className="text-sm font-medium">你正在看（写在最前面）</span>
           </div>
           <div className="-mt-px ml-[18px] h-5 border-l-2 border-dashed border-border" />
           {ROADMAP.map((step) => (
@@ -299,70 +279,46 @@ export default function WelcomePage() {
               🎉
             </span>
             <span className="text-sm font-medium">
-              你交付的，是一个能教别人学 AI 的 AI 教学平台
+              一个能教别人学 AI 的 AI 教学平台，上线运行
             </span>
           </div>
         </div>
-
-        <p className="mt-5 text-sm text-muted-foreground">
-          每一步都是上一层的台阶。踩实了，再往上。
-        </p>
-      </section>
+      </AnimatedSection>
 
       <hr className="my-10" />
 
-      {/* ---------- 不是作业 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          最后一件事：这作业不是给你自己看的
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          你做出来的 AI 教学平台，最后要能给别人用。让室友点开你的网页，跟你的 AI
-          聊两句，学点东西，做个题，看看自己掌握了没有。
-        </p>
-        <p className="mt-3 text-sm font-semibold">
-          你做的不是一个作业。你造的是一个能教人的独立系统。
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          这比「期末考试第 3 道选择题选 B」有意思一万倍。
-        </p>
-      </section>
-
-      <hr className="my-10" />
-
-      {/* ---------- 出发 ---------- */}
-      <section className="text-center">
-        <h2 className="text-xl font-semibold tracking-tight">
-          准备好了没？
-        </h2>
+      {/* ---------- 开工 ---------- */}
+      <AnimatedSection className="text-center">
+        <h2 className="text-xl font-semibold tracking-tight">动手吧</h2>
         <div className="mx-auto mt-4 max-w-lg space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <p>深呼吸。</p>
+          <p>你会卡住。不止一次。会想砸键盘。会觉得「我是不是不该来」。</p>
           <p>
-            这门课不会太容易。你会卡住、会烦躁、会想把电脑扔出窗外。
-          </p>
-          <p>
-            但你会走出来——手里捏着一个活的、会说话的、会教人的 AI 系统。
+            然后你会查到答案、改完 bug、点开浏览器——那个页面亮了，AI
+            开始说话了。
           </p>
           <p className="font-medium text-foreground">
-            而且你知道它不是天上掉下来的。是你一行一行提示词、一个一个参数、一次一次「再试一次」攒出来的。
+            那一刻你会意识到：这东西不是别人发给你的。是你搭出来的。
+          </p>
+          <p className="font-medium text-foreground">
+            一行一行提示词，一个一个参数，一次一次「再试一次」。
           </p>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
             <Link href="/learn/python-basics">
-              🐍 选 Python
+              🐍 Python 起步
               <ArrowRight className="size-4" />
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="/learn/ts-basics">
-              💙 选 TypeScript
+              💙 TypeScript 起步
               <ArrowRight className="size-4" />
             </Link>
           </Button>
         </div>
-      </section>
+      </AnimatedSection>
     </main>
   );
 }
