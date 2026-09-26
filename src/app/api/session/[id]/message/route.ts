@@ -70,6 +70,7 @@ import {
   DEFAULT_CITATION_COUNT,
   retrieveCitations,
   toCitationEvents,
+  type CitationDraft,
 } from "@/lib/agent/citations";
 import {
   registerStream,
@@ -175,12 +176,14 @@ export async function POST(
     );
   }
 
-  // 4. 检索引用（失败不影响主流程：retrieveCitations 内部已吞错返回 []）
-  const citations = await retrieveCitations(
-    body.content,
-    DEFAULT_CITATION_COUNT,
-  );
-  const preludeEvents = toCitationEvents(citations);
+  // 4. 检索引用改为异步回调：不再阻塞 SSE 流建立，
+  // 引用检索与会话创建并发，总等待 = max(引用, 会话) 而非 sum。
+  let citations: CitationDraft[] = [];
+  const preludeEvents = () =>
+    retrieveCitations(body.content, DEFAULT_CITATION_COUNT).then((drafts) => {
+      citations = drafts;
+      return toCitationEvents(drafts);
+    });
 
   // 5. 学生消息立即落库（先于流式，保证历史连续）
   try {
@@ -243,7 +246,7 @@ export async function POST(
       });
 
       // 回填引用：引用必须指向已存在的消息 id
-      const withMessageId: Citation[] = citations.map((draft) => ({
+      const withMessageId: Citation[] = citations.map((draft: CitationDraft) => ({
         id: newId(),
         messageId: assistant.id,
         source: draft.source,

@@ -260,7 +260,9 @@ export interface AgentLoopOptions {
    * 就能看到「本次参考了哪几页」。放在这里而不是让调用方自己再建一条流，
    * 是为了保证事件顺序严格 —— 两条流在浏览器侧的到达顺序是没有保证的。
    */
-  preludeEvents?: readonly SSEEvent[];
+  preludeEvents?:
+    | readonly SSEEvent[]
+    | (() => Promise<readonly SSEEvent[]>);
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
   env?: ArkEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */
@@ -405,6 +407,15 @@ function createEventTranslator(
  * 必须先交出响应头，才能开始推流（与 api-spec 第九节的写法一致）。
  * 想等整轮结束的调用方 await `completed`。
  */
+/** 解析异步前置事件：支持数组、异步函数或空值。 */
+async function resolvePreludeEvents(
+  source: AgentLoopOptions["preludeEvents"],
+): Promise<readonly SSEEvent[]> {
+  if (!source) return [];
+  if (typeof source === "function") return source();
+  return source;
+}
+
 export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
   const {
     prompt,
@@ -425,15 +436,17 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
   const stream = createSSEStream();
   const translator = createEventTranslator(stream, agent);
 
-  // 先发前置事件（引用等），再进模型。顺序见 AgentLoopOptions.preludeEvents 的说明。
-  for (const event of preludeEvents ?? []) {
-    stream.send(event);
-  }
-
   const completed = (async (): Promise<AgentLoopSummary> => {
     let handle: AgentSessionHandle | undefined;
 
     try {
+      // 流建立后立即并发：引用检索与模型会话创建同时进行，
+      // 总等待 = max(引用, 会话) 而非 sum。
+      const preludeReady = resolvePreludeEvents(preludeEvents);
+      void preludeReady.then((events) => {
+        for (const evt of events ?? []) stream.send(evt);
+      });
+
       // 会话一律走 `session.ts` 的工厂：资源锁定策略（关掉扩展/技能/提示词模板
       // /上下文文件）只在那儿定义一次，避免流式与非流式两条路径悄悄漂移。
       handle = await createSession({
