@@ -16,20 +16,19 @@
  */
 
 import type { LectureCacheStep } from "@/lib/db";
+import type { Expect } from "@/lib/type-assert";
 
-/** 允许自动开场（缓存或实时生成）的步骤。 */
-export const AUTO_LECTURE_STEPS = ["explain", "observe"] as const;
+/** 允许自动开场（缓存或实时生成）的步骤。2026-09-25 去掉 observe：示范代码改为从 wiki 页面直读，不走 LLM。 */
+export const AUTO_LECTURE_STEPS = ["explain"] as const;
 
 export type AutoLectureStep = (typeof AUTO_LECTURE_STEPS)[number];
 
-/** 编译期钉子：白名单必须是讲稿缓存表支持的两个步骤，不多不少。 */
-import type { Expect } from "@/lib/type-assert";
-
-type _Missing = Exclude<LectureCacheStep, AutoLectureStep>;
+/**
+ * 编译期提醒：`AUTO_LECTURE_STEPS` 的值必须都是 `LectureCacheStep` 的子集，
+ * 不能出现缓存表不支持却要自动开场的步骤。
+ */
 type _Extra = Exclude<AutoLectureStep, LectureCacheStep>;
-export type __AssertStepsAligned = Expect<
-  _Missing extends never ? (_Extra extends never ? true : false) : false
->;
+export type __AssertStepsAligned = Expect<_Extra extends never ? true : false>;
 
 /**
  * 按步骤取开场词。

@@ -108,7 +108,7 @@ export async function POST(req: Request): Promise<Response> {
   //（frontmatter 缺字段不报错），而且全文注入浪费 token：
   // explain 阶段不需要"动手任务"，imitate 阶段不需要"定义"。
   let conceptScript = "";
-  if (parsed.data.moduleId) {
+  if (parsed.data.moduleId && parsed.data.step) {
     const result = buildTeachingScript(parsed.data.moduleId, parsed.data.step);
     if (result.sectionCount === 0 && result.script === "") {
       // 页面不存在或步骤无匹配段落：静默回退到纯身份层。

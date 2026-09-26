@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Clock, Sparkles } from "lucide-react";
 
-import { AnimatedGrid, AnimatedSection } from "@/components/layout/animated-section";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModuleCard } from "@/components/learn/module-card";
@@ -33,8 +32,7 @@ export default async function LearnPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
-      <AnimatedSection>
-        <header className="max-w-2xl">
+      <header className="max-w-2xl">
           <h1 className="text-2xl font-semibold tracking-tight">学习中心</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes} 分钟。
@@ -43,14 +41,13 @@ export default async function LearnPage() {
             这是掌握式学习的顺序，不建议跳讲。
           </p>
         </header>
-      </AnimatedSection>
 
       {modules.length === 0 ? (
         <p className="mt-10 text-sm text-muted-foreground">
           没有读到任何概念页。请确认 `llm-wiki/concepts/` 下存在概念页面。
         </p>
       ) : (
-        <AnimatedGrid className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {/* 欢迎卡片：独立页面，不走七步教学流程 */}
           <div>
             <Card className="h-full gap-3 border-ring/30 bg-muted/20 transition-colors hover:border-ring/60">
@@ -126,7 +123,7 @@ export default async function LearnPage() {
               />
             </div>
           ))}
-        </AnimatedGrid>
+        </div>
       )}
     </main>
   );

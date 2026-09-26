@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AnimatedSection } from "@/components/layout/animated-section";
+
 import { ReportView } from "@/components/report/report-view";
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function ReportPage() {
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
-      <AnimatedSection>
+      <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
         <header className="max-w-2xl">
           <h1 className="text-2xl font-semibold tracking-tight">学习报告</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -32,7 +32,7 @@ export default function ReportPage() {
         <div className="mt-8">
           <ReportView />
         </div>
-      </AnimatedSection>
+      </section>
     </main>
   );
 }

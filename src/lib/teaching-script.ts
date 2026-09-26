@@ -44,6 +44,7 @@ const SECTION_ALIASES: Record<string, string[]> = {
   comparison: [SECTION_NAMES.comparison],
   practice: [SECTION_NAMES.practice],
   related: [SECTION_NAMES.related],
+  demoCode: ["示范代码"],
 };
 
 /**
@@ -51,14 +52,14 @@ const SECTION_ALIASES: Record<string, string[]> = {
  *
  * explain：讲概念 —— 定义 + 关键点 + 对比。不塞动手任务：学生还没听懂就做题会
  *   只答"不知道"。
- * observe：看示范 —— 关键点 + 动手任务 + 常见误解。学生看完示范后最容易踩的坑
- *   提前预警。
+ * observe：看示范 —— 示范代码 + 关键点 + 实践任务 + 防踩坑。
+ *   学生看完示范后最容易踩的坑提前预警。
  * imitate：自己动手 —— 动手任务 + 常见误解。定义段已经讲过了，不用重复。
  */
 const STEP_SECTION_MAP: Record<string, (keyof typeof SECTION_ALIASES)[]> = {
   explain: ["definition", "keyPoints", "why", "comparison"],
-  observe: ["keyPoints", "practice", "misconceptions"],
-  imitate: ["practice", "misconceptions", "related"],
+  observe: ["keyPoints", "demoCode", "practice", "misconceptions"],
+  imitate: ["practice", "misconceptions", "demoCode", "related"],
 };
 
 /** 解析 body 为 `{ heading: string; content: string }[]` 的段落列表。 */
@@ -124,6 +125,28 @@ const SCRIPT_PREAMBLE = [
   "",
 ].join("\n");
 
+/**
+ * 从概念页读取「## 示范代码」小节，供 ObservePanel 直接渲染。
+ *
+ * 为什么单独成函数而不是复用 buildTeachingScript / STEP_SECTION_MAP
+ * ------------------------------------------------------------
+ * 示范代码是预先写好的、给人看的代码片段，不是给 LLM 当参考资料的。
+ * 它不需要「按步骤裁段」—— 观察示范步只取这一个固定小节，Parser 复用
+ * `parseSections` 保证提取逻辑与脚本构建器同口径。
+ *
+ * 返回空串 = 该模块概念页不存在或没有「## 示范代码」小节。
+ * 调用方可据此降级：展示「示范代码准备中」的占位文案。
+ */
+export function readDemoCode(moduleId: string): string {
+  try {
+    const page = readPageSync(`concepts/${moduleId}.md`);
+    const sections = parseSections(page.body);
+    const demo = sections.find((s) => s.heading === "示范代码");
+    return demo?.content.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
 export interface TeachingScriptResult {
   /** 拼接好的脚本文本。空串表示页面不存在或该步骤没有匹配段落。 */
   script: string;

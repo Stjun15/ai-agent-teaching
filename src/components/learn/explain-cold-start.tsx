@@ -46,10 +46,13 @@ interface ModuleContent {
 export function ExplainColdStart({
   moduleId,
   moduleName,
+  onStarted,
 }: {
   moduleId: string;
   /** 模块名，生成开场词用。 */
   moduleName: string;
+  /** 学生点击"开始对聊"后触发，父组件用此回调显示聊天面板。 */
+  onStarted?: () => void;
 }) {
   const { send } = useChatStream();
   const [content, setContent] = useState<string | null>(null);
@@ -72,6 +75,7 @@ export function ExplainColdStart({
     if (startedRef.current || prompting) return;
     startedRef.current = true;
     setPrompting(true);
+    onStarted?.();
     try {
       await send(
         {

@@ -481,6 +481,45 @@ async function* streamChat(prompt: string): AsyncGenerator<string> {
 
 ---
 
+## 示范代码
+
+下面是你打开这个平台时浏览器真实在跑的代码 —— 一个模块卡片组件。用招一和招二的方法逐行看。
+
+```typescript
+// ① "use client" 声明：这个组件只在浏览器里跑，不在服务器上渲染
+"use client";
+
+// ② 导入 UI 原子组件和路由工具 —— 从已经写好的零件库里拿
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+
+// ③ 定义组件，Props 用内联类型声明：id、name、difficulty 三个字段
+function ModuleCard({ id, name, difficulty }: {
+  id: string;                  // 模块的唯一标识，路由跳转时用
+  name: string;                // 模块标题
+  difficulty: number;          // 难度等级 1–5
+}) {
+  // ④ useRouter 是 Next.js 的导航 hook，拿来做页面跳转
+  const router = useRouter();
+
+  // ⑤ 返回 JSX：一个可以点击的卡片
+  return (
+    <div
+      className="rounded-lg border p-4 hover:bg-accent cursor-pointer"
+      onClick={() => router.push(`/learn/${id}`)}   // 点击跳转到学习页面
+    >
+      <h3 className="font-semibold">{name}</h3>
+      <p className="text-sm text-muted-foreground">
+        难度：{"⭐".repeat(difficulty)}               {/* 用星星数量表示难度 */}
+      </p>
+    </div>
+  );
+}
+
+// ⑥ 导出组件，让其他文件可以 import 使用
+export default ModuleCard;
+```
+
 ## 实践任务
 
 读下面这段代码。这是这个平台真实的 Agent 运行时核心——包含重试、错误恢复、JSON 解析、Zod 校验。

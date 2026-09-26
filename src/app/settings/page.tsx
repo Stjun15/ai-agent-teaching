@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AnimatedSection } from "@/components/layout/animated-section";
+
 import { SettingsView } from "@/components/settings/settings-view";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function SettingsPage() {
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
-      <AnimatedSection>
+      <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
         <header className="max-w-2xl">
           <h1 className="text-2xl font-semibold tracking-tight">设置</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -30,7 +30,7 @@ export default function SettingsPage() {
         <div className="mt-8">
           <SettingsView />
         </div>
-      </AnimatedSection>
+      </section>
     </main>
   );
 }

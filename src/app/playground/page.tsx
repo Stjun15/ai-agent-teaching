@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { FlaskConical } from "lucide-react";
 
-import { AnimatedSection } from "@/components/layout/animated-section";
+
 import { PlaygroundLab } from "@/components/playground/playground-lab";
 import { loadModules } from "@/lib/modules";
 
@@ -30,7 +30,7 @@ export default async function PlaygroundPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
-      <AnimatedSection>
+      <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
         <header className="max-w-2xl">
           <div className="flex items-center gap-2">
             <FlaskConical className="size-5 text-muted-foreground" />
@@ -53,7 +53,7 @@ export default async function PlaygroundPage() {
           }))}
         />
       </div>
-      </AnimatedSection>
+      </section>
     </main>
   );
 }

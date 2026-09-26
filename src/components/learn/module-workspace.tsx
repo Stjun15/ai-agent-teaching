@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Clock } from "lucide-react";
 
@@ -76,11 +79,14 @@ export function ModuleWorkspace({
   teachingModule,
   allModules,
   currentStepId,
+  demoCode,
 }: {
   teachingModule: TeachingModule;
   allModules: readonly TeachingModule[];
   currentStepId: StepType;
+  demoCode?: string;
 }) {
+  const [explainChatStarted, setExplainChatStarted] = useState(false);
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
   );
@@ -111,7 +117,7 @@ export function ModuleWorkspace({
       ? { stepFilter: "explain", lectureMode: "truncate" as const }
       : currentStepId === "observe"
         ? { stepFilter: "observe", lectureMode: "skip" as const }
-        : // 其余五步没有预生成讲稿（LectureLauncher 只管 explain/observe），
+        : // 其余五步没有预生成讲稿（LectureLauncher 只管 explain），
           // 按步过滤即可去掉前面步骤的讲解残留；lectureMode 用 full，
           // 避免把本步问答里的首条导师回复误当讲稿跳掉。
           { stepFilter: currentStepId, lectureMode: "full" as const };
@@ -205,7 +211,7 @@ export function ModuleWorkspace({
                 <CardTitle>观察示范</CardTitle>
               </CardHeader>
               <CardContent>
-                <ObservePanel moduleId={teachingModule.id} />
+                <ObservePanel moduleId={teachingModule.id} demoCode={demoCode} />
               </CardContent>
             </Card>
           ) : null}
@@ -227,47 +233,44 @@ export function ModuleWorkspace({
                 <ExplainColdStart
                   moduleId={teachingModule.id}
                   moduleName={teachingModule.name}
+                  onStarted={() => setExplainChatStarted(true)}
                 />
               ) : null}
-              <ExplainFullscreen>
-                <Card className="h-[560px]">
-                  <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                    <ChatPanel
-                      moduleId={teachingModule.id}
-                      {...chatStepProps}
-                    />
-                    {INTERACTIVE_EXPLAIN_MODULES.has(
-                      teachingModule.id,
-                    ) ? null : (
-                      <LectureLauncher
+              {/* 交互型模块：只有点击"开始对聊"后才弹出对话面板 */}
+              {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) &&
+              !explainChatStarted ? null : (
+                <ExplainFullscreen>
+                  <Card className="h-[560px]">
+                    <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                      <ChatPanel
                         moduleId={teachingModule.id}
-                        step={currentStepId}
-                        prompt={lectureOpenerPrompt(
-                          currentStepId,
-                          teachingModule.name,
-                        )}
+                        {...chatStepProps}
                       />
-                    )}
-                    <Composer
-                      step={currentStepId}
-                      moduleId={teachingModule.id}
-                    />
-                  </CardContent>
-                </Card>
-              </ExplainFullscreen>
+                      {INTERACTIVE_EXPLAIN_MODULES.has(
+                        teachingModule.id,
+                      ) ? null : (
+                        <LectureLauncher
+                          moduleId={teachingModule.id}
+                          step={currentStepId}
+                          prompt={lectureOpenerPrompt(
+                            currentStepId,
+                            teachingModule.name,
+                          )}
+                        />
+                      )}
+                      <Composer
+                        step={currentStepId}
+                        moduleId={teachingModule.id}
+                      />
+                    </CardContent>
+                  </Card>
+                </ExplainFullscreen>
+              )}
             </>
           ) : currentStepId === "observe" ? (
             <Card className="h-[560px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
-                <LectureLauncher
-                  moduleId={teachingModule.id}
-                  step={currentStepId}
-                  prompt={lectureOpenerPrompt(
-                    currentStepId,
-                    teachingModule.name,
-                  )}
-                />
                 <Composer step={currentStepId} moduleId={teachingModule.id} />
               </CardContent>
             </Card>

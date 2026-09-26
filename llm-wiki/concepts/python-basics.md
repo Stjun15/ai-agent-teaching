@@ -397,6 +397,40 @@ log(**headers)                       # ** = 把字典拆成关键字参数
 
 ---
 
+## 示范代码
+
+下面是一段真实的 AI Agent 调用代码 —— 不要求你解释每一行，只要能说出 import 了什么、def 定义了什么、函数调用了什么 API 就行。
+
+```python
+# ① 导入 openai 库 —— 这是我们和大模型通话的工具箱
+import openai
+
+# ② 创建客户端，api_key 是你的身份令牌（正式项目不要硬编码，放环境变量里）
+client = openai.OpenAI(api_key="sk-xxx")
+
+# ③ 系统提示词：告诉模型它是什么角色、有什么规矩
+SYSTEM_PROMPT = """你是一个编程助教。回答要简洁，用中文。"""
+
+# ④ 定义一个函数，把「发消息给 AI → 拿到回复」整个流程封装起来
+def ask_ai(question: str) -> str:
+    # ⑤ 调用 chat.completions.create —— 这就是一次大模型请求
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",                # 用什么模型（便宜、快）
+        messages=[                          # 消息列表：系统 + 用户
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": question},
+        ],
+        temperature=0.7,                    # 随机度：0=死板，1=天马行空
+    )
+    # ⑥ 从返回结果里取出 AI 的回复文本
+    return response.choices[0].message.content
+
+# ⑦ 程序入口：调用 ask_ai，把回答打印出来
+if __name__ == "__main__":
+    answer = ask_ai("什么是 Agent Loop？")
+    print(f"AI 回答：{answer}")
+```
+
 ## 实践任务
 
 读下面这段代码。这是真实 AI 项目里会出现的代码——包含类、异步、错误处理、装饰器。

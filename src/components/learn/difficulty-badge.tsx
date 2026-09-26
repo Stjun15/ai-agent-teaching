@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { MAX_DIFFICULTY } from "@/lib/modules";
+import { MAX_DIFFICULTY } from "@/lib/constants";
 
 /**
  * 难度徽标。

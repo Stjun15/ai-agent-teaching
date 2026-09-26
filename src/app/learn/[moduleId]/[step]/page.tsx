@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
 import { isStepType, LEARNING_STEPS } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
+import { readDemoCode } from "@/lib/teaching-script";
 
 interface ModuleStepPageProps {
   params: Promise<{ moduleId: string; step: string }>;
@@ -53,11 +54,14 @@ export default async function ModuleStepPage({ params }: ModuleStepPageProps) {
 
   if (!teachingModule || !isStepType(step)) notFound();
 
+  const demoCode = step === "observe" ? readDemoCode(moduleId) : "";
+
   return (
     <ModuleWorkspace
       teachingModule={teachingModule}
       allModules={allModules}
       currentStepId={step}
+      demoCode={demoCode}
     />
   );
 }

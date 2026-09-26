@@ -32,6 +32,33 @@ Agent Loop 是 Agent 的核心运行机制：
 | 多轮     | 无          | 有                                     |
 | 自主决策 | 无          | 有                                     |
 
+## 示范代码
+
+Agent Loop 的核心 —— 思考 → 行动 → 观察 → 重复，直到任务完成。
+
+```typescript
+// ① 系统提示词：告诉模型它的身份 + 它有什么工具可用
+const systemPrompt = `你是一个天气助手。
+当用户问天气时，调用 getWeather 工具。
+拿到结果后，用友好的语气回答。`;
+
+// ② 工具定义：模型只能调用这里注册的工具（白名单）
+const tools = [{
+  name: "getWeather",                              // 工具名：动词+名词
+  description: "查询指定城市的天气",                  // 描述：模型靠这个判断"什么时候用"
+  parameters: { city: "string" },                   // 参数：类型 + 含义
+  execute: async ({ city }: { city: string }) => ({ temp: 25, condition: "晴" }),
+}];
+
+// ③ 创建 Agent：把系统提示词和工具绑在一起
+const agent = createAgent({ systemPrompt, tools });
+
+// ④ 启动 Agent Loop：模型自动决定"要不要调工具"→ 调完再看结果 → 继续或结束
+const result = await agent.run("北京今天天气怎么样？");
+// Agent 内部循环：思考（需要查天气）→ 行动（调 getWeather("北京")）
+// → 观察（拿到 { temp:25, condition:"晴" }）→ 输出（"北京今天晴，25度"）
+```
+
 ## 常见误解
 
 - 误解1：Agent Loop 就是 while 循环 → 它是 LLM 驱动的决策循环

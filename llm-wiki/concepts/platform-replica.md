@@ -36,6 +36,49 @@ tags: [core, integration, project]
 
 不是先讲完理论再写代码。是**造一段、跑一段、通了再往下**。
 
+## 示范代码
+
+这是教学平台的核心 —— SSE 流式聊天接口。Agent 系到系统提示词拼接到模型调用，每一步你都学过。
+
+```typescript
+// ① Next.js 的请求类型 —— 封装了 HTTP 请求的所有信息
+import { NextRequest } from "next/server";
+
+// ② Agent 运行时核心：接收用户消息 → 多步推理 → 流式返回
+import { runAgentLoop } from "@/lib/agent/loop";
+
+// ③ 按教学步骤选 Agent（讲解-椒盐、出题-考官……）
+import { resolveStepAgent } from "@/lib/agent/step-prompt";
+
+// ④ 从 Wiki 概念页读教学脚本，按步骤裁剪段落后注入系统提示词
+import { buildTeachingScript } from "@/lib/teaching-script";
+
+// ⑤ POST 处理函数 —— 前端每次发消息都会进这里
+export async function POST(req: NextRequest) {
+  // ⑥ 从请求体取出 content（用户消息）、moduleId（哪个模块）、step（哪个教学步）
+  const { content, moduleId, step } = await req.json();
+
+  // ⑦ 按 step 选 Agent：explain → 椒盐导师，practice → 出题官……
+  const stepAgent = resolveStepAgent(step);
+
+  // ⑧ 读概念页，按步骤裁出对应的段落作为教学参考资料
+  const conceptScript = buildTeachingScript(moduleId, step);
+
+  // ⑨ 启动 Agent 循环：系统提示词 = 概念脚本 + Agent 身份，用户消息 = content
+  const { response } = runAgentLoop({
+    prompt: content,
+    agent: stepAgent.id,
+    systemPrompt: [conceptScript.script, stepAgent.systemPrompt].join("\n\n"),
+    signal: req.signal,          // 前端断开时自动取消，不浪费 token
+  });
+
+  // ⑩ 返回 SSE 流式响应 → 前端打字机逐字渲染
+  return response;
+}
+```
+
+## 🔨 怎么造：三板斧 + 一条龙骨（详细步骤）
+
 ### 启动台
 
 ```

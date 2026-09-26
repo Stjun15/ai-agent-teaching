@@ -10,7 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { AnimatedGrid, AnimatedSection } from "@/components/layout/animated-section";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -69,7 +69,7 @@ export default function WelcomePage() {
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
       {/* ---------- 冷水 ---------- */}
-      <AnimatedSection>
+      <section>
         <Badge variant="outline" className="mb-4">
           写在最前面
         </Badge>
@@ -95,19 +95,19 @@ export default function WelcomePage() {
             不是你学会怎么用 AI。是你要让 AI 自己跑起来，替别人上课。
           </p>
         </div>
-      </AnimatedSection>
+      </section>
 
       <hr className="my-10" />
 
       {/* ---------- 这不是比喻 ---------- */}
-      <AnimatedSection>
+      <section>
         <h2 className="text-xl font-semibold tracking-tight">这不是一个比喻</h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
           我没有在跟你玩修辞。你正在看的这个页面，拆开来看就是下面这几块东西。
           后面每一步都是在搭其中一块。
         </p>
 
-        <AnimatedGrid className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {SUBSYSTEMS.map((item) => (
             <div
               key={item.title}
@@ -122,7 +122,7 @@ export default function WelcomePage() {
               </div>
             </div>
           ))}
-        </AnimatedGrid>
+        </div>
 
         <div className="mt-6 rounded-xl border bg-muted/30 px-5 py-4">
           <p className="text-sm font-medium">你站在一面镜子里。</p>
@@ -137,12 +137,12 @@ export default function WelcomePage() {
             <strong className="text-foreground">是你写的。</strong>
           </p>
         </div>
-      </AnimatedSection>
+      </section>
 
       <hr className="my-10" />
 
       {/* ---------- 你要交付什么 ---------- */}
-      <AnimatedSection>
+      <section>
         <h2 className="text-xl font-semibold tracking-tight">你要交付什么</h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
           一个完整的 AI 教学平台。不是
@@ -192,12 +192,12 @@ export default function WelcomePage() {
             </div>
           </div>
         </div>
-      </AnimatedSection>
+      </section>
 
       <hr className="my-10" />
 
       {/* ---------- 语言选择 ---------- */}
-      <AnimatedSection>
+      <section>
         <h2 className="text-xl font-semibold tracking-tight">
           那你用什么语言来造？
         </h2>
@@ -209,7 +209,7 @@ export default function WelcomePage() {
           {`读得懂代码 → 能把报错信息贴给 AI → 能改个参数 → 能跑起来`}
         </pre>
 
-        <AnimatedGrid className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Link
             href="/learn/python-basics"
             className="group rounded-xl border bg-background px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-sm"
@@ -239,17 +239,17 @@ export default function WelcomePage() {
               <ArrowRight className="size-3.5" />
             </span>
           </Link>
-        </AnimatedGrid>
+        </div>
 
         <blockquote className="mt-4 border-l-2 pl-4 text-sm text-muted-foreground">
           选不出来的话——抛硬币。硬币飞起来的那一刻你心里想的是哪个，就选哪个。
         </blockquote>
-      </AnimatedSection>
+      </section>
 
       <hr className="my-10" />
 
       {/* ---------- 建造路线 ---------- */}
-      <AnimatedSection>
+      <section>
         <h2 className="text-xl font-semibold tracking-tight">建造顺序</h2>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
           从毛坯到交付。每一层依赖下一层——跳不过的。踩实了，再往上。
@@ -283,12 +283,12 @@ export default function WelcomePage() {
             </span>
           </div>
         </div>
-      </AnimatedSection>
+      </section>
 
       <hr className="my-10" />
 
       {/* ---------- 开工 ---------- */}
-      <AnimatedSection className="text-center">
+      <section className="text-center">
         <h2 className="text-xl font-semibold tracking-tight">动手吧</h2>
         <div className="mx-auto mt-4 max-w-lg space-y-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
           <p>你会卡住。不止一次。会想砸键盘。会觉得「我是不是不该来」。</p>
@@ -318,7 +318,7 @@ export default function WelcomePage() {
             </Link>
           </Button>
         </div>
-      </AnimatedSection>
+      </section>
     </main>
   );
 }

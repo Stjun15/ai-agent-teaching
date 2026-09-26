@@ -41,6 +41,25 @@ Token 数量决定成本和速度。
 
 AI 可以一个字一个字地返回，而不是等全部生成完。
 
+## 示范代码
+
+下面是一次完整的 LLM API 调用 —— 定义角色、发消息、拿回复。逐行看。
+
+```typescript
+// ① 消息数组：system 定人设，user 发问题
+const messages = [
+  { role: "system", content: "你是一个友好的编程学习助手。" },
+  { role: "user", content: "你好，请介绍一下自己。" },
+];
+
+// ② 调用 LLM：指定模型、传入消息、开启流式输出（stream=true 逐字返回）
+const response = await callLLM({
+  model: "deepseek-chat",    // 用什么模型
+  messages: messages,        // 刚才定义的消息数组
+  stream: true,              // true=打字机式输出，false=等全写完再返回
+});
+```
+
 ## 常见误解
 
 - 误解1：AI 记得我说过的话 → 其实每次调用都是独立的

@@ -165,11 +165,15 @@ export function Composer({
           )}
         >
           <Loader2 className="size-3 animate-spin" />
-          {elapsed < 20
-            ? `模型正在输出，已等 ${elapsed} 秒，可以随时停止`
-            : elapsed < 40
-              ? `模型仍在思考，已等 ${elapsed} 秒 — 请耐心等待或点击停止`
-              : `模型响应较慢，已等 ${elapsed} 秒 — 建议停止后重试`}
+          {elapsed < 15
+            ? "导师推了推眼镜，准备开口……"
+            : elapsed < 25
+              ? "正在整理措辞，马上就好 ✍️"
+              : elapsed < 40
+                ? "这个问题不简单，导师多想了会儿 🧠"
+                : elapsed < 60
+                  ? "还在写，思考得越久回答越靠谱 👀"
+                  : "这个话题可不小，导师键盘快敲出火星了 🔥"}
         </p>
       ) : null}
     </div>
