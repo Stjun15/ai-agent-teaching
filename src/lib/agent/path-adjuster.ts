@@ -33,7 +33,12 @@
  * - 只读数据、只写 adjustments，不打乱现有点评写入顺序。
  */
 
-import type { ErrorRecord, LearningPath, Mastery, PathAdjustment } from "../db/types";
+import type {
+  ErrorRecord,
+  LearningPath,
+  Mastery,
+  PathAdjustment,
+} from "../db/types";
 
 // ---------------------------------------------------------------------------
 // 输入 —— 调用方在点评后传入的「此刻快照」
@@ -68,7 +73,10 @@ export interface AdjustmentDecision {
 /** 同 reason 的调整 N 天内不重复写。 */
 const DEDUP_WINDOW_DAYS = 7;
 
-function isDuplicate(decision: AdjustmentDecision, adjustments: readonly PathAdjustment[]): boolean {
+function isDuplicate(
+  decision: AdjustmentDecision,
+  adjustments: readonly PathAdjustment[],
+): boolean {
   const cutoff = Date.now() - DEDUP_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   return adjustments.some(
     (a) => a.reason === decision.reason && new Date(a.date).getTime() >= cutoff,
@@ -134,7 +142,9 @@ function checkMasteryDecline(
   mastery: Mastery[],
   path: LearningPath,
 ): AdjustmentDecision | null {
-  const currentModuleIdx = path.modules.findIndex((m) => m.moduleId === conceptId);
+  const currentModuleIdx = path.modules.findIndex(
+    (m) => m.moduleId === conceptId,
+  );
   if (currentModuleIdx <= 0) return null;
 
   const prevModule = path.modules[currentModuleIdx - 1];
@@ -190,8 +200,8 @@ function checkReadyToSkip(
   const record = mastery.find((m) => m.conceptId === conceptId);
   if (!record || record.score < 4) return null;
 
-  const module = path.modules.find((m) => m.moduleId === conceptId);
-  if (!module || module.status === "completed") return null;
+  const entry = path.modules.find((m) => m.moduleId === conceptId);
+  if (!entry || entry.status === "completed") return null;
 
   return {
     reason: `概念「${conceptId}」掌握度已达 ${record.score}/5（优秀档），但模块未完成`,
