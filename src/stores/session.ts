@@ -428,10 +428,9 @@ export const useSessionStore = create<SessionState>()(
       /** 本轮所属的学习步骤；演练场（无步骤语境）为 null。助手消息据此继承 step。 */
       turnStep: null,
 
-      beginTurn: (content, options) =>
-        set((state) => {
-          tokenBuffer.clear();
-          return {
+      beginTurn: (content, options) => {
+        tokenBuffer.clear();
+        return set((state) => ({
           messages:
             options?.silent === true
               ? state.messages
@@ -458,8 +457,8 @@ export const useSessionStore = create<SessionState>()(
           error: null,
           tokens: null,
           turnStep: options?.step ?? null,
-          };
-        }),
+        }));
+      },
 
       appendToken: (content, messageId) => {
         const existing = tokenBuffer.get(messageId);
