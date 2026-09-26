@@ -67,6 +67,8 @@ export interface ChatMessage {
   citations: Citation[];
   /** 该轮的 token 用量，来自 `done` 事件。 */
   tokens?: { input: number; output: number };
+  /** 学生消息附带的截图 data URL，来自 Composer 图片上传。 */
+  images?: string[];
   createdAt: string;
 }
 
@@ -165,7 +167,7 @@ export interface SessionState {
    */
   beginTurn: (
     content: string,
-    options?: { silent?: boolean; step?: StepType },
+    options?: { silent?: boolean; step?: StepType; images?: string[] },
   ) => void;
   appendToken: (content: string, messageId: string) => void;
   appendThinking: (input: {
@@ -312,6 +314,9 @@ export const useSessionStore = create<SessionState>()(
                     createdAt: new Date().toISOString(),
                     ...(options?.step !== undefined
                       ? { step: options.step }
+                      : {}),
+                    ...(options?.images !== undefined && options.images.length > 0
+                      ? { images: options.images }
                       : {}),
                   },
                 ],

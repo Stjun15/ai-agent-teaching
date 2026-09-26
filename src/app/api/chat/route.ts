@@ -35,6 +35,7 @@
 import { ARK_API_KEY_ENV, isArkApiKeyConfigured } from "@/lib/agent/ark-config";
 import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
+import { runVisionReview } from "@/lib/agent/vision-review";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 import { buildTeachingScript } from "@/lib/teaching-script";
@@ -87,6 +88,16 @@ export async function POST(req: Request): Promise<Response> {
       "LLM_ERROR",
       `缺少环境变量 ${ARK_API_KEY_ENV}，无法调用模型。请在 .env.local（已被 .gitignore 排除）或系统环境变量中设置，不要写进仓库。`,
     );
+  }
+
+  // 图片评审分支：学生提交了截图 → 走多模态视觉模型独立管线，
+  // 不经过 loop.ts 的 pi SDK 文本管线。
+  if (parsed.data.images && parsed.data.images.length > 0) {
+    const visionImages = parsed.data.images.map((dataUrl, i) => ({
+      data: dataUrl,
+      name: `screenshot-${i + 1}`,
+    }));
+    return runVisionReview(parsed.data.content, visionImages, req.signal);
   }
 
   // 身份层按学习步骤选（2026-09-19 修正）。与落库端点

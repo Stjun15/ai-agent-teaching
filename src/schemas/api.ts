@@ -203,6 +203,19 @@ export const ChatRequestSchema = z.object({
     .min(1)
     .regex(/^[a-z0-9-]+$/)
     .optional(),
+  /**
+   * 学生提交的截图（代码截图 / 终端输出 / 作品截图）。
+   *
+   * 每项为标准 data URL（`data:image/png;base64,...`）。最多 3 张；
+   * 每张在前端已做压缩与尺寸限制（≤ 5 MB / ≤ 4096px）。
+   *
+   * 有图片时后端走视觉评审管线（`vision-review.ts`），用多模态模型
+   * `doubao-seed-2-1-pro-260915` 点评；无图片时走原有文本管线。
+   */
+  images: z
+    .array(z.string().startsWith("data:image/"))
+    .max(3)
+    .optional(),
 });
 
 /**

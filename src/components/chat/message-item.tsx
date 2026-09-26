@@ -94,6 +94,25 @@ export const MessageItem = memo(
           ) : (
             <MarkdownView source={message.content} />
           )}
+          {isStudent && message.images && message.images.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {message.images.map((dataUrl, i) => (
+                <a
+                  key={i}
+                  href={dataUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block size-20 overflow-hidden rounded-md border-2 border-transparent transition-colors hover:border-primary/50"
+                >
+                  <img
+                    src={dataUrl}
+                    alt={`截图 ${i + 1}`}
+                    className="size-full object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          ) : null}
           {isStreaming ? (
             // 光标用内联块而不是伪元素：它必须在文本流里占据位置，
             // 否则会出现「最后一个字被光标盖住」。

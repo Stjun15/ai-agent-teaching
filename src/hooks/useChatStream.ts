@@ -156,6 +156,7 @@ export function useChatStream(
       session.beginTurn(request.content, {
         silent: options?.silent,
         step: request.step,
+        images: request.images,
       });
 
       const turnModuleId = options?.moduleId;
