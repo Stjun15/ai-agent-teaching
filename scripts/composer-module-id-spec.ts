@@ -197,15 +197,16 @@ test("流控：发送中重复点击不会发出第二次请求", async () => {
           >)
         : {};
     fetchCalls.push({ url: String(url), body });
-    return new Promise<Response>((resolve) => {
+    const signal = (init as RequestInit)?.signal;
+    return new Promise<Response>((resolve, reject) => {
+      const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+      signal?.addEventListener("abort", onAbort);
       resolveFetch = () => {
+        signal?.removeEventListener("abort", onAbort);
         resolve(
           new Response(
             'data: {"type":"done","data":{"messageId":"test","tokens":{"input":0,"output":0}}}\n\n',
-            {
-              status: 200,
-              headers: { "Content-Type": "text/event-stream" },
-            },
+            { status: 200, headers: { "Content-Type": "text/event-stream" } },
           ),
         );
       };
@@ -272,26 +273,15 @@ test("点击停止后可再次发送消息", async () => {
     fetchCalls.push({ url: String(url), body });
     const signal = (init as RequestInit)?.signal;
 
-    return new Promise<Response>((resolve, reject) => {
+    return new Promise<Response>((_resolve, reject) => {
       if (signal?.aborted) {
         reject(new DOMException("Aborted", "AbortError"));
         return;
       }
       const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
       signal?.addEventListener("abort", onAbort);
-
-      resolveFetch = () => {
-        signal?.removeEventListener("abort", onAbort);
-        resolve(
-          new Response(
-            'data: {"type":"done","data":{"messageId":"test","tokens":{"input":0,"output":0}}}\n\n',
-            {
-              status: 200,
-              headers: { "Content-Type": "text/event-stream" },
-            },
-          ),
-        );
-      };
+      // 悬挂 Promise 不 resolve：本用例靠「停止」按钮的 abort 走
+      // reject 路径收尾（句柄已按上方注释移除）。
     });
   }) as typeof globalThis.fetch;
 

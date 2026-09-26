@@ -88,7 +88,7 @@ function p(overrides?: Partial<LearningPath>): LearningPath {
     updatedAt: NOW,
     ...overrides,
     modules: overrides?.modules ?? [
-      lpModule("system-prompt", 1, "mastered", 4),
+      lpModule("system-prompt", 1, "completed", 4),
       lpModule("tool-calling", 2, "in_progress", 2),
     ],
   };

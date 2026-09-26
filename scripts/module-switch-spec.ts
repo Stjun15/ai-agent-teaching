@@ -91,8 +91,8 @@ test("ensureModule：切换到不同模块，清空旧模块消息", () => {
 
 test("ensureModule：重复进入同一模块，不清空消息", () => {
   const msgs = [
-    { role: "student" as const, content: "你好", step: "explain" as const },
-    { role: "assistant" as const, content: "你好！", step: "explain" as const },
+    msg({ role: "student", content: "你好", step: "explain" }),
+    msg({ role: "assistant", content: "你好！", step: "explain" }),
   ];
 
   useSessionStore.setState({

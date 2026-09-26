@@ -206,16 +206,23 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
     /currentStepId === "explain"/,
     "概念讲解步必须挂自动开讲组件",
   );
-  assert.match(
-    workspace,
-    /currentStepId === "observe"/,
-    "观察示范步必须挂自动开讲组件",
+  // 2026-09-26：观察示范改为读 wiki 示范代码（零模型调用、零等待），
+  // 不再自动开讲 —— 守卫钉住 AUTO_LECTURE_STEPS 不含 observe，
+  // 防止将来有人把 observe 悄悄加回自动开讲。
+  const openers = readFileSync(
+    new URL("../src/lib/lecture-openers.ts", import.meta.url),
+    "utf8",
   );
-  assert.match(workspace, /LectureLauncher/g, "讲解与观察示范两步都应自动开场");
-  const launcherCount = (workspace.match(/<LectureLauncher\b/g) || []).length;
+  assert.match(
+    openers,
+    /AUTO_LECTURE_STEPS = \["explain"\] as const/,
+    "自动开讲只允许 explain —— observe 的示范代码走 wiki 直读",
+  );
+  assert.match(workspace, /LectureLauncher/g, "讲解步应自动开场");
+  const launcherCount = (workspace.match(/<LectureLauncher/g) || []).length;
   assert.ok(
-    launcherCount >= 2,
-    `LectureLauncher 应在 explain 与 observe 两步各出现一次（当前 ${launcherCount} 次）`,
+    launcherCount >= 1,
+    `LectureLauncher 应至少挂载一次（当前 ${launcherCount} 次；文件长度 ${workspace.length}）`,
   );
   assert.match(
     workspace,

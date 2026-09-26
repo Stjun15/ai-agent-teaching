@@ -149,7 +149,7 @@ test("validation 事件 → CodeStore.resolveValidation", () => {
       sessionId: "sess1",
       taskType: "code",
       totalScore: 85,
-      level: "good",
+      level: "良好",
       isCorrect: true,
       dimensions: [],
       issues: [],
@@ -186,8 +186,9 @@ test("visualization 事件 → VisualizationStore.selectScene", () => {
 // ---------------------------------------------------------------------------
 
 test("ui 事件 → 调用 onUiEvent 回调", () => {
-  let received: { component: string; props: Record<string, unknown> } | null =
-    null;
+  // 用数组承接回调赋值：`let x: T | null = null` 只在回调里赋值时，
+  // 读取处会被 CFA 收窄回 null（null?.x 推成 never），tsc 报假错。
+  const received: { component: string; props: Record<string, unknown> }[] = [];
 
   dispatch(
     {
@@ -195,12 +196,12 @@ test("ui 事件 → 调用 onUiEvent 回调", () => {
       data: { component: "ScoreCard", props: { score: 85 } },
     } as SSEEventInput,
     (evt) => {
-      received = evt;
+      received.push(evt);
     },
   );
 
-  assert.equal(received?.component, "ScoreCard");
-  assert.equal(received?.props.score, 85);
+  assert.equal(received[0]?.component, "ScoreCard");
+  assert.equal(received[0]?.props.score, 85);
 });
 
 // ---------------------------------------------------------------------------
