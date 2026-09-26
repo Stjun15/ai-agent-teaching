@@ -37,7 +37,7 @@
  * 不要在两边互相赋值。
  */
 
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { StepType } from "@/lib/db";
@@ -315,9 +315,7 @@ const tokenBuffer = new Map<
   { content: string; flushScheduled: boolean }
 >();
 
-function flushTokenBufferImpl(
-  set: any,
-): void {
+function flushTokenBufferImpl(set: StoreApi<SessionState>["setState"]): void {
   const toFlush = new Map(tokenBuffer);
   tokenBuffer.clear();
   set((state: SessionState) => {
@@ -490,7 +488,8 @@ export const useSessionStore = create<SessionState>()(
                     ...(options?.step !== undefined
                       ? { step: options.step }
                       : {}),
-                    ...(options?.images !== undefined && options.images.length > 0
+                    ...(options?.images !== undefined &&
+                    options.images.length > 0
                       ? { images: options.images }
                       : {}),
                   },
@@ -526,12 +525,10 @@ export const useSessionStore = create<SessionState>()(
           let newStep: ThinkingStep | undefined;
 
           const last = prev[prev.length - 1];
-          if (
-            last !== undefined &&
-            last.endedAt === undefined &&
-            last.step === step &&
-            last.agent === agent
-          ) {
+          if (last !== undefined && last.endedAt === undefined) {
+            // 只要最后一条还没封口就继续往后追加——不分 step/agent。
+            // 对标 DeepSeek 网页端：思考过程是一条连续的流，不是
+            // 按 step 拆成多段。
             next = prev.slice();
             next[next.length - 1] = {
               ...last,
@@ -566,9 +563,7 @@ export const useSessionStore = create<SessionState>()(
                   status: "streaming" as const,
                   citations: [],
                   createdAt: new Date().toISOString(),
-                  ...(state.turnStep !== null
-                    ? { step: state.turnStep }
-                    : {}),
+                  ...(state.turnStep !== null ? { step: state.turnStep } : {}),
                   thinkingSteps: [...next],
                 },
               ],
@@ -598,7 +593,6 @@ export const useSessionStore = create<SessionState>()(
             ...state.tools,
             { callId, toolName, params, startedAt: Date.now() },
           ],
-          thinking: closeThinking(state.thinking),
         })),
 
       addToolResult: ({ callId, result, durationMs }) =>
@@ -608,7 +602,6 @@ export const useSessionStore = create<SessionState>()(
           tools: state.tools.map((tool) =>
             tool.callId === callId ? { ...tool, result, durationMs } : tool,
           ),
-          thinking: closeThinking(state.thinking),
         })),
 
       addCitation: (citation) =>

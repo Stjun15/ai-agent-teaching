@@ -1,7 +1,14 @@
 "use client";
 
 import { memo } from "react";
-import { AlertTriangle, Bot, ChevronRight, Brain, Timer, User } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  ChevronRight,
+  Brain,
+  Timer,
+  User,
+} from "lucide-react";
 
 import { MarkdownView } from "@/components/chat/markdown-view";
 import { Badge } from "@/components/ui/badge";
@@ -37,130 +44,131 @@ import { cn } from "@/lib/utils";
  */
 export const MessageItem = memo(
   function MessageItem({ message }: { message: ChatMessage }) {
-  const isStudent = message.role === "student";
-  const isStreaming = message.status === "streaming";
-  const isError = message.status === "error";
+    const isStudent = message.role === "student";
+    const isStreaming = message.status === "streaming";
+    const isError = message.status === "error";
 
-  return (
-    <article
-      data-role={message.role}
-      data-status={message.status}
-      className={cn(
-        "flex gap-3",
-        isStudent ? "flex-row-reverse text-right" : "flex-row",
-      )}
-    >
-      <div
+    return (
+      <article
+        data-role={message.role}
+        data-status={message.status}
         className={cn(
-          "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
-          isStudent
-            ? "bg-secondary text-secondary-foreground"
-            : "bg-primary text-primary-foreground",
+          "flex gap-3",
+          isStudent ? "flex-row-reverse text-right" : "flex-row",
         )}
       >
-        {isStudent ? <User className="size-4" /> : <Bot className="size-4" />}
-      </div>
-
-      <div
-        className={cn(
-          "flex max-w-[85%] min-w-0 flex-col gap-1.5",
-          isStudent && "items-end",
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            {isStudent ? "我" : (message.agent ?? "导师")}
-          </span>
-          {isStreaming ? <Badge variant="muted">输出中</Badge> : null}
-          {isError ? (
-            <Badge variant="levelHigh">
-              <AlertTriangle />
-              失败
-            </Badge>
-          ) : null}
+        <div
+          className={cn(
+            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+            isStudent
+              ? "bg-secondary text-secondary-foreground"
+              : "bg-primary text-primary-foreground",
+          )}
+        >
+          {isStudent ? <User className="size-4" /> : <Bot className="size-4" />}
         </div>
-
-        {message.thinkingSteps !== undefined &&
-        message.thinkingSteps.length > 0 ? (
-          <ThinkingChain steps={message.thinkingSteps} />
-        ) : null}
 
         <div
           className={cn(
-            "rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
-            isStudent
-              ? "bg-secondary text-secondary-foreground"
-              : "border border-l-2 border-l-primary/50 bg-primary/5",
-            isError && "border-destructive/40",
+            "flex max-w-[85%] min-w-0 flex-col gap-1.5",
+            isStudent && "items-end",
           )}
         >
-          {isStudent ? (
-            message.content
-          ) : (
-            <MarkdownView source={message.content} />
-          )}
-          {isStudent && message.images && message.images.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {message.images.map((dataUrl, i) => (
-                <a
-                  key={i}
-                  href={dataUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block size-20 overflow-hidden rounded-md border-2 border-transparent transition-colors hover:border-primary/50"
-                >
-                  <img
-                    src={dataUrl}
-                    alt={`截图 ${i + 1}`}
-                    className="size-full object-cover"
-                  />
-                </a>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              {isStudent ? "我" : (message.agent ?? "导师")}
+            </span>
+            {isStreaming ? <Badge variant="muted">输出中</Badge> : null}
+            {isError ? (
+              <Badge variant="levelHigh">
+                <AlertTriangle />
+                失败
+              </Badge>
+            ) : null}
+          </div>
+
+          {message.thinkingSteps !== undefined &&
+          message.thinkingSteps.length > 0 ? (
+            <ThinkingChain steps={message.thinkingSteps} />
           ) : null}
-          {isStreaming ? (
-            // 光标用内联块而不是伪元素：它必须在文本流里占据位置，
-            // 否则会出现「最后一个字被光标盖住」。
-            <span
-              aria-hidden
-              className="ml-0.5 inline-block h-3.5 w-1.5 translate-y-0.5 animate-pulse rounded-[1px] bg-foreground"
-            />
-          ) : null}
-          {isStreaming && message.content === "" ? (
-            <span className="text-muted-foreground">正在思考…</span>
+
+          <div
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
+              isStudent
+                ? "bg-secondary text-secondary-foreground"
+                : "border border-l-2 border-l-primary/50 bg-primary/5",
+              isError && "border-destructive/40",
+            )}
+          >
+            {isStudent ? (
+              message.content
+            ) : (
+              <MarkdownView source={message.content} />
+            )}
+            {isStudent && message.images && message.images.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {message.images.map((dataUrl, i) => (
+                  <a
+                    key={i}
+                    href={dataUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block size-20 overflow-hidden rounded-md border-2 border-transparent transition-colors hover:border-primary/50"
+                  >
+                    <img
+                      src={dataUrl}
+                      alt={`截图 ${i + 1}`}
+                      className="size-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            ) : null}
+            {isStreaming ? (
+              // 光标用内联块而不是伪元素：它必须在文本流里占据位置，
+              // 否则会出现「最后一个字被光标盖住」。
+              <span
+                aria-hidden
+                className="ml-0.5 inline-block h-3.5 w-1.5 translate-y-0.5 animate-pulse rounded-[1px] bg-foreground"
+              />
+            ) : null}
+            {isStreaming && message.content === "" ? (
+              <span className="text-muted-foreground">正在思考…</span>
+            ) : null}
+          </div>
+
+          {message.citations.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              引用了 {message.citations.length} 个知识来源
+            </p>
           ) : null}
         </div>
-
-        {message.citations.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            引用了 {message.citations.length} 个知识来源
-          </p>
-        ) : null}
-      </div>
-    </article>
-  );
-},
-(prev, next) => {
-  const p = prev.message;
-  const n = next.message;
-  if (p.status !== n.status) {
-    return false;
-  }
-  if (p.thinkingSteps?.length !== n.thinkingSteps?.length) {
-    return false;
-  }
-  if (p.status === "done") {
-    return (
-      p.content === n.content &&
-      (p.thinkingSteps === undefined ||
-        n.thinkingSteps === undefined ||
-        p.thinkingSteps.every(
-          (s, i) => s.content === n.thinkingSteps?.[i]?.content,
-        ))
+      </article>
     );
-  }
-  return false;
-});
+  },
+  (prev, next) => {
+    const p = prev.message;
+    const n = next.message;
+    if (p.status !== n.status) {
+      return false;
+    }
+    if (p.thinkingSteps?.length !== n.thinkingSteps?.length) {
+      return false;
+    }
+    if (p.status === "done") {
+      return (
+        p.content === n.content &&
+        (p.thinkingSteps === undefined ||
+          n.thinkingSteps === undefined ||
+          p.thinkingSteps.every(
+            (s, i) => s.content === n.thinkingSteps?.[i]?.content,
+          ))
+      );
+    }
+    return false;
+  },
+);
 
 /**
  * 思维链面板（对标 DeepSeek 网页端）。
@@ -171,48 +179,37 @@ export const MessageItem = memo(
  * 用原生 `<details>`：零 JS 状态、键盘可达、屏幕阅读器友好。
  */
 function ThinkingChain({ steps }: { steps: readonly ThinkingStep[] }) {
+  if (steps.length === 0) return null;
+
+  // 只累计已结束的段：流式进行中本就不显示耗时（显示「进行中」徽标），
+  // 用 Date.now() 补未结束段会让渲染期出现随时间变化的非纯计算。
+  const totalMs = steps.reduce(
+    (sum, s) =>
+      s.endedAt !== undefined ? sum + (s.endedAt - s.startedAt) : sum,
+    0,
+  );
+  const isStreaming = steps.some((s) => s.endedAt === undefined);
+
   return (
-    <details className="group">
+    <details className="group" open>
       <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent/60">
         <ChevronRight className="size-3 shrink-0 transition-transform group-open:rotate-90" />
         <Brain className="size-3.5 shrink-0" />
-        <span className="font-medium">
-          思考过程
-          {steps.length > 1 ? `（${steps.length} 段）` : ""}
-        </span>
-        {steps.some((s) => s.endedAt === undefined) ? (
+        <span className="font-medium">思考过程</span>
+        {isStreaming ? (
           <Badge variant="muted" className="shrink-0">
             进行中
           </Badge>
         ) : (
           <span className="ml-auto flex shrink-0 items-center gap-1">
             <Timer className="size-3" />
-            {formatDuration(
-              steps.reduce((sum, s) => sum + ((s.endedAt ?? 0) - s.startedAt), 0),
-            )}
+            {formatDuration(totalMs)}
           </span>
         )}
       </summary>
-      <div className="mt-1 flex flex-col gap-1.5">
-        {steps.map((step) => (
-          <div key={step.id} className="rounded-md bg-muted/60 px-2 py-1.5">
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <span className="font-medium">{step.step}</span>
-              {step.endedAt === undefined ? (
-                <Badge variant="muted" className="text-[10px]">
-                  累积中
-                </Badge>
-              ) : null}
-              <span className="ml-auto">
-                {step.deltas} 增量 · {step.content.length} 字
-              </span>
-            </div>
-            <pre className="mt-1 max-h-40 overflow-auto text-[11px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
-              {step.content}
-            </pre>
-          </div>
-        ))}
-      </div>
+      <pre className="mt-1 max-h-80 overflow-auto rounded-md bg-muted/60 px-2 py-1.5 text-[11px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
+        {steps.map((s) => s.content).join("")}
+      </pre>
     </details>
   );
 }
