@@ -74,8 +74,8 @@ const PROVISIONAL_SYSTEM_PROMPT = [
   "- 只讲你能确认的内容。不确定就直说，不要编造，也不要假装运行过代码。",
   "- 涉及算术时调用 calculate 工具，不要心算。",
   "- 用简体中文回答，简洁直接，先给结论再给理由。",
-  "- 思考过程（thinking / reasoning）也必须用中文，"
-  + "不要用英文思考。学生能看到你的推理。",
+  "- 思考过程（thinking / reasoning）也必须用中文，" +
+    "不要用英文思考。学生能看到你的推理。",
 ].join("\n");
 
 /** SSE 事件里 `agent` 字段的默认值。编排层接入后由调用方显式传入。 */
@@ -262,9 +262,7 @@ export interface AgentLoopOptions {
    * 就能看到「本次参考了哪几页」。放在这里而不是让调用方自己再建一条流，
    * 是为了保证事件顺序严格 —— 两条流在浏览器侧的到达顺序是没有保证的。
    */
-  preludeEvents?:
-    | readonly SSEEvent[]
-    | (() => Promise<readonly SSEEvent[]>);
+  preludeEvents?: readonly SSEEvent[] | (() => Promise<readonly SSEEvent[]>);
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
   env?: ArkEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */

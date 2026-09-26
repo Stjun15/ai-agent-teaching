@@ -38,7 +38,7 @@ export function ChatPanel({
    * 模块的对话；渲染守卫防止切换瞬间闪现旧模块的消息。
    */
   moduleId?: string;
-} = {}) {
+}) {
   const rawMessages = useSessionStore((state) => state.messages);
   const activeModuleId = useSessionStore((state) => state.activeModuleId);
   const status = useSessionStore((state) => state.status);

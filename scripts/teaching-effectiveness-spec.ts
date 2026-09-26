@@ -124,9 +124,7 @@ async function chat(
 async function loadConceptPage(
   moduleId: string,
 ): Promise<{ content: string; error: string | null }> {
-  const resp = await fetch(
-    `${BASE}/api/module-content?moduleId=${moduleId}`,
-  );
+  const resp = await fetch(`${BASE}/api/module-content?moduleId=${moduleId}`);
   if (!resp.ok) {
     return { content: "", error: `HTTP ${resp.status}` };
   }
@@ -151,12 +149,28 @@ interface Observation {
   evidence: string;
 }
 
-function ok(criterion: string, condition: boolean, evidence: string): Observation {
-  return { criterion, verdict: condition ? "✓" : "✗", evidence: evidence.slice(0, 250) };
+function ok(
+  criterion: string,
+  condition: boolean,
+  evidence: string,
+): Observation {
+  return {
+    criterion,
+    verdict: condition ? "✓" : "✗",
+    evidence: evidence.slice(0, 250),
+  };
 }
 
-function soft(criterion: string, condition: boolean, evidence: string): Observation {
-  return { criterion, verdict: condition ? "✓" : "⚠", evidence: evidence.slice(0, 250) };
+function soft(
+  criterion: string,
+  condition: boolean,
+  evidence: string,
+): Observation {
+  return {
+    criterion,
+    verdict: condition ? "✓" : "⚠",
+    evidence: evidence.slice(0, 250),
+  };
 }
 
 let totalObs = 0;
@@ -192,7 +206,14 @@ function printFinalScore(): void {
 /** 核心概念关键词表：每模块有自己的关键词，AI 必须命中至少 1 个 */
 const KEYWORD_MAP: Record<string, string[]> = {
   "llm-api": ["API", "大模型", "LLM", "模型", "请求", "响应", "调用"],
-  "system-prompt": ["System Prompt", "系统提示", "角色", "人设", "指令", "消息"],
+  "system-prompt": [
+    "System Prompt",
+    "系统提示",
+    "角色",
+    "人设",
+    "指令",
+    "消息",
+  ],
   "agent-loop": ["Agent Loop", "循环", "多步", "下一步", "推理", "工具"],
   "tool-calling": ["工具", "Tool", "定义", "调用", "函数", "参数", "function"],
   rag: ["RAG", "检索", "知识库", "向量", "embedding", "文档"],
@@ -241,7 +262,7 @@ function checkKeywords(
 
 /** 通用观测：AI 不跑题到无关模块 */
 function checkNoDrift(
-  moduleId: string,
+  _moduleId: string,
   response: ChatResult,
   unrelatedModules: string[],
   label: string,
@@ -250,26 +271,18 @@ function checkNoDrift(
   for (const other of unrelatedModules) {
     const keys = KEYWORD_MAP[other] ?? [];
     const drifted = keys.some(
-      (k) => k.length >= 3 && response.fullText.toLowerCase().includes(k.toLowerCase()),
+      (k) =>
+        k.length >= 3 &&
+        response.fullText.toLowerCase().includes(k.toLowerCase()),
     );
     if (drifted) {
       obs.push(
-        soft(
-          `${label}：不跑题到 ${other}`,
-          false,
-          excerpt(response.fullText),
-        ),
+        soft(`${label}：不跑题到 ${other}`, false, excerpt(response.fullText)),
       );
       return;
     }
   }
-  obs.push(
-    ok(
-      `${label}：不跑题到无关模块`,
-      true,
-      excerpt(response.fullText),
-    ),
-  );
+  obs.push(ok(`${label}：不跑题到无关模块`, true, excerpt(response.fullText)));
 }
 
 // ==========================================================================
@@ -296,8 +309,7 @@ const MODULE_FLOWS: ModuleFlowDef[] = [
     coldStartMessage:
       "我已阅读完 LLM API 基础的概念内容，之前只听说过 ChatGPT 但没调过 API，" +
       "你可以开始讲解了吗？",
-    followUpMessage:
-      "system 和 user 消息有什么区别？什么时候用哪个？",
+    followUpMessage: "system 和 user 消息有什么区别？什么时候用哪个？",
     unrelated: ["multi-agent", "mcp", "ai-safety"],
     extra: (r1, r2) => [
       soft(
@@ -398,8 +410,7 @@ const MODULE_FLOWS: ModuleFlowDef[] = [
     coldStartMessage:
       "我已阅读完 LLM Wiki 的概念内容，这和普通的 RAG 有什么不同？" +
       "你可以开始讲解了吗？",
-    followUpMessage:
-      "Wiki 的页面结构应该怎么设计？什么样的页面算好页面？",
+    followUpMessage: "Wiki 的页面结构应该怎么设计？什么样的页面算好页面？",
     unrelated: ["tool-calling", "mcp", "ai-safety"],
     extra: (r1) => [
       ok(
@@ -432,8 +443,7 @@ const MODULE_FLOWS: ModuleFlowDef[] = [
     coldStartMessage:
       "我已阅读完 MCP 协议的概念内容，MCP 和直接写工具定义有什么区别？" +
       "你可以开始讲解了吗？",
-    followUpMessage:
-      "MCP 服务器和普通的 API 有什么区别？需要自己部署吗？",
+    followUpMessage: "MCP 服务器和普通的 API 有什么区别？需要自己部署吗？",
     unrelated: ["llm-api", "system-prompt", "agent-loop"],
     extra: (r1) => [
       ok(
@@ -449,8 +459,7 @@ const MODULE_FLOWS: ModuleFlowDef[] = [
     coldStartMessage:
       "我已阅读完 AI 安全的概念内容，Prompt 注入攻击到底是怎么发生的？" +
       "你可以开始讲解了吗？",
-    followUpMessage:
-      "除了防止注入，还有哪些安全方面需要考虑？",
+    followUpMessage: "除了防止注入，还有哪些安全方面需要考虑？",
     unrelated: ["llm-api", "system-prompt", "tool-calling"],
     extra: (r1, r2) => [
       ok(
@@ -481,9 +490,17 @@ async function runModuleFlow(def: ModuleFlowDef): Promise<void> {
     printReport(def.label, obs);
     return;
   }
-  console.log(`       长度=${r1.fullText.length} token入=${r1.tokens?.input ?? "?"} 出=${r1.tokens?.output ?? "?"}`);
+  console.log(
+    `       长度=${r1.fullText.length} token入=${r1.tokens?.input ?? "?"} 出=${r1.tokens?.output ?? "?"}`,
+  );
 
-  obs.push(ok("冷启动：AI 有实质输出", r1.fullText.length > 30, `长度=${r1.fullText.length}`));
+  obs.push(
+    ok(
+      "冷启动：AI 有实质输出",
+      r1.fullText.length > 30,
+      `长度=${r1.fullText.length}`,
+    ),
+  );
   checkKeywords(def.moduleId, r1, "冷启动", obs);
 
   // 3. 追问
@@ -493,8 +510,16 @@ async function runModuleFlow(def: ModuleFlowDef): Promise<void> {
   if (r2.error) {
     obs.push(ok("追问成功", false, r2.error));
   } else {
-    console.log(`       长度=${r2.fullText.length} token入=${r2.tokens?.input ?? "?"} 出=${r2.tokens?.output ?? "?"}`);
-    obs.push(ok("追问：AI 有实质输出", r2.fullText.length > 30, `长度=${r2.fullText.length}`));
+    console.log(
+      `       长度=${r2.fullText.length} token入=${r2.tokens?.input ?? "?"} 出=${r2.tokens?.output ?? "?"}`,
+    );
+    obs.push(
+      ok(
+        "追问：AI 有实质输出",
+        r2.fullText.length > 30,
+        `长度=${r2.fullText.length}`,
+      ),
+    );
     checkKeywords(def.moduleId, r2, "追问", obs);
     checkNoDrift(def.moduleId, r2, def.unrelated, "追问", obs);
   }
@@ -518,7 +543,7 @@ async function runCrossModuleFlow(): Promise<void> {
   console.log(`  [1/3] agent-loop 冷启动（已学前置模块）…`);
   const r1 = await chat(
     "我已学完 LLM API 基础和 System Prompt 设计，" +
-    "现在准备学 Agent Loop。你可以开始了吗？",
+      "现在准备学 Agent Loop。你可以开始了吗？",
     "agent-loop",
   );
   if (r1.error) {
@@ -548,7 +573,7 @@ async function runCrossModuleFlow(): Promise<void> {
   console.log(`  [2/3] tool-calling 冷启动（已学 LLM API + agent-loop）…`);
   const r2 = await chat(
     "我已学完 LLM API 基础和 Agent Loop，" +
-    "现在准备学工具调用。你可以开始了吗？",
+      "现在准备学工具调用。你可以开始了吗？",
     "tool-calling",
   );
   if (r2.error) {
@@ -570,8 +595,7 @@ async function runCrossModuleFlow(): Promise<void> {
   await sleep(2000);
   console.log(`  [3/3] ai-safety 冷启动（已学全部前置模块）…`);
   const r3 = await chat(
-    "我已学完前面 8 个模块，现在准备学 AI 安全。" +
-    "你可以开始了吗？",
+    "我已学完前面 8 个模块，现在准备学 AI 安全。" + "你可以开始了吗？",
     "ai-safety",
   );
   if (r3.error) {
@@ -607,7 +631,7 @@ async function runPlatformReplicaFlow(): Promise<void> {
   console.log(`  [1/2] 冷启动…`);
   const r1 = await chat(
     "我已了解前面 9 个模块的内容，现在准备做 platform-replica 项目。" +
-    "你要我怎么开始？",
+      "你要我怎么开始？",
     "platform-replica",
   );
   if (r1.error) {
@@ -627,9 +651,7 @@ async function runPlatformReplicaFlow(): Promise<void> {
   obs.push(
     soft(
       "引用了 9 个前置模块中的至少 1 个",
-      /API|LLM|prompt|agent|tool|RAG|wiki|multi|MCP|安全/.test(
-        r1.fullText,
-      ),
+      /API|LLM|prompt|agent|tool|RAG|wiki|multi|MCP|安全/.test(r1.fullText),
       excerpt(r1.fullText),
     ),
   );

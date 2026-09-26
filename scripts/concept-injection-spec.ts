@@ -57,18 +57,12 @@ test("python-basics：开场白含定位段落「这是哪一站」与引导句�
     body.includes("看完开场白就可以进 LLM API"),
     "应包含「看完开场白就可以进 LLM API」引导句",
   );
-  assert.ok(
-    body.includes("不是要你学会"),
-    "应包含「不是要你学会」安抚句",
-  );
+  assert.ok(body.includes("不是要你学会"), "应包含「不是要你学会」安抚句");
 });
 
 test("ts-basics：开场白含定位段落「这是哪一站」与引导句式", () => {
   const body = readConceptBody("ts-basics");
-  assert.ok(
-    body.includes("这是哪一站"),
-    "ts-basics 应包含「这是哪一站」章节",
-  );
+  assert.ok(body.includes("这是哪一站"), "ts-basics 应包含「这是哪一站」章节");
   assert.ok(
     body.includes("看完开场白就可以进 LLM API"),
     "应包含「看完开场白就可以进 LLM API」引导句",
@@ -110,10 +104,7 @@ test("ts-basics：PATH:LAZY 与完整版标记均在", () => {
 test("resolveStepAgent('explain') 返回讲解导师，systemPrompt 非空", () => {
   const spec = resolveStepAgent("explain");
   assert.equal(spec.teaching, true, "explain 步骤应为 teaching=true");
-  assert.ok(
-    spec.systemPrompt.length > 0,
-    "讲解导师的 systemPrompt 不应为空",
-  );
+  assert.ok(spec.systemPrompt.length > 0, "讲解导师的 systemPrompt 不应为空");
   assert.ok(
     spec.systemPrompt.includes("讲解"),
     "systemPrompt 应包含「讲解」关键词",

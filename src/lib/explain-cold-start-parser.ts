@@ -19,13 +19,7 @@ export interface AxeSubsection {
   body: string;
 }
 
-const AXE_HEADER_SKIP = new Set([
-  "启动台",
-  "龙骨",
-  "验收",
-  "结算",
-  "怎么造",
-]);
+const AXE_HEADER_SKIP = new Set(["启动台", "龙骨", "验收", "结算", "怎么造"]);
 
 export function parseAxes(markdown: string): AxeSection[] {
   const axes: AxeSection[] = [];

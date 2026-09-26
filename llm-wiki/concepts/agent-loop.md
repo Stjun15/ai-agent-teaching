@@ -43,12 +43,17 @@ const systemPrompt = `你是一个天气助手。
 拿到结果后，用友好的语气回答。`;
 
 // ② 工具定义：模型只能调用这里注册的工具（白名单）
-const tools = [{
-  name: "getWeather",                              // 工具名：动词+名词
-  description: "查询指定城市的天气",                  // 描述：模型靠这个判断"什么时候用"
-  parameters: { city: "string" },                   // 参数：类型 + 含义
-  execute: async ({ city }: { city: string }) => ({ temp: 25, condition: "晴" }),
-}];
+const tools = [
+  {
+    name: "getWeather", // 工具名：动词+名词
+    description: "查询指定城市的天气", // 描述：模型靠这个判断"什么时候用"
+    parameters: { city: "string" }, // 参数：类型 + 含义
+    execute: async ({ city }: { city: string }) => ({
+      temp: 25,
+      condition: "晴",
+    }),
+  },
+];
 
 // ③ 创建 Agent：把系统提示词和工具绑在一起
 const agent = createAgent({ systemPrompt, tools });

@@ -13,6 +13,21 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 
+/** 测试种子用的消息工厂：补齐 ChatMessage 的必填字段。 */
+function msg(
+  overrides: Partial<ChatMessage> &
+    Pick<ChatMessage, "role" | "content" | "step">,
+): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    status: "done",
+    citations: [],
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+import type { ChatMessage } from "@/stores";
 import { useSessionStore } from "@/stores";
 
 // ---------------------------------------------------------------------------
@@ -46,8 +61,8 @@ beforeEach(() => {
 test("ensureModule：首次进入模块，清空消息", () => {
   useSessionStore.setState({
     messages: [
-      { role: "student", content: "你好", step: "explain" },
-      { role: "assistant", content: "你好！", step: "explain" },
+      msg({ role: "student", content: "你好", step: "explain" }),
+      msg({ role: "assistant", content: "你好！", step: "explain" }),
     ],
   });
 
@@ -61,8 +76,8 @@ test("ensureModule：首次进入模块，清空消息", () => {
 test("ensureModule：切换到不同模块，清空旧模块消息", () => {
   useSessionStore.setState({
     messages: [
-      { role: "student", content: "Python 是什么？", step: "explain" },
-      { role: "assistant", content: "Python 是一门语言", step: "explain" },
+      msg({ role: "student", content: "Python 是什么？", step: "explain" }),
+      msg({ role: "assistant", content: "Python 是一门语言", step: "explain" }),
     ],
     activeModuleId: "python-basics",
   });
@@ -89,18 +104,14 @@ test("ensureModule：重复进入同一模块，不清空消息", () => {
 
   const state = useSessionStore.getState();
   assert.equal(state.activeModuleId, "python-basics");
-  assert.equal(
-    state.messages.length,
-    2,
-    "重复进入同一模块应保留消息",
-  );
+  assert.equal(state.messages.length, 2, "重复进入同一模块应保留消息");
 });
 
 test("ensureModule：无 moduleId 时清空隔离态（演练场）", () => {
   useSessionStore.setState({
     messages: [
-      { role: "student", content: "你好", step: "explain" },
-      { role: "assistant", content: "你好！", step: "explain" },
+      msg({ role: "student", content: "你好", step: "explain" }),
+      msg({ role: "assistant", content: "你好！", step: "explain" }),
     ],
     activeModuleId: "python-basics",
   });

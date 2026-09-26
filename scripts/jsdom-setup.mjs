@@ -40,7 +40,7 @@ globalThis.getSelection = dom.window.getSelection.bind(dom.window);
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // fetch 模拟（测试中不调真实网络）
-globalThis.fetch = (async (url) => {
+globalThis.fetch = async (url) => {
   const urlStr = String(url);
   if (urlStr.includes("/api/module-content")) {
     return {
@@ -50,4 +50,4 @@ globalThis.fetch = (async (url) => {
     };
   }
   return { ok: false, status: 404, json: async () => ({}) };
-});
+};

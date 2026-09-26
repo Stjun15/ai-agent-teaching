@@ -18,10 +18,26 @@ const ABILITIES = [
 
 const TEACHING_FLOW = [
   { step: "1", title: "导师展示预设代码", detail: "先看清「对的」长什么样" },
-  { step: "2", title: "学生完成场景", detail: "自己写 Prompt、工具定义或核心逻辑" },
-  { step: "3", title: "AI 校验并点评", detail: "不通过就给出反馈与扣分理由，学生修改" },
-  { step: "4", title: "可视化展示 Agent Loop", detail: "看到刚才写的代码如何运转" },
-  { step: "5", title: "出题 Agent 给变式练习", detail: "换一个条件再练一遍，循环" },
+  {
+    step: "2",
+    title: "学生完成场景",
+    detail: "自己写 Prompt、工具定义或核心逻辑",
+  },
+  {
+    step: "3",
+    title: "AI 校验并点评",
+    detail: "不通过就给出反馈与扣分理由，学生修改",
+  },
+  {
+    step: "4",
+    title: "可视化展示 Agent Loop",
+    detail: "看到刚才写的代码如何运转",
+  },
+  {
+    step: "5",
+    title: "出题 Agent 给变式练习",
+    detail: "换一个条件再练一遍，循环",
+  },
 ] as const;
 
 export default async function HomePage() {
@@ -76,7 +92,11 @@ export default async function HomePage() {
             <dt className="sr-only">可视化场景</dt>
             <dd>
               <span className="block text-2xl font-semibold text-foreground tabular-nums">
-                {modules.filter((teachingModule) => teachingModule.sceneId !== null).length}
+                {
+                  modules.filter(
+                    (teachingModule) => teachingModule.sceneId !== null,
+                  ).length
+                }
               </span>
               可视化场景
             </dd>
@@ -86,7 +106,9 @@ export default async function HomePage() {
 
       {/* 六个子能力 */}
       <section className="mt-20">
-        <h2 className="text-xl font-semibold tracking-tight">我们训练的是这六件事</h2>
+        <h2 className="text-xl font-semibold tracking-tight">
+          我们训练的是这六件事
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           所有功能都服务于这六个子能力 —— 不训练它们的功能，不做。
         </p>
@@ -97,7 +119,7 @@ export default async function HomePage() {
               className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
             >
               <CardHeader>
-                <CardTitle className="group-hover:text-primary/90 transition-colors">
+                <CardTitle className="transition-colors group-hover:text-primary/90">
                   {ability.name}
                 </CardTitle>
               </CardHeader>
@@ -115,7 +137,9 @@ export default async function HomePage() {
       <section className="mt-20">
         <div className="flex items-center gap-2">
           <Workflow className="size-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold tracking-tight">一次学习的完整过程</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            一次学习的完整过程
+          </h2>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-5">
           {TEACHING_FLOW.map((item) => (
@@ -167,7 +191,8 @@ export default async function HomePage() {
             你的最终目标：做一个带 Agent 的 AI 教学网页
           </h3>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            这门课不是让你「学过一遍概念」。你要亲手复刻一个 AI 教学平台——就是你正在用的这个。
+            这门课不是让你「学过一遍概念」。你要亲手复刻一个 AI
+            教学平台——就是你正在用的这个。
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs sm:gap-3">
             {[
@@ -180,7 +205,9 @@ export default async function HomePage() {
                 <span className="rounded-md border bg-background px-2 py-1 font-medium">
                   {item.icon} {item.label}
                 </span>
-                {i < arr.length - 1 && <span className="text-muted-foreground">→</span>}
+                {i < arr.length - 1 && (
+                  <span className="text-muted-foreground">→</span>
+                )}
               </span>
             ))}
             <span className="mt-2 w-full text-center text-xs text-muted-foreground sm:mt-0 sm:w-auto">
@@ -190,12 +217,21 @@ export default async function HomePage() {
           <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { title: "LLM API", detail: "让网页能调 AI——发请求、收回复" },
-              { title: "Agent Loop", detail: "AI 推教学流程、切换步骤，不只是聊天" },
+              {
+                title: "Agent Loop",
+                detail: "AI 推教学流程、切换步骤，不只是聊天",
+              },
               { title: "出题 Agent", detail: "根据概念自动出题、批改、给反馈" },
-              { title: "SSE 流式对话", detail: "逐字打字的效果——不是刷一下弹出来" },
+              {
+                title: "SSE 流式对话",
+                detail: "逐字打字的效果——不是刷一下弹出来",
+              },
               { title: "掌握度追踪", detail: "记录哪个概念会了、哪个还不行" },
             ].map((item) => (
-              <div key={item.title} className="rounded-lg border bg-background px-3 py-2 transition-colors hover:border-ring/40">
+              <div
+                key={item.title}
+                className="rounded-lg border bg-background px-3 py-2 transition-colors hover:border-ring/40"
+              >
                 <span className="text-xs font-semibold">{item.title}</span>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {item.detail}
@@ -213,7 +249,8 @@ export default async function HomePage() {
                 className="flex items-center gap-3 rounded-lg border px-4 py-3 text-sm transition-all duration-200 hover:-translate-x-1 hover:border-ring/40 hover:shadow-sm"
               >
                 <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
-                  {teachingModule.orderLabel || `第 ${teachingModule.order + 1} 讲`}
+                  {teachingModule.orderLabel ||
+                    `第 ${teachingModule.order + 1} 讲`}
                 </span>
                 <span className="font-medium">{teachingModule.name}</span>
                 <span className="ml-auto shrink-0 text-xs text-muted-foreground">

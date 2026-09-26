@@ -43,8 +43,14 @@ RAG 三步：检索 → 增强 → 生成。给 AI 配上知识库，回答它�
 ```typescript
 // ① 私有知识库：公司政策、产品文档等——这些内容不在模型的训练数据里
 const knowledgeBase = [
-  { doc: "退款政策：购买后 7 天内无条件退款，需保留订单号。", source: "refund.md" },
-  { doc: "发票政策：电子发票付款后 24 小时内发送到注册邮箱。", source: "invoice.md" },
+  {
+    doc: "退款政策：购买后 7 天内无条件退款，需保留订单号。",
+    source: "refund.md",
+  },
+  {
+    doc: "发票政策：电子发票付款后 24 小时内发送到注册邮箱。",
+    source: "invoice.md",
+  },
   { doc: "会员规则：年费会员只退未使用月份的费用。", source: "member.md" },
 ];
 
@@ -53,12 +59,12 @@ const vectors = knowledgeBase.map((entry) => embed(entry.doc));
 
 // ③ 检索（Retrieval）：用户提问 → 把问题也向量化 → 找最相似的 top-3 文档
 function retrieve(question: string, k: number = 3) {
-  const qVector = embed(question);                            // 问题 → 向量
+  const qVector = embed(question); // 问题 → 向量
   const scores = vectors.map((v) => cosineSimilarity(qVector, v)); // 算相似度
   const topK = scores
-    .map((s, i) => ({ score: s, ...knowledgeBase[i] }))       // 带上原文
-    .sort((a, b) => b.score - a.score)                        // 相似度高的排前面
-    .slice(0, k);                                             // 取 top-K
+    .map((s, i) => ({ score: s, ...knowledgeBase[i] })) // 带上原文
+    .sort((a, b) => b.score - a.score) // 相似度高的排前面
+    .slice(0, k); // 取 top-K
   return topK;
 }
 
@@ -77,8 +83,14 @@ async function ask(question: string) {
   const response = await callLLM({
     model: "deepseek-chat",
     messages: [
-      { role: "system", content: "你是一个客服。只根据提供的资料回答，资料里没有的就说不知道。" },
-      { role: "user", content: `参考资料：\n${context}\n\n用户问题：${question}` },
+      {
+        role: "system",
+        content: "你是一个客服。只根据提供的资料回答，资料里没有的就说不知道。",
+      },
+      {
+        role: "user",
+        content: `参考资料：\n${context}\n\n用户问题：${question}`,
+      },
     ],
   });
   return response;

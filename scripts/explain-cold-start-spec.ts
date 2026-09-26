@@ -204,18 +204,9 @@ id: ts-basics
 `;
   const result = parsePathSelect(md);
   assert.ok(result !== null, "应识别路径选择结构");
-  assert.ok(
-    result!.intro.includes("引导内容"),
-    "intro 应包含引导段落",
-  );
-  assert.ok(
-    result!.lazy.includes("偷懒版内容"),
-    "lazy 应包含偷懒版正文",
-  );
-  assert.ok(
-    result!.full.includes("完整版内容"),
-    "full 应包含完整版正文",
-  );
+  assert.ok(result!.intro.includes("引导内容"), "intro 应包含引导段落");
+  assert.ok(result!.lazy.includes("偷懒版内容"), "lazy 应包含偷懒版正文");
+  assert.ok(result!.full.includes("完整版内容"), "full 应包含完整版正文");
   assert.ok(
     result!.full.includes("结语"),
     "完整版之后的结语也应包含在 full 中",
@@ -319,35 +310,25 @@ test("/api/module-content：platform-replica 返回 200 + 正文", async () => {
   assert.ok(typeof body.content === "string", "应有 content 字段");
   assert.ok(body.content.length > 100, "正文长度应 > 100 字符");
   // 正文不应包含 frontmatter（不应该以 --- 开头）
-  assert.equal(
-    body.content.startsWith("---"),
-    false,
-    "frontmatter 应已被切掉",
-  );
+  assert.equal(body.content.startsWith("---"), false, "frontmatter 应已被切掉");
 });
 
 test("/api/module-content：ts-basics 返回 200", async () => {
-  const res = await fetch(
-    `${BASE}/api/module-content?moduleId=ts-basics`,
-  );
+  const res = await fetch(`${BASE}/api/module-content?moduleId=ts-basics`);
   assert.equal(res.status, 200);
   const body = (await res.json()) as { content: string };
   assert.ok(body.content.length > 100);
 });
 
 test("/api/module-content：python-basics 返回 200", async () => {
-  const res = await fetch(
-    `${BASE}/api/module-content?moduleId=python-basics`,
-  );
+  const res = await fetch(`${BASE}/api/module-content?moduleId=python-basics`);
   assert.equal(res.status, 200);
   const body = (await res.json()) as { content: string };
   assert.ok(body.content.length > 100);
 });
 
 test("/api/module-content：非法 moduleId 返回 400", async () => {
-  const res = await fetch(
-    `${BASE}/api/module-content?moduleId=invalid!!!`,
-  );
+  const res = await fetch(`${BASE}/api/module-content?moduleId=invalid!!!`);
   assert.equal(res.status, 400);
   const body = (await res.json()) as {
     error: { code: string; message: string };
@@ -357,9 +338,7 @@ test("/api/module-content：非法 moduleId 返回 400", async () => {
 });
 
 test("/api/module-content：路径穿越返回 400", async () => {
-  const res = await fetch(
-    `${BASE}/api/module-content?moduleId=../etc/passwd`,
-  );
+  const res = await fetch(`${BASE}/api/module-content?moduleId=../etc/passwd`);
   assert.equal(res.status, 400);
 });
 
@@ -372,10 +351,7 @@ test("/api/module-content：不存在的模块返回 404", async () => {
     error: { code: string; message: string };
   };
   assert.equal(body.error.code, "NOT_FOUND");
-  assert.ok(
-    body.error.message.includes("不存在"),
-    "404 消息应包含「不存在」",
-  );
+  assert.ok(body.error.message.includes("不存在"), "404 消息应包含「不存在」");
 });
 
 test("/api/module-content：缺少 moduleId 参数返回 400", async () => {
@@ -384,8 +360,6 @@ test("/api/module-content：缺少 moduleId 参数返回 400", async () => {
 });
 
 test("/api/module-content：空 moduleId 返回 400", async () => {
-  const res = await fetch(
-    `${BASE}/api/module-content?moduleId=`,
-  );
+  const res = await fetch(`${BASE}/api/module-content?moduleId=`);
   assert.equal(res.status, 400);
 });

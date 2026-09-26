@@ -23,13 +23,24 @@ import { useSessionStore, type ChatMessage } from "@/stores/session";
 // ---------------------------------------------------------------------------
 
 function seedMessages(messages: ChatMessage[]): void {
+  // byModule 的值是完整快照桶（SavedSessionBucket），不是裸消息数组。
   useSessionStore.setState({
     messages,
     status: messages.some((m) => m.status === "streaming")
       ? "streaming"
       : "idle",
     activeModuleId: "render-test-module",
-    byModule: { "render-test-module": messages },
+    byModule: {
+      "render-test-module": {
+        messages,
+        thinking: [],
+        tools: [],
+        citations: [],
+        tokens: null,
+        invalidFrames: 0,
+        turnStep: null,
+      },
+    },
     thinking: [],
     tools: [],
     citations: [],
@@ -70,7 +81,7 @@ test("done 消息在流式输出中内容不变", async () => {
       status: "done",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
     {
       id: "streaming-1",
@@ -80,7 +91,7 @@ test("done 消息在流式输出中内容不变", async () => {
       status: "streaming",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
   ]);
 
@@ -88,7 +99,8 @@ test("done 消息在流式输出中内容不变", async () => {
     render(
       createElement(ChatPanel, {
         moduleId: "render-test-module",
-        step: "explain",
+        stepFilter: "explain",
+        lectureMode: "truncate",
       }),
     );
   });
@@ -108,7 +120,7 @@ test("追加 token 后，done 消息仍不变，流式消息拼接新内容", as
       status: "done",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
     {
       id: "streaming-2",
@@ -118,7 +130,7 @@ test("追加 token 后，done 消息仍不变，流式消息拼接新内容", as
       status: "streaming",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
   ]);
 
@@ -126,7 +138,8 @@ test("追加 token 后，done 消息仍不变，流式消息拼接新内容", as
     render(
       createElement(ChatPanel, {
         moduleId: "render-test-module",
-        step: "explain",
+        stepFilter: "explain",
+        lectureMode: "truncate",
       }),
     );
   });
@@ -157,7 +170,7 @@ test("流式消息 completeTurn 后变为 done，不再 streaming", async () => 
       status: "done",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
     {
       id: "streaming-3",
@@ -167,7 +180,7 @@ test("流式消息 completeTurn 后变为 done，不再 streaming", async () => 
       status: "streaming",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
   ]);
 
@@ -175,7 +188,8 @@ test("流式消息 completeTurn 后变为 done，不再 streaming", async () => 
     render(
       createElement(ChatPanel, {
         moduleId: "render-test-module",
-        step: "explain",
+        stepFilter: "explain",
+        lectureMode: "truncate",
       }),
     );
   });
@@ -194,7 +208,10 @@ test("流式消息 completeTurn 后变为 done，不再 streaming", async () => 
   });
 
   assert.ok(screen.getAllByText("已完成。").length >= 1, "历史消息仍渲染");
-  assert.ok(screen.getAllByText("即将完成。").length >= 1, "刚完成的消息也渲染");
+  assert.ok(
+    screen.getAllByText("即将完成。").length >= 1,
+    "刚完成的消息也渲染",
+  );
 });
 
 test("学生消息（role:student）在 done 后保持稳定", async () => {
@@ -206,7 +223,7 @@ test("学生消息（role:student）在 done 后保持稳定", async () => {
       status: "done",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
     {
       id: "streaming-4",
@@ -216,7 +233,7 @@ test("学生消息（role:student）在 done 后保持稳定", async () => {
       status: "streaming",
       step: "explain",
       citations: [],
-      createdAt: Date.now(),
+      createdAt: new Date().toISOString(),
     },
   ]);
 
@@ -224,7 +241,8 @@ test("学生消息（role:student）在 done 后保持稳定", async () => {
     render(
       createElement(ChatPanel, {
         moduleId: "render-test-module",
-        step: "explain",
+        stepFilter: "explain",
+        lectureMode: "truncate",
       }),
     );
   });

@@ -54,9 +54,9 @@ const messages = [
 
 // ② 调用 LLM：指定模型、传入消息、开启流式输出（stream=true 逐字返回）
 const response = await callLLM({
-  model: "deepseek-chat",    // 用什么模型
-  messages: messages,        // 刚才定义的消息数组
-  stream: true,              // true=打字机式输出，false=等全写完再返回
+  model: "deepseek-chat", // 用什么模型
+  messages: messages, // 刚才定义的消息数组
+  stream: true, // true=打字机式输出，false=等全写完再返回
 });
 ```
 

@@ -193,7 +193,10 @@ function runSuite(suite) {
 
     args.push(suite.file);
 
-    const child = spawn(process.execPath, args, { cwd: root, env: { ...process.env, NODE_OPTIONS: "" } });
+    const child = spawn(process.execPath, args, {
+      cwd: root,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
 
     let output = "";
     child.stdout.on("data", (chunk) => (output += chunk));

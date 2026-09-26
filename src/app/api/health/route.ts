@@ -74,17 +74,21 @@ interface WikiHealth {
   indexAutoFixed: number;
 }
 
-function checkWikiHealth(): WikiHealth {
+async function checkWikiHealth(): Promise<WikiHealth> {
   try {
-    const report = maintain();
-    const issues = report.issues ?? [];
-    const deadLinks = issues.filter((i) => i.category === "dead-link").length;
-    const orphans = issues.filter((i) => i.category === "orphan-page").length;
+    // maintain 现在是 async（wiki/maintain.ts 的签名演进），这里 await 铺平。（返回 Promise）：health 是诊断端点，
+    // 用同步等待把报告铺平（Route Handler 本身就是 async 语境，此处
+    // 作为独立函数保持同步签名，调用端再 await）。
+    const report = await maintain();
+    // WikiIssue 的判别字段是 kind（不是 category——那是对旧结构的记忆）。
+    const issues = report.issues;
+    const deadLinks = issues.filter((i) => i.kind === "dead-link").length;
+    const orphans = issues.filter((i) => i.kind === "orphan-page").length;
     const schemaIssues = issues.filter(
       (i) =>
-        i.category === "missing-frontmatter" ||
-        i.category === "missing-required-field" ||
-        i.category === "unknown-page-type",
+        i.kind === "missing-frontmatter" ||
+        i.kind === "missing-required-field" ||
+        i.kind === "unknown-page-type",
     ).length;
 
     return {
@@ -123,10 +127,10 @@ function checkConfig(): ConfigHealth {
   };
 }
 
-export function GET(): Response {
+export async function GET(): Promise<Response> {
   const database = checkDatabaseHealth();
   const config = checkConfig();
-  const wiki = checkWikiHealth();
+  const wiki = await checkWikiHealth();
 
   const body = {
     status: database.ok && config.ok ? "ok" : "degraded",

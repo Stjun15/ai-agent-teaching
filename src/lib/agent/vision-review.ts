@@ -17,11 +17,7 @@
  */
 
 import { ARK_API_KEY_ENV, readArkSettings } from "./ark-config";
-import {
-  createSSEStream,
-  sseResponse,
-  type SSEStream,
-} from "../sse-server";
+import { createSSEStream, sseResponse } from "../sse-server";
 
 /** 图片点评的系统提示词。只做教学点评，不做通用图片描述。 */
 const VISION_SYSTEM_PROMPT = [
@@ -83,7 +79,8 @@ export async function runVisionReview(
 
   const messageId = crypto.randomUUID();
   const contentBlocks: Array<
-    { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: "auto" } }
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string; detail?: "auto" } }
   > = [{ type: "text", text: prompt }];
 
   for (const image of images) {
@@ -258,8 +255,8 @@ export async function runVisionReview(
 
 /** 非流式场景下的错误响应。 */
 function jsonErrorResponse(code: string, message: string): Response {
-  return new Response(
-    JSON.stringify({ code, message, recoverable: true }),
-    { status: 500, headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify({ code, message, recoverable: true }), {
+    status: 500,
+    headers: { "Content-Type": "application/json" },
+  });
 }

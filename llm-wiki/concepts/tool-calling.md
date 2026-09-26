@@ -30,21 +30,27 @@ tags: [core, tool, function-calling]
 // ① 工具是用 JSON Schema 定义的「说明书」，名称、描述、参数三要素缺一不可
 const tools = [
   {
-    name: "getWeather",                     // ①-1 名称：动词+名词，模型靠名字选工具
-    description: "查询指定城市的当前天气。" +  // ①-2 描述：模型靠这段文字判断"该不该调这个工具"
+    name: "getWeather", // ①-1 名称：动词+名词，模型靠名字选工具
+    description:
+      "查询指定城市的当前天气。" + // ①-2 描述：模型靠这段文字判断"该不该调这个工具"
       "当用户问温度、会不会下雨时使用。",
-    parameters: {                           // ①-3 参数：Schema 定义，required 标记必填
+    parameters: {
+      // ①-3 参数：Schema 定义，required 标记必填
       type: "object",
       properties: {
         city: { type: "string", description: "城市名称，如 北京" },
       },
-      required: ["city"],                   // 城市是必填，模型必须传，不能编
+      required: ["city"], // 城市是必填，模型必须传，不能编
     },
-    execute: async ({ city }: { city: string }) => ({ temp: 25, condition: "晴" }),
+    execute: async ({ city }: { city: string }) => ({
+      temp: 25,
+      condition: "晴",
+    }),
   },
   {
-    name: "calculate",                      // 第二个工具：算数
-    description: "计算数学表达式，支持加减乘除。" +
+    name: "calculate", // 第二个工具：算数
+    description:
+      "计算数学表达式，支持加减乘除。" +
       "需要精确计算结果时使用，不要让模型心算。",
     parameters: {
       type: "object",
@@ -64,7 +70,7 @@ const agent = createAgent({
 });
 
 // ③ 模型自动选型：这句话触发 getWeather；算数题会触发 calculate
-await agent.run("北京今天热吗？");            // → 调 getWeather("北京")
+await agent.run("北京今天热吗？"); // → 调 getWeather("北京")
 await agent.run("3 斤苹果每斤 5 块，一共多少钱？"); // → 调 calculate("3*5")
 ```
 

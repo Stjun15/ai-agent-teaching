@@ -19,7 +19,10 @@ import { ChatPanel } from "@/components/chat/chat-panel";
 import { Composer } from "@/components/chat/composer";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 
-import { REPLICA_PHASES, type ReplicaPhase } from "@/lib/platform-replica-phases";
+import {
+  REPLICA_PHASES,
+  type ReplicaPhase,
+} from "@/lib/platform-replica-phases";
 import type { TeachingModule } from "@/lib/modules";
 
 export function PlatformReplicaWorkspace({
@@ -127,7 +130,11 @@ export function PlatformReplicaWorkspace({
                 >
                   <div>{p.title}</div>
                   <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
-                    {isDone ? "已完成" : p.goal.length > 28 ? p.goal.slice(0, 28) + "…" : p.goal}
+                    {isDone
+                      ? "已完成"
+                      : p.goal.length > 28
+                        ? p.goal.slice(0, 28) + "…"
+                        : p.goal}
                   </div>
                 </button>
               </div>

@@ -56,8 +56,8 @@ export interface ReportOverview {
    *
    * ⚠️ **量纲是 0~100** —— 来自点评 Agent 的 `total_score`
    * （`ReviewerOutputSchema` 的 `min(0).max(100)`），
- * 与上面 `averageMastery` **不是同一个量纲**，两者不能直接比较。
- */
+   * 与上面 `averageMastery` **不是同一个量纲**，两者不能直接比较。
+   */
   averagePromptScore: number;
 }
 

@@ -104,7 +104,11 @@ test("发送消息时请求体携带 moduleId 与 step", async () => {
   });
 
   assert.equal(fetchCalls.length, 1, "应发送一次请求");
-  assert.equal(fetchCalls[0].body.moduleId, "python-basics", "请求体应含 moduleId");
+  assert.equal(
+    fetchCalls[0].body.moduleId,
+    "python-basics",
+    "请求体应含 moduleId",
+  );
   assert.equal(fetchCalls[0].body.step, "explain", "请求体应含 step");
   assert.equal(fetchCalls[0].body.content, "偷懒版", "请求体应含用户输入");
 });
@@ -160,7 +164,11 @@ test("按 Enter 键（不含 Shift）发送消息，请求体携带 moduleId 与
 
   await act(async () => {
     fireEvent.change(textarea, { target: { value: "偷懒版" } });
-    fireEvent.keyDown(textarea, { key: "Enter", code: "Enter", shiftKey: false });
+    fireEvent.keyDown(textarea, {
+      key: "Enter",
+      code: "Enter",
+      shiftKey: false,
+    });
   });
 
   await act(async () => {
@@ -183,9 +191,10 @@ test("流控：发送中重复点击不会发出第二次请求", async () => {
   const hangingFetch = (async (url: unknown, init: unknown) => {
     const body =
       init && typeof init === "object" && "body" in init
-        ? (JSON.parse(
-            (init as RequestInit).body as string,
-          ) as Record<string, unknown>)
+        ? (JSON.parse((init as RequestInit).body as string) as Record<
+            string,
+            unknown
+          >)
         : {};
     fetchCalls.push({ url: String(url), body });
     return new Promise<Response>((resolve) => {
@@ -241,11 +250,7 @@ test("流控：发送中重复点击不会发出第二次请求", async () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
 
-  assert.equal(
-    fetchCalls.length,
-    1,
-    "发送中重复点击不应发出第二次请求",
-  );
+  assert.equal(fetchCalls.length, 1, "发送中重复点击不应发出第二次请求");
 });
 
 // ---------------------------------------------------------------------------
@@ -253,15 +258,16 @@ test("流控：发送中重复点击不会发出第二次请求", async () => {
 // ---------------------------------------------------------------------------
 
 test("点击停止后可再次发送消息", async () => {
-  // 替换 fetch 为信号感知的悬挂版本
-  let resolveFetch: () => void = () => {};
+  // 替换 fetch 为信号感知的悬挂版本（本用例只测「停止后可再发」，
+  // 不需要手动放行悬挂请求，故不保留 resolveFetch 句柄。
 
   const abortableFetch = (async (url: unknown, init: unknown) => {
     const body =
       init && typeof init === "object" && "body" in init
-        ? (JSON.parse(
-            (init as RequestInit).body as string,
-          ) as Record<string, unknown>)
+        ? (JSON.parse((init as RequestInit).body as string) as Record<
+            string,
+            unknown
+          >)
         : {};
     fetchCalls.push({ url: String(url), body });
     const signal = (init as RequestInit)?.signal;
@@ -271,8 +277,7 @@ test("点击停止后可再次发送消息", async () => {
         reject(new DOMException("Aborted", "AbortError"));
         return;
       }
-      const onAbort = () =>
-        reject(new DOMException("Aborted", "AbortError"));
+      const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
       signal?.addEventListener("abort", onAbort);
 
       resolveFetch = () => {

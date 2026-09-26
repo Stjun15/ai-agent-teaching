@@ -63,11 +63,7 @@ afterEach(() => {
 
 type SendFn = ReturnType<typeof useChatStream>["send"];
 
-function TestSender({
-  onMount,
-}: {
-  onMount: (send: SendFn) => void;
-}) {
+function TestSender({ onMount }: { onMount: (send: SendFn) => void }) {
   const { send } = useChatStream();
   const called = useRef(false);
   useEffect(() => {
@@ -87,7 +83,13 @@ test("silent:true 的消息不插入学生消息", async () => {
   let capturedSend: SendFn | undefined;
 
   await act(async () => {
-    render(createElement(TestSender, { onMount: (s) => { capturedSend = s; } }));
+    render(
+      createElement(TestSender, {
+        onMount: (s) => {
+          capturedSend = s;
+        },
+      }),
+    );
   });
 
   assert.ok(capturedSend);
@@ -101,18 +103,20 @@ test("silent:true 的消息不插入学生消息", async () => {
 
   const state = useSessionStore.getState();
   const studentMsgs = state.messages.filter((m) => m.role === "student");
-  assert.equal(
-    studentMsgs.length,
-    0,
-    "silent:true 不应插入学生消息",
-  );
+  assert.equal(studentMsgs.length, 0, "silent:true 不应插入学生消息");
 });
 
 test("普通消息（非 silent）正常插入学生消息", async () => {
   let capturedSend: SendFn | undefined;
 
   await act(async () => {
-    render(createElement(TestSender, { onMount: (s) => { capturedSend = s; } }));
+    render(
+      createElement(TestSender, {
+        onMount: (s) => {
+          capturedSend = s;
+        },
+      }),
+    );
   });
 
   assert.ok(capturedSend);
@@ -135,7 +139,13 @@ test("silent:true 不构建历史 / 不发送 history 字段", async () => {
   let capturedSend: SendFn | undefined;
 
   await act(async () => {
-    render(createElement(TestSender, { onMount: (s) => { capturedSend = s; } }));
+    render(
+      createElement(TestSender, {
+        onMount: (s) => {
+          capturedSend = s;
+        },
+      }),
+    );
   });
 
   assert.ok(capturedSend);
@@ -169,7 +179,13 @@ test("非 silent 消息构建并发送历史", async () => {
   let capturedSend: SendFn | undefined;
 
   await act(async () => {
-    render(createElement(TestSender, { onMount: (s) => { capturedSend = s; } }));
+    render(
+      createElement(TestSender, {
+        onMount: (s) => {
+          capturedSend = s;
+        },
+      }),
+    );
   });
 
   assert.ok(capturedSend);

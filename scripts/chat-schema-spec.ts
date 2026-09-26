@@ -21,7 +21,13 @@ import { ChatRequestSchema } from "@/schemas/api";
 // ---------------------------------------------------------------------------
 
 test("ChatRequestSchema：放行合法 moduleId", () => {
-  for (const id of ["python-basics", "ts-basics", "platform-replica", "a", "abc-123-def"]) {
+  for (const id of [
+    "python-basics",
+    "ts-basics",
+    "platform-replica",
+    "a",
+    "abc-123-def",
+  ]) {
     const r = ChatRequestSchema.safeParse({ content: "你好", moduleId: id });
     assert.equal(r.success, true, `「${id}」应被放行`);
     if (r.success) assert.equal(r.data.moduleId, id);
@@ -34,14 +40,26 @@ test("ChatRequestSchema：拒绝空字符串 moduleId", () => {
 });
 
 test("ChatRequestSchema：拒绝含特殊字符的 moduleId", () => {
-  for (const id of ["invalid!!!", "module name", "module_name", "Module", "中文"]) {
+  for (const id of [
+    "invalid!!!",
+    "module name",
+    "module_name",
+    "Module",
+    "中文",
+  ]) {
     const r = ChatRequestSchema.safeParse({ content: "你好", moduleId: id });
     assert.equal(r.success, false, `「${id}」应被拒绝`);
   }
 });
 
 test("ChatRequestSchema：拒绝路径穿越", () => {
-  for (const id of ["../etc/passwd", "..\\windows", "./config", "/etc/passwd", "a/b"]) {
+  for (const id of [
+    "../etc/passwd",
+    "..\\windows",
+    "./config",
+    "/etc/passwd",
+    "a/b",
+  ]) {
     const r = ChatRequestSchema.safeParse({ content: "你好", moduleId: id });
     assert.equal(r.success, false, `路径穿越「${id}」应被拒绝`);
   }

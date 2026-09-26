@@ -138,9 +138,7 @@ export async function POST(req: Request): Promise<Response> {
   };
   // 身份层系统提示词 + 概念页教学脚本拼接。
   // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」。
-  const parts = [conceptScript, stepAgent.systemPrompt].filter(
-    (p) => p !== "",
-  );
+  const parts = [conceptScript, stepAgent.systemPrompt].filter((p) => p !== "");
   if (parts.length > 0) {
     loopOptions.systemPrompt = parts.join("\n\n");
   }

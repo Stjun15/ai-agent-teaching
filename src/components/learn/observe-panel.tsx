@@ -48,9 +48,7 @@ export function ObservePanel({
 
   const codeBlocks = useMemo(() => {
     if (!demoCode) return [];
-    return parseMarkdown(demoCode).filter(
-      (block) => block.type === "code",
-    );
+    return parseMarkdown(demoCode).filter((block) => block.type === "code");
   }, [demoCode]);
 
   if (!demoCode) {

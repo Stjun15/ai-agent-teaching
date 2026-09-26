@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowRight, Check, Circle, Lightbulb, RotateCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Circle,
+  Lightbulb,
+  RotateCcw,
+} from "lucide-react";
 
 const LEARN_STEPS = [
   { label: "概念讲解", done: true },
@@ -93,7 +100,6 @@ export default function DemoAdjustmentsPage() {
       {/* 左栏 —— 模拟模块页 module-workspace 的 <aside>                    */}
       {/* ================================================================ */}
       <aside className="flex w-56 shrink-0 flex-col gap-4">
-
         {/* ---- StepNav 模拟 ---- */}
         <nav aria-label="学习步骤" className="rounded-md border bg-card p-3">
           <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -152,9 +158,7 @@ export default function DemoAdjustmentsPage() {
                     <p className="mt-1 font-medium text-foreground">
                       {adj.reason}
                     </p>
-                    <p className="mt-0.5 text-muted-foreground">
-                      {adj.action}
-                    </p>
+                    <p className="mt-0.5 text-muted-foreground">{adj.action}</p>
                     <p className="mt-1 text-[10px] text-muted-foreground/60">
                       {adj.date}
                     </p>
@@ -179,9 +183,7 @@ export default function DemoAdjustmentsPage() {
       {/* 主区 —— 模拟教学区                                               */}
       {/* ================================================================ */}
       <main className="min-w-0 flex-1 rounded-lg border bg-card p-8">
-        <h1 className="mb-2 text-xl font-semibold">
-          路径调整演示
-        </h1>
+        <h1 className="mb-2 text-xl font-semibold">路径调整演示</h1>
         <p className="mb-6 text-sm text-muted-foreground">
           左栏展示了 Ploy 闭环策略的教学场景落地 —— 系统在每次答题评分后
           自动分析掌握度快照，产出路径调整建议。

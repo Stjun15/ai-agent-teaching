@@ -133,7 +133,11 @@ export function Composer({
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key !== " " || e.repeat) return;
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLInputElement
+      )
+        return;
       e.preventDefault();
       if (!isListening) {
         startMic();
@@ -142,7 +146,11 @@ export function Composer({
 
     function handleKeyUp(e: KeyboardEvent) {
       if (e.key !== " ") return;
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLInputElement
+      )
+        return;
       if (isListening) {
         stopMic();
       }
@@ -238,7 +246,9 @@ export function Composer({
     sendContent(text.trim());
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
+  function handleKeyDown(
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ): void {
     if (event.key !== "Enter" || event.shiftKey) return;
     if (event.nativeEvent.isComposing) return;
     event.preventDefault();
@@ -254,7 +264,7 @@ export function Composer({
           spellCheck={false}
           rows={6}
           placeholder="把你的 Prompt / 工具定义 / 核心逻辑贴在这里，导师会按评分标准逐项点评。"
-          className="w-full resize-y rounded-md border bg-background p-2.5 font-mono text-xs leading-relaxed outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="w-full resize-y rounded-md border bg-background p-2.5 font-mono text-xs leading-relaxed transition-colors duration-200 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         />
       ) : null}
 
@@ -273,7 +283,7 @@ export function Composer({
               <button
                 type="button"
                 onClick={() => removeImage(i)}
-                className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute top-0.5 right-0.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
                 aria-label="移除图片"
               >
                 <X className="size-3" />
@@ -319,7 +329,7 @@ export function Composer({
                 : "说说你的思路，或问一个具体的问题…（空格键语音，Enter 发送）"
           }
           className={cn(
-            "min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed outline-none transition-colors duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 placeholder:text-muted-foreground/60",
+            "min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed transition-colors duration-200 outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
             isListening && "border-primary ring-[3px] ring-primary/30",
           )}
         />
@@ -391,9 +401,7 @@ export function Composer({
         <p
           className={cn(
             "flex items-center gap-1.5 text-xs",
-            elapsed >= 30
-              ? "text-amber-600"
-              : "text-muted-foreground",
+            elapsed >= 30 ? "text-amber-600" : "text-muted-foreground",
           )}
         >
           <Loader2 className="size-3 animate-spin" />

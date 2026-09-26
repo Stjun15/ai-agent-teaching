@@ -48,9 +48,9 @@ function filterInput(content: string): { ok: boolean; reason?: string } {
 // ② 沙箱执行：危险操作（删文件、执行代码）放进隔离环境跑
 async function safeExecute(fn: () => Promise<unknown>): Promise<unknown> {
   try {
-    return await fn();                        // 正常执行
+    return await fn(); // 正常执行
   } catch (error) {
-    return "操作失败，系统已自动回滚。";        // 任何异常都兜底，不让外部看到内部错误
+    return "操作失败，系统已自动回滚。"; // 任何异常都兜底，不让外部看到内部错误
   }
 }
 
@@ -62,7 +62,7 @@ function filterOutput(content: string): string {
       return "回答中可能包含敏感信息，已过滤。请重新提问。";
     }
   }
-  return content;  // 通过检查，原样返回
+  return content; // 通过检查，原样返回
 }
 
 // ④ 限流：控制调用频率，防止 token 费用爆炸

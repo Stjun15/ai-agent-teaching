@@ -212,10 +212,7 @@ export const ChatRequestSchema = z.object({
    * 有图片时后端走视觉评审管线（`vision-review.ts`），用多模态模型
    * `doubao-seed-2-1-pro-260915` 点评；无图片时走原有文本管线。
    */
-  images: z
-    .array(z.string().startsWith("data:image/"))
-    .max(3)
-    .optional(),
+  images: z.array(z.string().startsWith("data:image/")).max(3).optional(),
 });
 
 /**

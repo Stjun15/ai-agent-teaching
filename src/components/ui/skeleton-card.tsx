@@ -18,7 +18,9 @@ export function SkeletonGrid({
   className?: string;
 }) {
   return (
-    <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${className ?? ""}`}>
+    <div
+      className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${className ?? ""}`}
+    >
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonCard key={i} />
       ))}

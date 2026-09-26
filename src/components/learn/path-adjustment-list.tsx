@@ -27,15 +27,23 @@ import type { PathAdjustment } from "@/lib/db";
 
 function pickIcon(reason: string) {
   if (reason.includes("连续") && reason.includes("校验")) {
-    return <AlertTriangle className="size-3.5 shrink-0 text-amber-500" aria-hidden />;
+    return (
+      <AlertTriangle className="size-3.5 shrink-0 text-amber-500" aria-hidden />
+    );
   }
   if (reason.includes("错题")) {
-    return <Lightbulb className="size-3.5 shrink-0 text-blue-500" aria-hidden />;
+    return (
+      <Lightbulb className="size-3.5 shrink-0 text-blue-500" aria-hidden />
+    );
   }
   if (reason.includes("下降")) {
-    return <RotateCcw className="size-3.5 shrink-0 text-rose-500" aria-hidden />;
+    return (
+      <RotateCcw className="size-3.5 shrink-0 text-rose-500" aria-hidden />
+    );
   }
-  return <ArrowRight className="size-3.5 shrink-0 text-emerald-500" aria-hidden />;
+  return (
+    <ArrowRight className="size-3.5 shrink-0 text-emerald-500" aria-hidden />
+  );
 }
 
 function formatDate(iso: string): string {

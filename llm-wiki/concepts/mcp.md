@@ -42,8 +42,8 @@ MCP（Model Context Protocol）是连接 AI 和外部工具的开放协议。
 ```typescript
 // ① 连接到 MCP Server：建立与工具服务器的通道
 const mcpClient = await connectMCP({
-  server: "search-server",               // 服务名：想接哪个 MCP Server
-  url: "mcp://search.example.com",       // 连接地址：MCP 协议的标准 URL 格式
+  server: "search-server", // 服务名：想接哪个 MCP Server
+  url: "mcp://search.example.com", // 连接地址：MCP 协议的标准 URL 格式
 });
 // 连接成功后，Agent 和外部工具之间就多了一条「专线」
 
@@ -58,7 +58,7 @@ const tools = await mcpClient.listTools();
 
 // ③ 调用工具：Agent 选工具、传参数，MCP Client 转发请求给 MCP Server
 const result = await mcpClient.callTool("webSearch", {
-  query: "最新 AI 新闻",                 // 搜索关键词
+  query: "最新 AI 新闻", // 搜索关键词
 });
 // 调用链路：Agent → MCP Client → MCP Server → 外部服务 → 结果原路返回
 

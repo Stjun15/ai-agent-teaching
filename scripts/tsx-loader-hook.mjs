@@ -1,7 +1,7 @@
 /**
  * TSX hooks —— 让 Node 跑 React 组件测试。
  *
- * Node 22+ 的 --experimental-strip-types 只去类型注解，不处理 JSX 
+ * Node 22+ 的 --experimental-strip-types 只去类型注解，不处理 JSX
  * 也不认 .tsx 扩展名。这里补两刀：
  *   1. resolve：把 .tsx/.jsx 的格式标为 "module"（否则 Node 直接报
  *      ERR_UNKNOWN_FILE_EXTENSION，连 load 都到不了）；
@@ -33,9 +33,10 @@ export async function load(url, context, nextLoad) {
     return result;
   }
 
-  const source = result.source instanceof Uint8Array
-    ? new TextDecoder().decode(result.source)
-    : String(result.source ?? "");
+  const source =
+    result.source instanceof Uint8Array
+      ? new TextDecoder().decode(result.source)
+      : String(result.source ?? "");
 
   try {
     const transformed = transformSync(source, {

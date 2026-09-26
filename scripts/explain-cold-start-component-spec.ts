@@ -141,11 +141,7 @@ test("shouldHide：status=done 时不渲染（讲稿已出现，不再需要冷�
         moduleName: "Python 基础速通",
       }),
     );
-    assert.equal(
-      result.container.innerHTML,
-      "",
-      "done 状态应返回 null",
-    );
+    assert.equal(result.container.innerHTML, "", "done 状态应返回 null");
   });
 });
 
@@ -160,10 +156,6 @@ test("shouldHide：status=aborted 时不渲染", async () => {
         moduleName: "Python 基础速通",
       }),
     );
-    assert.equal(
-      result.container.innerHTML,
-      "",
-      "aborted 状态应返回 null",
-    );
+    assert.equal(result.container.innerHTML, "", "aborted 状态应返回 null");
   });
 });

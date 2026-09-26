@@ -38,7 +38,11 @@ const SECTION_NAMES = {
 /** 哪些小节标题属于同一语义类（不同概念页用词不同）。 */
 const SECTION_ALIASES: Record<string, string[]> = {
   definition: [SECTION_NAMES.definition],
-  keyPoints: [SECTION_NAMES.keyPoints, SECTION_NAMES.keySteps, SECTION_NAMES.coreOps],
+  keyPoints: [
+    SECTION_NAMES.keyPoints,
+    SECTION_NAMES.keySteps,
+    SECTION_NAMES.coreOps,
+  ],
   why: [SECTION_NAMES.why],
   misconceptions: [SECTION_NAMES.misconceptions, SECTION_NAMES.commonProblems],
   comparison: [SECTION_NAMES.comparison],
@@ -111,7 +115,9 @@ function selectSections(
 ): string[] {
   const sections = parseSections(body);
   return sections
-    .filter((section) => kinds.some((kind) => sectionMatches(section.heading, kind)))
+    .filter((section) =>
+      kinds.some((kind) => sectionMatches(section.heading, kind)),
+    )
     .map((section) => `## ${section.heading}\n\n${section.content}`)
     .filter((text) => text.trim().length > 0);
 }

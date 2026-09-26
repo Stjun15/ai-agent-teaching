@@ -130,7 +130,10 @@ async function studentSay(context: string): Promise<string> {
 }
 
 /** 让学生 Agent 产生一段代码或提示词（强制产出，非对话） */
-async function studentProduce(context: string, kind: string): Promise<{
+async function studentProduce(
+  context: string,
+  kind: string,
+): Promise<{
   text: string;
   savedPath: string | null;
 }> {
@@ -174,7 +177,9 @@ function saveOutput(
   const path = join(OUT_DIR, category, filename);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, content, "utf-8");
-  console.log(`      💾 已保存：${category}/${filename} (${content.length} 字符)`);
+  console.log(
+    `      💾 已保存：${category}/${filename} (${content.length} 字符)`,
+  );
   return path;
 }
 
@@ -229,7 +234,11 @@ async function teachingSayOnce(
       if (response !== null) break;
     }
     if (response === null) {
-      return { fullText: "", tokens: null, error: "dev server 无法连接（3 次重连均失败）" };
+      return {
+        fullText: "",
+        tokens: null,
+        error: "dev server 无法连接（3 次重连均失败）",
+      };
     }
   }
 
@@ -239,7 +248,11 @@ async function teachingSayOnce(
       response.status === 429
         ? "触发限流 (429)——Ark 平台端的并发/速率限制"
         : `HTTP ${response.status}`;
-    return { fullText: "", tokens: null, error: `${statusLabel}: ${body.slice(0, 200)}` };
+    return {
+      fullText: "",
+      tokens: null,
+      error: `${statusLabel}: ${body.slice(0, 200)}`,
+    };
   }
   if (!response.body) {
     return { fullText: "", tokens: null, error: "空响应" };
@@ -382,7 +395,8 @@ function loadCheckpoint(): ModuleWalkResult[] {
 const MC_QUESTIONS = [
   {
     id: 1,
-    question: "在 LLM API 调用中，system、user、assistant 三种消息角色中，哪一个是用来设定 AI 整体行为规则的？",
+    question:
+      "在 LLM API 调用中，system、user、assistant 三种消息角色中，哪一个是用来设定 AI 整体行为规则的？",
     options: { A: "user", B: "system", C: "assistant", D: "function" },
     answer: "B",
     module: "llm-api",
@@ -458,22 +472,64 @@ async function adminQuiz(
 
   // 统计提到几个模块关键词
   const moduleKeywords: Record<string, string[]> = {
-    "python-basics": ["python", "变量", "函数", "循环", "dict", "list", "类型标注", "for"],
-    "ts-basics": ["typescript", "interface", "类型", "箭头函数", "filter", "type", "数组"],
-    "llm-api": ["LLM", "API", "模型", "chat", "completion", "预测", "下一个", "token"],
-    "system-prompt": ["system", "prompt", "提示词", "角色", "说明书", "约束", "规则"],
+    "python-basics": [
+      "python",
+      "变量",
+      "函数",
+      "循环",
+      "dict",
+      "list",
+      "类型标注",
+      "for",
+    ],
+    "ts-basics": [
+      "typescript",
+      "interface",
+      "类型",
+      "箭头函数",
+      "filter",
+      "type",
+      "数组",
+    ],
+    "llm-api": [
+      "LLM",
+      "API",
+      "模型",
+      "chat",
+      "completion",
+      "预测",
+      "下一个",
+      "token",
+    ],
+    "system-prompt": [
+      "system",
+      "prompt",
+      "提示词",
+      "角色",
+      "说明书",
+      "约束",
+      "规则",
+    ],
     "agent-loop": ["agent", "loop", "循环", "多步", "多轮", "自己调"],
     "tool-calling": ["工具", "function", "tool", "天气", "定义工具", "参数"],
     rag: ["RAG", "检索", "向量", "embedding", "文档", "知识库", "私有"],
     "llm-wiki": ["wiki", "百科", "结构化", "知识"],
     "multi-agent": ["多 agent", "多智能体", "协作", "并行", "交接"],
     mcp: ["MCP", "协议", "统一", "连接", "标准"],
-    "ai-safety": ["安全", "注入", "prompt injection", "防护", "过滤", "输入", "沙箱"],
+    "ai-safety": [
+      "安全",
+      "注入",
+      "prompt injection",
+      "防护",
+      "过滤",
+      "输入",
+      "沙箱",
+    ],
   };
 
   let recallCount = 0;
   const recallLower = recallResponse.toLowerCase();
-  for (const [mid, keywords] of Object.entries(moduleKeywords)) {
+  for (const [, keywords] of Object.entries(moduleKeywords)) {
     if (keywords.some((kw) => recallLower.includes(kw.toLowerCase()))) {
       recallCount++;
     }
@@ -519,9 +575,7 @@ async function adminQuiz(
   console.log(
     `\n  🏆 综合评级：${grade === "pass" ? "✅ 合格" : grade === "weak" ? "⚠️ 薄弱" : "❌ 需要重学"}`,
   );
-  console.log(
-    `     自由回忆 ${recallCount}/3+ | 选择题 ${mcScore}/5`,
-  );
+  console.log(`     自由回忆 ${recallCount}/3+ | 选择题 ${mcScore}/5`);
 
   return { recallCount, recallText: recallResponse, mcScore, mcDetails, grade };
 }
@@ -990,9 +1044,7 @@ async function walkModule(def: ModuleDef): Promise<ModuleWalkResult> {
 
     const reviewResponse = await teachingSay(reviewPrompt, def.id, "explain");
     if (reviewResponse.fullText) {
-      console.log(
-        `      🔍 老师反馈：${reviewResponse.fullText.length} 字`,
-      );
+      console.log(`      🔍 老师反馈：${reviewResponse.fullText.length} 字`);
 
       await sleep(3000);
       console.log("  [6] 学生根据反馈修正…");
@@ -1007,7 +1059,10 @@ async function walkModule(def: ModuleDef): Promise<ModuleWalkResult> {
 
       const revised = await studentProduce(reviseContext, def.outputKind);
       if (revised.text) {
-        const revisedFilename = def.outputFilename.replace(/\.(\w+)$/, "-v2.$1");
+        const revisedFilename = def.outputFilename.replace(
+          /\.(\w+)$/,
+          "-v2.$1",
+        );
         saveOutput(
           def.outputKind === "prompt" ? "prompts" : "code",
           revisedFilename,
@@ -1058,7 +1113,8 @@ function assessModule(turns: TurnRecord[]): string {
   }
   if (okCount < turns.length) issues.push(`${turns.length - okCount} 轮失败`);
 
-  if (issues.length === 0) return `全部 ${okCount} 轮走通，平均回复 ${avgLen} 字。`;
+  if (issues.length === 0)
+    return `全部 ${okCount} 轮走通，平均回复 ${avgLen} 字。`;
   return `已走通 ${okCount}/${turns.length} 轮，平均 ${avgLen} 字。问题：${issues.join("；")}。`;
 }
 
@@ -1071,7 +1127,7 @@ interface ReplicaStep {
   moduleHint: string;
   /** Phase 1 产出文件（相对 walkthrough-output/）——学生必须基于这些文件搭建 */
   sourceFiles: string[];
-  /** 
+  /**
    * 跨文件约束：本步骤产出必须 import/引用前面步骤的哪些导出。
    * key 是前面步骤的索引（0-based），value 是必须出现的 import 片段。
    * 例如 { 1: "from '../lib/llm'" } 表示必须从 step 1 的 llm.ts 导入。
@@ -1194,7 +1250,9 @@ const REPLICA_STEPS: ReplicaStep[] = [
   },
 ];
 
-async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformReplicaResult> {
+async function walkReplica(
+  phase1Results: ModuleWalkResult[],
+): Promise<PlatformReplicaResult> {
   console.log(`\n\n${"=".repeat(55)}`);
   console.log(`  🏗️  Phase 2：教学平台复刻（回放式——基于 Phase 1 产出文件）`);
   console.log(`${"=".repeat(55)}`);
@@ -1206,7 +1264,10 @@ async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformR
       try {
         const content = readFileSync(r.output.savedPath, "utf-8");
         // 用相对路径做 key：code/01-hello-llm.ts 或 prompts/02-teaching-prompt.md
-        const relPath = relative(OUT_DIR, r.output.savedPath).replace(/\\/g, "/");
+        const relPath = relative(OUT_DIR, r.output.savedPath).replace(
+          /\\/g,
+          "/",
+        );
         phase1Files.set(relPath, content);
         // 也登记修正版（若有）
         const v2Path = relPath.replace(/\.(\w+)$/, "-v2.$1");
@@ -1216,7 +1277,9 @@ async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformR
         }
       } catch (err) {
         console.log(`  ⚠️ 读取 Phase 1 产出失败：${r.output.savedPath}`);
-        console.log(`     错误：${err instanceof Error ? err.message : String(err)}`);
+        console.log(
+          `     错误：${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
   }
@@ -1298,18 +1361,20 @@ async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformR
     if (step.importsFrom && production.text) {
       console.log(`  🔗 跨文件引用检查：`);
       const missing: string[] = [];
-      for (const [stepIdxStr, expectedImport] of Object.entries(step.importsFrom)) {
+      for (const [stepIdxStr, expectedImport] of Object.entries(
+        step.importsFrom,
+      )) {
         const stepIdx = Number(stepIdxStr);
         const prevStep = REPLICA_STEPS[stepIdx];
         if (production.text.includes(expectedImport)) {
           console.log(
             `     ✅ 引用了步骤 ${stepIdx + 1}（${prevStep.label}）：` +
-            `${expectedImport}`,
+              `${expectedImport}`,
           );
         } else {
           console.log(
             `     ❌ 缺少对步骤 ${stepIdx + 1}（${prevStep.label}）的引用：` +
-            `期望出现 "${expectedImport}"`,
+              `期望出现 "${expectedImport}"`,
           );
           missing.push(expectedImport);
         }
@@ -1334,7 +1399,9 @@ async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformR
             try {
               mkdirSync(dirname(replicaPath), { recursive: true });
               writeFileSync(replicaPath, fixed.text, "utf-8");
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
             console.log(`     📝 修正后：${fixed.text.length} 字`);
             production.text = fixed.text;
           }
@@ -1352,11 +1419,21 @@ async function walkReplica(phase1Results: ModuleWalkResult[]): Promise<PlatformR
 
   // 学习心得单独产出
   const reflectionText =
-    allHistory.find((h) => h.startsWith("[学习心得]"))?.split("\n").slice(1).join("\n") ?? "";
+    allHistory
+      .find((h) => h.startsWith("[学习心得]"))
+      ?.split("\n")
+      .slice(1)
+      .join("\n") ?? "";
   try {
     mkdirSync(join(OUT_DIR, "reflections"), { recursive: true });
-  } catch { /* already exists */ }
-  writeFileSync(join(OUT_DIR, "reflections", "FINAL-LEARNING.md"), reflectionText, "utf-8");
+  } catch {
+    /* already exists */
+  }
+  writeFileSync(
+    join(OUT_DIR, "reflections", "FINAL-LEARNING.md"),
+    reflectionText,
+    "utf-8",
+  );
 
   return {
     files: savedFiles,
@@ -1426,7 +1503,9 @@ function printWalkReport(
   console.log(`\n  🧠 知识验收（Phase 1 → Phase 2 过渡）`);
   console.log(`  ${"─".repeat(66)}`);
   console.log(`  自由回忆覆盖模块：${quiz.recallCount}/9`);
-  console.log(`  「${quiz.recallText.slice(0, 150)}${quiz.recallText.length > 150 ? "…" : ""}」`);
+  console.log(
+    `  「${quiz.recallText.slice(0, 150)}${quiz.recallText.length > 150 ? "…" : ""}」`,
+  );
   console.log(`  选择题：${quiz.mcScore}/5`);
   for (const d of quiz.mcDetails) {
     console.log(`     ${d.correct ? "✅" : "❌"} ${d.question}`);
@@ -1481,12 +1560,18 @@ async function main(): Promise<void> {
     const resp = await fetch(`${BASE}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: "ping", moduleId: "llm-api", step: "explain" }),
+      body: JSON.stringify({
+        content: "ping",
+        moduleId: "llm-api",
+        step: "explain",
+      }),
       signal: AbortSignal.timeout(5000),
     });
     if (!resp.ok) {
       const body = await resp.text();
-      console.error(`❌ dev server 返回非 2xx：HTTP ${resp.status}\n${body.slice(0, 300)}`);
+      console.error(
+        `❌ dev server 返回非 2xx：HTTP ${resp.status}\n${body.slice(0, 300)}`,
+      );
       process.exit(1);
     }
   } catch (err) {
@@ -1499,7 +1584,9 @@ async function main(): Promise<void> {
 
   console.log("✅ dev server 连通");
   if (targetPhase === 2) {
-    console.log("🧑 学生 Agent（降智版）Phase 2 模式：加载记忆 + 知识验收 + 平台复刻\n");
+    console.log(
+      "🧑 学生 Agent（降智版）Phase 2 模式：加载记忆 + 知识验收 + 平台复刻\n",
+    );
   } else {
     console.log("🧑 学生 Agent（降智版）开始走测…\n");
   }
@@ -1523,7 +1610,9 @@ async function main(): Promise<void> {
 
       const hasErrors = result.turns.some((t) => !t.ok) || !result.conceptOk;
       const delay = hasErrors ? 30_000 : 15_000;
-      console.log(`  ⏳ 模块间等候 ${delay / 1000}s（${hasErrors ? "出错回压" : "正常冷却"}）…`);
+      console.log(
+        `  ⏳ 模块间等候 ${delay / 1000}s（${hasErrors ? "出错回压" : "正常冷却"}）…`,
+      );
       await sleep(delay);
     }
   }
@@ -1543,7 +1632,9 @@ async function main(): Promise<void> {
         ? "💡 验收较弱"
         : "✅ 验收通过";
 
-  console.log(`\n\n  📋 知识验收：${quizLabel}（回忆 ${quiz.recallCount}/11 模块，选择 ${quiz.mcScore}/5）`);
+  console.log(
+    `\n\n  📋 知识验收：${quizLabel}（回忆 ${quiz.recallCount}/11 模块，选择 ${quiz.mcScore}/5）`,
+  );
   console.log(`  ⏳ 进入 Phase 2 前冷却 10s…`);
   await sleep(10_000);
   const replica = await walkReplica(results);

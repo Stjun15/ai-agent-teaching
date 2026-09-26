@@ -42,7 +42,8 @@ tags: [core, multi-agent, orchestration]
 ```typescript
 // ① 需求分析师：把用户的模糊想法拆成可执行的功能点
 const requirementAgent = createAgent({
-  systemPrompt: "你是需求分析师，把用户想法拆成具体功能点。输出用 Markdown 列表。",
+  systemPrompt:
+    "你是需求分析师，把用户想法拆成具体功能点。输出用 Markdown 列表。",
 });
 
 // ② 程序员：根据需求文档写代码
@@ -52,7 +53,8 @@ const coderAgent = createAgent({
 
 // ③ 代码评审员：检查代码是否符合需求、有没有 bug
 const reviewerAgent = createAgent({
-  systemPrompt: "你是代码评审员，检查代码是否符合需求、有没有逻辑问题。" +
+  systemPrompt:
+    "你是代码评审员，检查代码是否符合需求、有没有逻辑问题。" +
     "输出格式：{ passed: boolean, comments: string }。",
 });
 
@@ -74,7 +76,9 @@ async function buildProject(userInput: string) {
 }
 
 // ⑤ 运行：一句话启动三个 Agent 的协作流水线
-const result = await buildProject("做一个天气查询网页，输入城市名显示温度和天气图标");
+const result = await buildProject(
+  "做一个天气查询网页，输入城市名显示温度和天气图标",
+);
 ```
 
 ## 相关概念

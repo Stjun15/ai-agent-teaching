@@ -48,7 +48,11 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     goal: "搭完能跟 AI 聊天。SSE 流式，打字机渲染，角色是教学导师。",
     tasks: [
       { label: "封装 LLM 调用", moduleRef: "llm-api", file: "src/lib/llm.ts" },
-      { label: "写教学 System Prompt", moduleRef: "system-prompt", file: "agent-prompts/teaching-chat.ts" },
+      {
+        label: "写教学 System Prompt",
+        moduleRef: "system-prompt",
+        file: "agent-prompts/teaching-chat.ts",
+      },
       { label: "实现 SSE 流式接口", file: "src/app/api/chat/route.ts" },
       { label: "前端打字机聊天", file: "src/components/chat/" },
       { label: "API Key 配置", file: ".env.local + 设置页" },
@@ -65,9 +69,21 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     title: "第二斧 · 多步 Agent",
     goal: "搭完 AI 能讲课、能出题。Agent 多步推理，出题带选项和解析。",
     tasks: [
-      { label: "runAgent 核心循环", moduleRef: "agent-loop", file: "src/lib/agent/runtime.ts" },
-      { label: "教学 Agent（多步讲解）", moduleRef: "agent-loop", file: "src/lib/agent/teaching-agent.ts" },
-      { label: "出题 Agent（function calling）", moduleRef: "tool-calling", file: "src/lib/agent/examiner-agent.ts" },
+      {
+        label: "runAgent 核心循环",
+        moduleRef: "agent-loop",
+        file: "src/lib/agent/runtime.ts",
+      },
+      {
+        label: "教学 Agent（多步讲解）",
+        moduleRef: "agent-loop",
+        file: "src/lib/agent/teaching-agent.ts",
+      },
+      {
+        label: "出题 Agent（function calling）",
+        moduleRef: "tool-calling",
+        file: "src/lib/agent/examiner-agent.ts",
+      },
     ],
     acceptanceScript: `curl -X POST http://localhost:3000/api/agent/teach \\
   -d '{"concept":"llm-api","step":"explain"}'
@@ -78,8 +94,16 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     title: "第三斧 · 知识 + 数据库",
     goal: "搭完 AI 知道你在学什么、学了什么。上下文注入 + 进度持久化。",
     tasks: [
-      { label: "概念页注入上下文", moduleRef: "rag", file: "src/lib/lecture-context.ts" },
-      { label: "SQLite 存掌握度", moduleRef: "llm-wiki", file: "src/lib/db/sqlite.ts" },
+      {
+        label: "概念页注入上下文",
+        moduleRef: "rag",
+        file: "src/lib/lecture-context.ts",
+      },
+      {
+        label: "SQLite 存掌握度",
+        moduleRef: "llm-wiki",
+        file: "src/lib/db/sqlite.ts",
+      },
       { label: "进度追踪", file: "掌握度表 + 会话表" },
     ],
     acceptanceScript: `sqlite3 dev.db "SELECT * FROM mastery WHERE student_id = 'default';"

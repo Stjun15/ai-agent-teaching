@@ -42,9 +42,9 @@ Wiki 三连 —— Ingest 吃进资料 → Query 回答问题 → Maintain 自�
 ```typescript
 // ① 摄入（Ingest）：把原始资料「编译」成结构化 Wiki 页面
 await wiki.ingest({
-  source: "课程资料.pdf",               // 原始资料文件
-  target: "concepts/agent-loop.md",     // 编译后的 Wiki 页面路径
-  schema: "教学概念",                   // 按什么模板结构化（定义 + 关键点 + 误解 + 相关）
+  source: "课程资料.pdf", // 原始资料文件
+  target: "concepts/agent-loop.md", // 编译后的 Wiki 页面路径
+  schema: "教学概念", // 按什么模板结构化（定义 + 关键点 + 误解 + 相关）
 });
 // 编译完成：PDF 里的散乱文字 → 结构化的概念页面，后续查询不用再检索原文件
 

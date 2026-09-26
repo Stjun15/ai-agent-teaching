@@ -33,7 +33,13 @@ function resetAllStores(): void {
     validationResult: null,
     validationError: null,
   });
-  useVisualizationStore.setState({ sceneId: null, stepIndex: 0, status: "idle", speed: 1, params: {} });
+  useVisualizationStore.setState({
+    sceneId: null,
+    stepIndex: 0,
+    status: "idle",
+    speed: 1,
+    params: {},
+  });
 }
 
 beforeEach(() => {
@@ -153,7 +159,11 @@ test("validation 事件 → CodeStore.resolveValidation", () => {
   } as SSEEventInput);
 
   const state = useCodeStore.getState();
-  assert.equal(state.validationResult?.totalScore, 85, "应写入 validationResult");
+  assert.equal(
+    state.validationResult?.totalScore,
+    85,
+    "应写入 validationResult",
+  );
   assert.equal(state.validationStatus, "done", "validationStatus 应为 done");
 });
 
@@ -221,7 +231,11 @@ test("tool_result 事件 → addToolResult（补进已有 tool_call）", () => {
   } as SSEEventInput);
 
   const state = useSessionStore.getState();
-  assert.deepEqual(state.tools[0].result, { content: "ok" }, "result 对象原样保存");
+  assert.deepEqual(
+    state.tools[0].result,
+    { content: "ok" },
+    "result 对象原样保存",
+  );
   assert.equal(state.tools[0].durationMs, 42);
 });
 

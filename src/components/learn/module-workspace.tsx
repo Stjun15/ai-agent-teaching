@@ -213,7 +213,10 @@ export function ModuleWorkspace({
                 <CardTitle>观察示范</CardTitle>
               </CardHeader>
               <CardContent>
-                <ObservePanel moduleId={teachingModule.id} demoCode={demoCode} />
+                <ObservePanel
+                  moduleId={teachingModule.id}
+                  demoCode={demoCode}
+                />
               </CardContent>
             </Card>
           ) : null}

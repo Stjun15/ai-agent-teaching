@@ -20,7 +20,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test, describe } from "node:test";
 
-import { analyzePath, type AdjusterInput } from "../src/lib/agent/path-adjuster";
+import {
+  analyzePath,
+  type AdjusterInput,
+} from "../src/lib/agent/path-adjuster";
 import type {
   ErrorRecord,
   LearningPath,
@@ -48,7 +51,11 @@ function m(overrides?: Partial<Mastery>): Mastery {
   };
 }
 
-function otherMastery(conceptId: string, score: number, status: Mastery["status"] = "completed"): Mastery {
+function otherMastery(
+  conceptId: string,
+  score: number,
+  status: Mastery["status"] = "mastered",
+): Mastery {
   return m({ conceptId, score, status });
 }
 
@@ -77,15 +84,11 @@ function p(overrides?: Partial<LearningPath>): LearningPath {
     studentId: STUDENT_ID,
     currentModule: "tool-calling",
     nextModule: "rag",
-    modules: [
-      lpModule("system-prompt", 1, "completed", 4),
-      lpModule("tool-calling", 2, "in_progress", 2),
-    ],
     adjustments: [],
     updatedAt: NOW,
     ...overrides,
     modules: overrides?.modules ?? [
-      lpModule("system-prompt", 1, "completed", 4),
+      lpModule("system-prompt", 1, "mastered", 4),
       lpModule("tool-calling", 2, "in_progress", 2),
     ],
   };
@@ -220,10 +223,7 @@ describe("规则 2：掌握度连续下降", () => {
         ],
       }),
     );
-    assert.equal(
-      result.filter((d) => d.reason.includes("下降")).length,
-      0,
-    );
+    assert.equal(result.filter((d) => d.reason.includes("下降")).length, 0);
   });
 
   test("前一个模块未完成 → 不命中（无比较基线）", () => {
@@ -281,10 +281,7 @@ describe("规则 3：错题积压预警（errorCount ≥ 3）", () => {
         mastery: [otherMastery("system-prompt", 4), m({ errorCount: 2 })],
       }),
     );
-    assert.equal(
-      result.filter((d) => d.reason.includes("错题")).length,
-      0,
-    );
+    assert.equal(result.filter((d) => d.reason.includes("错题")).length, 0);
   });
 });
 
@@ -351,7 +348,10 @@ describe("边界与集成", () => {
   test("无任何异常的干净快照 → 返回空数组", () => {
     const result = analyzePath(
       input({
-        mastery: [otherMastery("system-prompt", 4), m({ score: 3, errorCount: 0 })],
+        mastery: [
+          otherMastery("system-prompt", 4),
+          m({ score: 3, errorCount: 0 }),
+        ],
         errors: [],
       }),
     );
@@ -362,7 +362,10 @@ describe("边界与集成", () => {
     // 构造一个同时命中四条规则的快照
     const result = analyzePath(
       input({
-        mastery: [otherMastery("system-prompt", 5), m({ score: 4, errorCount: 5 })],
+        mastery: [
+          otherMastery("system-prompt", 5),
+          m({ score: 4, errorCount: 5 }),
+        ],
         errors: [
           e({ conceptId: "tool-calling", createdAt: ago(24) }),
           e({ conceptId: "tool-calling", createdAt: ago(12) }),
@@ -423,16 +426,12 @@ describe("边界与集成", () => {
   });
 
   test("空 mastery 数组 → 不抛异常，返回空数组", () => {
-    const result = analyzePath(
-      input({ mastery: [], errors: [], path: p() }),
-    );
+    const result = analyzePath(input({ mastery: [], errors: [], path: p() }));
     assert.equal(result.length, 0);
   });
 
   test("空 errors 数组 → 不抛异常", () => {
-    const result = analyzePath(
-      input({ errors: [] }),
-    );
+    const result = analyzePath(input({ errors: [] }));
     assert.ok(Array.isArray(result));
   });
 });
@@ -447,17 +446,21 @@ describe("PathAdjustmentList UI 组件守卫", () => {
   }
 
   test("组件文件存在且是客户端组件", () => {
-    const source = readComponent("../src/components/learn/path-adjustment-list.tsx");
-    assert.match(source, /"use client"/, "必须是客户端组件（订阅 Zustand store）");
+    const source = readComponent(
+      "../src/components/learn/path-adjustment-list.tsx",
+    );
+    assert.match(
+      source,
+      /"use client"/,
+      "必须是客户端组件（订阅 Zustand store）",
+    );
   });
 
   test("从 StudentStore 读取 adjustments", () => {
-    const source = readComponent("../src/components/learn/path-adjustment-list.tsx");
-    assert.match(
-      source,
-      /useStudentStore/,
-      "必须从 StudentStore 订阅数据",
+    const source = readComponent(
+      "../src/components/learn/path-adjustment-list.tsx",
     );
+    assert.match(source, /useStudentStore/, "必须从 StudentStore 订阅数据");
     assert.match(
       source,
       /learningPath\??\.adjustments/,
@@ -466,7 +469,9 @@ describe("PathAdjustmentList UI 组件守卫", () => {
   });
 
   test("无调整时不渲染任何内容", () => {
-    const source = readComponent("../src/components/learn/path-adjustment-list.tsx");
+    const source = readComponent(
+      "../src/components/learn/path-adjustment-list.tsx",
+    );
     assert.match(
       source,
       /adjustments\.length === 0/,
@@ -484,7 +489,9 @@ describe("PathAdjustmentList UI 组件守卫", () => {
   });
 
   test("四种调整类型都有对应图标", () => {
-    const source = readComponent("../src/components/learn/path-adjustment-list.tsx");
+    const source = readComponent(
+      "../src/components/learn/path-adjustment-list.tsx",
+    );
     assert.match(source, /AlertTriangle/, "连续校验应有警报图标");
     assert.match(source, /Lightbulb/, "错题积压应有灯泡图标");
     assert.match(source, /RotateCcw/, "掌握度下降应有重试图标");
@@ -492,12 +499,10 @@ describe("PathAdjustmentList UI 组件守卫", () => {
   });
 
   test("最多展示最近 3 条", () => {
-    const source = readComponent("../src/components/learn/path-adjustment-list.tsx");
-    assert.match(
-      source,
-      /slice\(0,\s*3\)/,
-      "应只展示最近 3 条",
+    const source = readComponent(
+      "../src/components/learn/path-adjustment-list.tsx",
     );
+    assert.match(source, /slice\(0,\s*3\)/, "应只展示最近 3 条");
   });
 });
 

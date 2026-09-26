@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { FlaskConical } from "lucide-react";
 
-
 import { PlaygroundLab } from "@/components/playground/playground-lab";
 import { loadModules } from "@/lib/modules";
 
@@ -34,7 +33,9 @@ export default async function PlaygroundPage() {
         <header className="max-w-2xl">
           <div className="flex items-center gap-2">
             <FlaskConical className="size-5 text-muted-foreground" />
-            <h1 className="text-2xl font-semibold tracking-tight">沙箱实验室</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              沙箱实验室
+            </h1>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             这里没有教学流程，也没有评分。选一个能力，填上参数，点运行 ——
@@ -50,9 +51,9 @@ export default async function PlaygroundPage() {
             modules={modules.map((teachingModule) => ({
               id: teachingModule.id,
               name: teachingModule.name,
-          }))}
-        />
-      </div>
+            }))}
+          />
+        </div>
       </section>
     </main>
   );

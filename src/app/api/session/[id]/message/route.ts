@@ -246,13 +246,15 @@ export async function POST(
       });
 
       // 回填引用：引用必须指向已存在的消息 id
-      const withMessageId: Citation[] = citations.map((draft: CitationDraft) => ({
-        id: newId(),
-        messageId: assistant.id,
-        source: draft.source,
-        snippet: draft.snippet,
-        relevance: draft.relevance,
-      }));
+      const withMessageId: Citation[] = citations.map(
+        (draft: CitationDraft) => ({
+          id: newId(),
+          messageId: assistant.id,
+          source: draft.source,
+          snippet: draft.snippet,
+          relevance: draft.relevance,
+        }),
+      );
       if (withMessageId.length > 0) {
         await messageDb.updateCitations(assistant.id, withMessageId);
       }

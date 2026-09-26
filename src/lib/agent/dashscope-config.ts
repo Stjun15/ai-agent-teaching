@@ -19,7 +19,8 @@ export const DASHSCOPE_PROVIDER_ID = "dashscope";
 export const DASHSCOPE_API_KEY_ENV = "DASHSCOPE_API_KEY";
 
 /** 百练 OpenAI 兼容端点。 */
-export const DASHSCOPE_DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+export const DASHSCOPE_DEFAULT_BASE_URL =
+  "https://dashscope.aliyuncs.com/compatible-mode/v1";
 
 /** 主模型（文本推理）默认值；可被 `DASHSCOPE_TEXT_MODEL` 覆盖。 */
 export const DASHSCOPE_DEFAULT_TEXT_MODEL = "deepseek-v4.1-flash";
@@ -60,16 +61,22 @@ function trimmed(value: string | undefined): string | undefined {
  * 读取连接参数。**不校验密钥**，因此可在没有密钥的环境（如构建期、健康检查）
  * 安全调用。
  */
-export function readDashScopeSettings(env: DashScopeEnv = process.env): DashScopeSettings {
+export function readDashScopeSettings(
+  env: DashScopeEnv = process.env,
+): DashScopeSettings {
   return {
     baseUrl: trimmed(env.DASHSCOPE_BASE_URL) ?? DASHSCOPE_DEFAULT_BASE_URL,
-    textModel: trimmed(env.DASHSCOPE_TEXT_MODEL) ?? DASHSCOPE_DEFAULT_TEXT_MODEL,
-    visionModel: trimmed(env.DASHSCOPE_VISION_MODEL) ?? DASHSCOPE_DEFAULT_VISION_MODEL,
+    textModel:
+      trimmed(env.DASHSCOPE_TEXT_MODEL) ?? DASHSCOPE_DEFAULT_TEXT_MODEL,
+    visionModel:
+      trimmed(env.DASHSCOPE_VISION_MODEL) ?? DASHSCOPE_DEFAULT_VISION_MODEL,
   };
 }
 
 /** 密钥是否已配置。只返回布尔值，调用方拿不到、也打印不出内容。 */
-export function isDashScopeApiKeyConfigured(env: DashScopeEnv = process.env): boolean {
+export function isDashScopeApiKeyConfigured(
+  env: DashScopeEnv = process.env,
+): boolean {
   return trimmed(env[DASHSCOPE_API_KEY_ENV]) !== undefined;
 }
 

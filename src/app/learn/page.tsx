@@ -33,14 +33,14 @@ export default async function LearnPage() {
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
       <header className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">学习中心</h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes} 分钟。
-            每个模块走完「概念讲解 → 观察示范 → 动手模仿 → 校验点评 → 可视化 →
-            变式练习 → 掌握判定」七步，掌握度达标后再进入下一个 ——
-            这是掌握式学习的顺序，不建议跳讲。
-          </p>
-        </header>
+        <h1 className="text-2xl font-semibold tracking-tight">学习中心</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes} 分钟。
+          每个模块走完「概念讲解 → 观察示范 → 动手模仿 → 校验点评 → 可视化 →
+          变式练习 → 掌握判定」七步，掌握度达标后再进入下一个 ——
+          这是掌握式学习的顺序，不建议跳讲。
+        </p>
+      </header>
 
       {modules.length === 0 ? (
         <p className="mt-10 text-sm text-muted-foreground">
