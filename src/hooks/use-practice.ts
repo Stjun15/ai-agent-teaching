@@ -61,6 +61,11 @@ export function usePractice(moduleId: string) {
   const generate = useCallback(async (): Promise<void> => {
     setPhase("generating");
     setError(null);
+    // 立即清空上一轮的旧题，避免在出题等待（20~60 秒）期间
+    // 页面还挂着已经做完的上一组题目。
+    setQuestions([]);
+    setAnswers({});
+    setGrades({});
     try {
       const studentId = currentStudentId();
       if (studentId === "") {
