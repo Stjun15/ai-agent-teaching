@@ -62,6 +62,9 @@ export function ExplainColdStart({
     () => new Set([0]),
   );
   const startedRef = useRef(false);
+  // 渲染期读 state 而不是 ref：ref 只做 handleStartChat 的防重入守卫
+  //（回调内读 ref 合法），「已开始」参与渲染就必须走 state。
+  const [started, setStarted] = useState(false);
 
   const status = useSessionStore((state) => state.status);
 
@@ -74,6 +77,7 @@ export function ExplainColdStart({
   const handleStartChat = useCallback(async () => {
     if (startedRef.current || prompting) return;
     startedRef.current = true;
+    setStarted(true);
     setPrompting(true);
     onStarted?.();
     try {
@@ -86,6 +90,7 @@ export function ExplainColdStart({
       );
     } catch {
       startedRef.current = false;
+      setStarted(false);
       setPrompting(false);
     }
   }, [send, moduleId, moduleName, prompting]);
@@ -117,7 +122,7 @@ export function ExplainColdStart({
   // AI 开始输出或已开始互动时，不渲染本组件。
   // 不再用 messages.some(step==="explain") 判旧消息：
   // localStorage rehydrate 的旧讲稿会导致误隐，学生进来还是空白。
-  const shouldHide = status !== "idle" || startedRef.current;
+  const shouldHide = status !== "idle" || started;
   if (shouldHide || error !== null || content === null) return null;
 
   // ---- 平台复刻：三板斧专用渲染 ----
