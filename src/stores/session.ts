@@ -70,6 +70,16 @@ export interface ChatMessage {
   /** 学生消息附带的截图 data URL，来自 Composer 图片上传。 */
   images?: string[];
   createdAt: string;
+  /**
+   * 该条助手消息对应的思维链（来自 `thinking` SSE 事件）。
+   *
+   * 每收到一个 thinking 增量，除了写全局 `thinking[]` 给右栏时间线，
+   * 也追加到当前正在流式输出的助手消息里 —— 这样消息气泡上方就能直接
+   * 渲染「思考过程」折叠面板，效果对标 DeepSeek 网页端。
+   *
+   * 学生消息永不为此字段赋值（始终 undefined）。
+   */
+  thinkingSteps?: ThinkingStep[];
 }
 
 /** 引用来源（`citation` 事件）。字段与 `data-models.md` 的 `Citation` 对齐。 */
@@ -326,6 +336,10 @@ function flushTokenBufferImpl(
             citations: [],
             createdAt: new Date().toISOString(),
             ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+            // 首个 token 到达时才创建助手消息，此前可能已有若干思考段
+            // 落在全局 thinking[] 里 —— 把它们关联到新消息上。
+            thinkingSteps:
+              state.thinking.length > 0 ? [...state.thinking] : undefined,
           },
         ];
         changed = true;
@@ -344,6 +358,8 @@ function flushTokenBufferImpl(
             citations: [],
             createdAt: new Date().toISOString(),
             ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+            thinkingSteps:
+              state.thinking.length > 0 ? [...state.thinking] : undefined,
           },
         ];
         changed = true;
@@ -476,34 +492,52 @@ export const useSessionStore = create<SessionState>()(
 
       appendThinking: ({ step, agent, content }) =>
         set((state) => {
-          const last = state.thinking[state.thinking.length - 1];
+          const prev = state.thinking;
+          const streaming = findStreamingAssistant(state.messages);
+          let next: ThinkingStep[];
+          let newStep: ThinkingStep | undefined;
+
+          const last = prev[prev.length - 1];
           if (
             last !== undefined &&
             last.endedAt === undefined &&
             last.step === step &&
             last.agent === agent
           ) {
-            const next = state.thinking.slice();
+            next = prev.slice();
             next[next.length - 1] = {
               ...last,
               content: last.content + content,
               deltas: last.deltas + 1,
             };
-            return { thinking: next };
+          } else {
+            newStep = {
+              id: newId(),
+              agent,
+              step,
+              content,
+              deltas: 1,
+              startedAt: Date.now(),
+            };
+            next = [...prev, newStep];
           }
 
+          if (streaming === undefined) return { thinking: next };
+
+          const linked = newStep ?? next[next.length - 1];
           return {
-            thinking: [
-              ...state.thinking,
-              {
-                id: newId(),
-                agent,
-                step,
-                content,
-                deltas: 1,
-                startedAt: Date.now(),
-              },
-            ],
+            thinking: next,
+            messages: replaceMessage(
+              state.messages,
+              streaming.id,
+              (message) => ({
+                ...message,
+                thinkingSteps: upsertThinkingStep(
+                  message.thinkingSteps ?? [],
+                  linked,
+                ),
+              }),
+            ),
           };
         }),
 
@@ -685,6 +719,25 @@ export const useSessionStore = create<SessionState>()(
     },
   ),
 );
+/**
+ * 向消息的 thinkingSteps 数组中追加或更新一条思维链记录。
+ *
+ * 如果最后一条记录 id 相同（同一阶段的增量），只更新它的 content/deltas；
+ * 否则追加新条目。用于 `appendThinking` 把思维链片段同时写进消息气泡。
+ */
+function upsertThinkingStep(
+  steps: ThinkingStep[],
+  step: ThinkingStep,
+): ThinkingStep[] {
+  const last = steps[steps.length - 1];
+  if (last !== undefined && last.id === step.id) {
+    const next = steps.slice();
+    next[next.length - 1] = step;
+    return next;
+  }
+  return [...steps, step];
+}
+
 /** 封口最后一条思考记录（若它还开着）。 */
 function closeThinking(thinking: ThinkingStep[]): ThinkingStep[] {
   const last = thinking[thinking.length - 1];

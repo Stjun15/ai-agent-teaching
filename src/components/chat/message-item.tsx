@@ -1,11 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import { AlertTriangle, Bot, User } from "lucide-react";
+import { AlertTriangle, Bot, ChevronRight, Brain, Timer, User } from "lucide-react";
 
 import { MarkdownView } from "@/components/chat/markdown-view";
 import { Badge } from "@/components/ui/badge";
-import type { ChatMessage } from "@/stores";
+import type { ChatMessage, ThinkingStep } from "@/stores";
 import { cn } from "@/lib/utils";
 
 /**
@@ -80,6 +80,11 @@ export const MessageItem = memo(
           ) : null}
         </div>
 
+        {message.thinkingSteps !== undefined &&
+        message.thinkingSteps.length > 0 ? (
+          <ThinkingChain steps={message.thinkingSteps} />
+        ) : null}
+
         <div
           className={cn(
             "rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
@@ -141,8 +146,81 @@ export const MessageItem = memo(
   if (p.status !== n.status) {
     return false;
   }
+  if (p.thinkingSteps?.length !== n.thinkingSteps?.length) {
+    return false;
+  }
   if (p.status === "done") {
-    return p.content === n.content;
+    return (
+      p.content === n.content &&
+      (p.thinkingSteps === undefined ||
+        n.thinkingSteps === undefined ||
+        p.thinkingSteps.every(
+          (s, i) => s.content === n.thinkingSteps?.[i]?.content,
+        ))
+    );
   }
   return false;
 });
+
+/**
+ * 思维链面板（对标 DeepSeek 网页端）。
+ *
+ * 把属于同一条助手消息的思考段折叠成一行摘要行，点击展开推理原文。
+ * 流式进行中的思考段显示「进行中」徽标，已完成的显示耗时。
+ *
+ * 用原生 `<details>`：零 JS 状态、键盘可达、屏幕阅读器友好。
+ */
+function ThinkingChain({ steps }: { steps: readonly ThinkingStep[] }) {
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent/60">
+        <ChevronRight className="size-3 shrink-0 transition-transform group-open:rotate-90" />
+        <Brain className="size-3.5 shrink-0" />
+        <span className="font-medium">
+          思考过程
+          {steps.length > 1 ? `（${steps.length} 段）` : ""}
+        </span>
+        {steps.some((s) => s.endedAt === undefined) ? (
+          <Badge variant="muted" className="shrink-0">
+            进行中
+          </Badge>
+        ) : (
+          <span className="ml-auto flex shrink-0 items-center gap-1">
+            <Timer className="size-3" />
+            {formatDuration(
+              steps.reduce((sum, s) => sum + ((s.endedAt ?? 0) - s.startedAt), 0),
+            )}
+          </span>
+        )}
+      </summary>
+      <div className="mt-1 flex flex-col gap-1.5">
+        {steps.map((step) => (
+          <div key={step.id} className="rounded-md bg-muted/60 px-2 py-1.5">
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <span className="font-medium">{step.step}</span>
+              {step.endedAt === undefined ? (
+                <Badge variant="muted" className="text-[10px]">
+                  累积中
+                </Badge>
+              ) : null}
+              <span className="ml-auto">
+                {step.deltas} 增量 · {step.content.length} 字
+              </span>
+            </div>
+            <pre className="mt-1 max-h-40 overflow-auto text-[11px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
+              {step.content}
+            </pre>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}m${Math.round(seconds - minutes * 60)}s`;
+}
