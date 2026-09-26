@@ -27,11 +27,13 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import {
   errorDb,
+  learningPathDb,
   masteryDb,
   questionDb,
   questionResultDb,
   sessionDb,
 } from "@/lib/db";
+import { analyzePath, writeAdjustments } from "@/lib/agent/path-adjuster";
 import { newId } from "@/lib/db/helpers";
 import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runAssessLoop } from "@/lib/agent/orchestrator/assess-loop";
@@ -171,6 +173,28 @@ export async function POST(request: Request): Promise<Response> {
         } catch (error) {
           console.error("[answer-grade] 更新掌握度失败：", error);
         }
+      }
+
+      // ---- 学习路径自动调整（同 validate 路由的闭环） ----
+      try {
+        const [allMastery, allErrors, path] = await Promise.all([
+          masteryDb.get(body.studentId),
+          errorDb.listByStudent(body.studentId),
+          learningPathDb.get(body.studentId),
+        ]);
+
+        if (path) {
+          const decisions = analyzePath({
+            studentId: body.studentId,
+            conceptId: question.conceptId,
+            mastery: allMastery,
+            errors: allErrors,
+            path,
+          });
+          await writeAdjustments(body.studentId, decisions);
+        }
+      } catch (adjusterError) {
+        console.error("[answer-grade] 路径调整失败：", adjusterError);
       }
     }
 

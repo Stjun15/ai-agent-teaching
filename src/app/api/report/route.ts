@@ -21,6 +21,7 @@ import { resolveStudent } from "@/lib/api-auth";
 import { jsonError } from "@/lib/api-error";
 import {
   errorDb,
+  learningPathDb,
   masteryDb,
   promptHistoryDb,
   questionResultDb,
@@ -43,12 +44,14 @@ export async function GET(request: Request): Promise<Response> {
   const studentId = auth.student.id;
 
   try {
-    const [mastery, errors, prompts, totalQuestions] = await Promise.all([
-      masteryDb.get(studentId),
-      errorDb.listByStudent(studentId),
-      promptHistoryDb.listByStudent(studentId),
-      questionResultDb.countByStudent(studentId),
-    ]);
+    const [mastery, errors, prompts, totalQuestions, learningPath] =
+      await Promise.all([
+        masteryDb.get(studentId),
+        errorDb.listByStudent(studentId),
+        promptHistoryDb.listByStudent(studentId),
+        questionResultDb.countByStudent(studentId),
+        learningPathDb.get(studentId),
+      ]);
 
     const averageMastery = mastery.length
       ? round2(
@@ -120,6 +123,12 @@ export async function GET(request: Request): Promise<Response> {
         )
       : ["保持当前节奏，继续完成下一模块的学习与练习。"];
 
+    // 路径调整：取最近 3 条，按日期降序（与 PathAdjustmentList 组件口径一致）
+    const adjustments = (learningPath?.adjustments ?? [])
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 3);
+
     // 返回体用 `ReportResponse` 标注：报告页消费的就是这个类型，
     // 字段名或层级写错会在这里编译报错，而不是变成页面上的一块空白。
     const payload: ReportResponse = {
@@ -134,6 +143,7 @@ export async function GET(request: Request): Promise<Response> {
       masteryTrend,
       weaknesses,
       recommendations,
+      adjustments,
     };
 
     return Response.json(payload);

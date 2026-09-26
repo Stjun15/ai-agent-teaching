@@ -15,8 +15,10 @@ import {
 import {
   SUB_ABILITY_KEYS,
   SUB_ABILITY_LABELS,
+  type PathAdjustment,
   type ReportResponse,
 } from "@/schemas";
+import { AlertTriangle, ArrowRight, Lightbulb, RotateCcw } from "lucide-react";
 
 /**
  * 学习报告的四个区块（总览 / 子能力 / 趋势 / 薄弱点与建议）。
@@ -187,8 +189,54 @@ export function ReportSections({ report }: { report: ReportResponse }) {
           </ul>
         </section>
       </div>
+
+      {/* ---------- 路径调整记录 ---------- */}
+      {report.adjustments.length > 0 && (
+        <section aria-label="路径调整记录">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-sm font-semibold">路径调整记录</h2>
+            <span className="text-[11px] text-muted-foreground">
+              系统自动检测并按紧迫性排序的建议，来自答题评分时的实时分析
+            </span>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {report.adjustments.map((adj, i) => (
+              <div
+                key={`${adj.date}-${i}`}
+                className="flex gap-2.5 rounded-lg border bg-muted/20 px-4 py-3"
+              >
+                <span className="mt-0.5">{pickAdjustmentIcon(adj)}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground">
+                    {adj.reason}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {adj.action}
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/60">
+                    {adj.date}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
+}
+
+function pickAdjustmentIcon(adj: PathAdjustment) {
+  if (adj.reason.includes("连续") && adj.reason.includes("校验")) {
+    return <AlertTriangle className="size-4 shrink-0 text-amber-500" />;
+  }
+  if (adj.reason.includes("错题")) {
+    return <Lightbulb className="size-4 shrink-0 text-blue-500" />;
+  }
+  if (adj.reason.includes("下降")) {
+    return <RotateCcw className="size-4 shrink-0 text-rose-500" />;
+  }
+  return <ArrowRight className="size-4 shrink-0 text-emerald-500" />;
 }
 
 /** 一个总览数字。`hint` 用来交代这个数量纲是什么，避免读者自己猜。 */

@@ -50,7 +50,8 @@
     "test:agent:examiner": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-examiner.ts",
     "test:auth": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/auth-flow-spec.ts",
     "test:isolation": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/data-isolation-spec.ts",
-    "test:sse": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/sse-protocol-spec.ts"
+    "test:sse": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/sse-protocol-spec.ts",
+    "test:path-adjuster": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/path-adjuster-spec.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",

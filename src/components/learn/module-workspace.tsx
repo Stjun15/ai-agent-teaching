@@ -10,6 +10,7 @@ import { ExplainFullscreen } from "@/components/learn/explain-fullscreen";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
 import { ObservePanel } from "@/components/learn/observe-panel";
+import { PathAdjustmentList } from "@/components/learn/path-adjustment-list";
 import { PracticePanel } from "@/components/learn/practice-panel";
 import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
@@ -181,6 +182,7 @@ export function ModuleWorkspace({
         {/* 左栏 */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           <StepNav moduleId={teachingModule.id} currentStepId={currentStepId} />
+          <PathAdjustmentList />
         </aside>
 
         {/* 中栏 */}
@@ -344,6 +346,7 @@ export function ModuleWorkspace({
           ) : null}
 
           {showWorkspacePanels &&
+          teachingModule.sceneId !== null &&
           currentStepId !== "practice" &&
           currentStepId !== "imitate" &&
           currentStepId !== "validate" &&

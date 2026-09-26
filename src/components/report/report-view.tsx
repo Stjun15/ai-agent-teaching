@@ -158,6 +158,7 @@ export function ReportView() {
     report.masteryTrend.length > 0 ||
     report.overview.totalQuestions > 0 ||
     report.weaknesses.length > 0 ||
+    report.adjustments.length > 0 ||
     (details.errors?.length ?? 0) > 0 ||
     (details.history?.length ?? 0) > 0;
 

@@ -75,10 +75,14 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
 
   // 只灌一次：本讲配置的场景是初始值，之后由 Store 主导（可能被
   // `visualization` 事件切到别的场景）。
-  const seededRef = useRef(false);
+  //
+  // 注意：sceneId 为 null 时也要调 selectScene(null)，否则 Store 里残留上
+  // 一个模块的场景（如从 mcp/observe 切到 platform-replica/observe 时，
+  // store 仍指向 scene-mcp-flow，导致本讲展示了别人的可视化）。
+  const syncRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (seededRef.current || sceneId === null) return;
-    seededRef.current = true;
+    if (syncRef.current === sceneId) return;
+    syncRef.current = sceneId;
     selectScene(sceneId);
   }, [sceneId, selectScene]);
 

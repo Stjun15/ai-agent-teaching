@@ -33,6 +33,9 @@
  * 前端在六个数值完全相同时应理解为「暂无分项数据」而不是「六项能力一模一样」。
  */
 
+import type { PathAdjustment } from "@/lib/db";
+export type { PathAdjustment };
+
 /** 报告页顶部四个总览数字。 */
 export interface ReportOverview {
   /** 掌握度达标的模块数（判据是 `mastery.score >= 4`，满分 5）。 */
@@ -53,8 +56,8 @@ export interface ReportOverview {
    *
    * ⚠️ **量纲是 0~100** —— 来自点评 Agent 的 `total_score`
    * （`ReviewerOutputSchema` 的 `min(0).max(100)`），
-   * 与上面的 `averageMastery` **不是同一个量纲**，两者不能直接比较。
-   */
+ * 与上面 `averageMastery` **不是同一个量纲**，两者不能直接比较。
+ */
   averagePromptScore: number;
 }
 
@@ -108,6 +111,14 @@ export interface ReportResponse {
   masteryTrend: ReportTrendPoint[];
   weaknesses: ReportWeakness[];
   recommendations: string[];
+  /**
+   * 系统自动产出的路径调整记录（来自 path-adjuster）。
+   *
+   * 每次答题评分后，path-adjuster 按四条阈值判定并写入
+   * `learning_paths.adjustments`；报告页从中取最近 3 条展示。
+   * 无调整时为空数组。
+   */
+  adjustments: PathAdjustment[];
 }
 
 /** 六个子能力字段名 → 中文标签。报告页按此顺序渲染，顺序取自 `00-MASTER.md`。 */

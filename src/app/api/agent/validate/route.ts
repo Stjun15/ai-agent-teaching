@@ -37,11 +37,13 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
 import {
   errorDb,
+  learningPathDb,
   masteryDb,
   promptHistoryDb,
   sessionDb,
   validationResultDb,
 } from "@/lib/db";
+import { analyzePath, writeAdjustments } from "@/lib/agent/path-adjuster";
 import { findModule } from "@/lib/modules";
 import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
@@ -178,6 +180,32 @@ export async function POST(request: Request): Promise<Response> {
         );
       } catch (dbError) {
         console.error("[validate] 更新掌握度失败：", dbError);
+      }
+
+      // ---- 学习路径自动调整（Ploy 闭环） ----
+      //
+      // 在所有副作用落库后运行：此时 mastery、errors 都已是最新数据。
+      // 调整器读取快照 → 判定阈值 → 写入 adjustments。
+      // 单独 try/catch：这个模块是新增的，失败绝不能阻断点评返回。
+      try {
+        const [allMastery, allErrors, path] = await Promise.all([
+          masteryDb.get(auth.student.id),
+          errorDb.listByStudent(auth.student.id),
+          learningPathDb.get(auth.student.id),
+        ]);
+
+        if (path) {
+          const decisions = analyzePath({
+            studentId: auth.student.id,
+            conceptId: body.moduleId,
+            mastery: allMastery,
+            errors: allErrors,
+            path,
+          });
+          await writeAdjustments(auth.student.id, decisions);
+        }
+      } catch (adjusterError) {
+        console.error("[validate] 路径调整失败：", adjusterError);
       }
     }
 
