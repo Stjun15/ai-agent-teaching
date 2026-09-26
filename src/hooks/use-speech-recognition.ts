@@ -84,7 +84,10 @@ export function useSpeechRecognition(
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
+  // 渲染期不许写 ref：放到 effect 里同步最新回调（latest-ref 惯用法）。
+  useEffect(() => {
+    onResultRef.current = onResult;
+  });
 
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
