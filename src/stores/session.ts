@@ -346,22 +346,37 @@ function flushTokenBufferImpl(
         continue;
       }
       if (streaming.id !== messageId) {
-        messages = [
-          ...messages.map((m) =>
-            m.id === streaming.id ? { ...m, status: "done" as const } : m,
-          ),
-          {
+        if (
+          streaming.content === "" &&
+          streaming.thinkingSteps !== undefined &&
+          streaming.thinkingSteps.length > 0
+        ) {
+          // 占位消息（由 appendThinking 在首个 token 到达前创建）：
+          // 不关闭不重建，只把 id 更新为服务端的 messageId，
+          // 思维链保持不动，内容开始写入。
+          messages = replaceMessage(messages, streaming.id, (m) => ({
+            ...m,
             id: messageId,
-            role: "assistant" as const,
             content: buf.content,
-            status: "streaming" as const,
-            citations: [],
-            createdAt: new Date().toISOString(),
-            ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-            thinkingSteps:
-              state.thinking.length > 0 ? [...state.thinking] : undefined,
-          },
-        ];
+          }));
+        } else {
+          messages = [
+            ...messages.map((m) =>
+              m.id === streaming.id ? { ...m, status: "done" as const } : m,
+            ),
+            {
+              id: messageId,
+              role: "assistant" as const,
+              content: buf.content,
+              status: "streaming" as const,
+              citations: [],
+              createdAt: new Date().toISOString(),
+              ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+              thinkingSteps:
+                state.thinking.length > 0 ? [...state.thinking] : undefined,
+            },
+          ];
+        }
         changed = true;
         continue;
       }
@@ -405,19 +420,32 @@ function drainTokenBuffer(messages: ChatMessage[]): ChatMessage[] {
         },
       ];
     } else if (streaming.id !== messageId) {
-      result = [
-        ...result.map((m) =>
-          m.id === streaming.id ? { ...m, status: "done" as const } : m,
-        ),
-        {
+      if (
+        streaming.content === "" &&
+        streaming.thinkingSteps !== undefined &&
+        streaming.thinkingSteps.length > 0
+      ) {
+        // 占位消息 → 更新 id 并写入内容，不新建。
+        result = replaceMessage(result, streaming.id, (m) => ({
+          ...m,
           id: messageId,
-          role: "assistant" as const,
           content: buf.content,
-          status: "streaming" as const,
-          citations: [],
-          createdAt: new Date().toISOString(),
-        },
-      ];
+        }));
+      } else {
+        result = [
+          ...result.map((m) =>
+            m.id === streaming.id ? { ...m, status: "done" as const } : m,
+          ),
+          {
+            id: messageId,
+            role: "assistant" as const,
+            content: buf.content,
+            status: "streaming" as const,
+            citations: [],
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      }
     } else {
       result = replaceMessage(result, messageId, (m) => ({
         ...m,
@@ -522,7 +550,30 @@ export const useSessionStore = create<SessionState>()(
             next = [...prev, newStep];
           }
 
-          if (streaming === undefined) return { thinking: next };
+          if (streaming === undefined) {
+            // 尚无助手消息：立即创建占位消息，让思维链面板可见。
+            // 等第一个 token 到达时，flushTokenBufferImpl 会把这个
+            // 占位消息的 id 更新为服务端下发的 messageId 并开始写内容。
+            const placeholderId = newId();
+            return {
+              thinking: next,
+              messages: [
+                ...state.messages,
+                {
+                  id: placeholderId,
+                  role: "assistant" as const,
+                  content: "",
+                  status: "streaming" as const,
+                  citations: [],
+                  createdAt: new Date().toISOString(),
+                  ...(state.turnStep !== null
+                    ? { step: state.turnStep }
+                    : {}),
+                  thinkingSteps: [...next],
+                },
+              ],
+            };
+          }
 
           const linked = newStep ?? next[next.length - 1];
           return {
