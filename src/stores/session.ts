@@ -194,6 +194,14 @@ export interface SessionState {
   abortTurn: () => void;
   noteInvalidFrame: () => void;
   /**
+   * 同步排空 token 缓冲区（供测试使用）。
+   *
+   * 正常情况下 token 按 `requestAnimationFrame` 批量合并写入 Store，
+   * 避免每个 token 事件单独触发一次 React 渲染。测试需要同步读取
+   * Store 状态，调用此方法可立即应用缓冲区中所有待处理的 token。
+   */
+  flushTokenBuffer: () => void;
+  /**
    * 注入一条预生成讲稿（2026-09-19「点开即有」）。
    *
    * 缓存命中时由 LectureLauncher 调用：讲稿作为**已完成**的助手消息直接
@@ -282,6 +290,128 @@ function replaceMessage(
   return next;
 }
 
+/**
+ * Token 批量合并：避免每个 SSE token 事件单独触发一次 React 渲染。
+ *
+ * 模型每秒可产 30~80 个 token，如果每个 token 都走一次 `set()` →
+ * ChatPanel 重渲染 → MarkdownView 重解析全文 → scrollTop 设置，
+ * 产生的「卡」不是因为渲染一帧慢，而是 500 帧挤在同一秒里互相阻塞。
+ *
+ * 这里把同一条流式消息收到的连续 token 按 `setTimeout(0)` 合并：
+ * 每个 task 周期只写一次 Store，其余 token 只进缓冲区。
+ */
+const tokenBuffer = new Map<
+  string,
+  { content: string; flushScheduled: boolean }
+>();
+
+function flushTokenBufferImpl(
+  set: any,
+): void {
+  const toFlush = new Map(tokenBuffer);
+  tokenBuffer.clear();
+  set((state: SessionState) => {
+    let messages = state.messages;
+    let changed = false;
+    for (const [messageId, buf] of toFlush) {
+      const streaming = findStreamingAssistant(messages);
+      if (streaming === undefined) {
+        messages = [
+          ...messages,
+          {
+            id: messageId,
+            role: "assistant" as const,
+            content: buf.content,
+            status: "streaming" as const,
+            citations: [],
+            createdAt: new Date().toISOString(),
+            ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+          },
+        ];
+        changed = true;
+        continue;
+      }
+      if (streaming.id !== messageId) {
+        messages = [
+          ...messages.map((m) =>
+            m.id === streaming.id ? { ...m, status: "done" as const } : m,
+          ),
+          {
+            id: messageId,
+            role: "assistant" as const,
+            content: buf.content,
+            status: "streaming" as const,
+            citations: [],
+            createdAt: new Date().toISOString(),
+            ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+          },
+        ];
+        changed = true;
+        continue;
+      }
+      messages = replaceMessage(messages, messageId, (m) => ({
+        ...m,
+        content: m.content + buf.content,
+      }));
+      changed = true;
+    }
+    if (!changed) return state;
+    return {
+      messages,
+      thinking: closeThinking(state.thinking),
+    };
+  });
+}
+
+/**
+ * 同步排空 token 缓冲区，返回应用了所有缓存内容的消息数组。
+ *
+ * 在 `completeTurn` / `failTurn` / `abortTurn` 这些收尾动作里调用：
+ * `done` 事件到达时可能还有没被 rAF 刷掉的 token，不先排空就会丢失
+ * 最后一段内容。
+ */
+function drainTokenBuffer(messages: ChatMessage[]): ChatMessage[] {
+  const toFlush = new Map(tokenBuffer);
+  tokenBuffer.clear();
+  let result = messages;
+  for (const [messageId, buf] of toFlush) {
+    const streaming = findStreamingAssistant(result);
+    if (streaming === undefined) {
+      result = [
+        ...result,
+        {
+          id: messageId,
+          role: "assistant" as const,
+          content: buf.content,
+          status: "streaming" as const,
+          citations: [],
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    } else if (streaming.id !== messageId) {
+      result = [
+        ...result.map((m) =>
+          m.id === streaming.id ? { ...m, status: "done" as const } : m,
+        ),
+        {
+          id: messageId,
+          role: "assistant" as const,
+          content: buf.content,
+          status: "streaming" as const,
+          citations: [],
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    } else {
+      result = replaceMessage(result, messageId, (m) => ({
+        ...m,
+        content: m.content + buf.content,
+      }));
+    }
+  }
+  return result;
+}
+
 export const useSessionStore = create<SessionState>()(
   persist(
     (set) => ({
@@ -299,7 +429,9 @@ export const useSessionStore = create<SessionState>()(
       turnStep: null,
 
       beginTurn: (content, options) =>
-        set((state) => ({
+        set((state) => {
+          tokenBuffer.clear();
+          return {
           messages:
             options?.silent === true
               ? state.messages
@@ -326,66 +458,22 @@ export const useSessionStore = create<SessionState>()(
           error: null,
           tokens: null,
           turnStep: options?.step ?? null,
-        })),
-
-      appendToken: (content, messageId) =>
-        set((state) => {
-          const streaming = findStreamingAssistant(state.messages);
-          // 助手消息**懒创建**：它的 id 必须等于服务端给的 `messageId`，
-          // 而那个值要等第一个 token 事件才拿到。提前建会得到一个对不上的 id，
-          // 后续 `done` 事件的归属就无从判断。
-          if (streaming === undefined) {
-            return {
-              messages: [
-                ...state.messages,
-                {
-                  id: messageId,
-                  role: "assistant" as const,
-                  content,
-                  status: "streaming" as const,
-                  citations: [],
-                  createdAt: new Date().toISOString(),
-                  // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
-                  ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-                },
-              ],
-              thinking: closeThinking(state.thinking),
-            };
-          }
-
-          if (streaming.id !== messageId) {
-            // 服务端在一条助手消息内换了 id（例如中间插了工具调用）——
-            // 按新 id 另起一条，而不是把内容混进旧消息。
-            return {
-              messages: [
-                ...state.messages.map((message) =>
-                  message.id === streaming.id
-                    ? { ...message, status: "done" as const }
-                    : message,
-                ),
-                {
-                  id: messageId,
-                  role: "assistant" as const,
-                  content,
-                  status: "streaming" as const,
-                  citations: [],
-                  createdAt: new Date().toISOString(),
-                  // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
-                  ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-                },
-              ],
-              thinking: closeThinking(state.thinking),
-            };
-          }
-
-          return {
-            messages: replaceMessage(state.messages, messageId, (message) => ({
-              ...message,
-              content: message.content + content,
-            })),
-            thinking: closeThinking(state.thinking),
           };
         }),
+
+      appendToken: (content, messageId) => {
+        const existing = tokenBuffer.get(messageId);
+        if (existing !== undefined) {
+          existing.content += content;
+          return;
+        }
+        tokenBuffer.set(messageId, { content, flushScheduled: true });
+        setTimeout(() => {
+          const buf = tokenBuffer.get(messageId);
+          if (buf === undefined) return;
+          flushTokenBufferImpl(set);
+        }, 0);
+      },
 
       appendThinking: ({ step, agent, content }) =>
         set((state) => {
@@ -456,10 +544,11 @@ export const useSessionStore = create<SessionState>()(
 
       completeTurn: ({ messageId, tokens }) =>
         set((state) => {
-          const streaming = findStreamingAssistant(state.messages);
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
           const targetId = streaming?.id ?? messageId;
           return {
-            messages: replaceMessage(state.messages, targetId, (message) => ({
+            messages: replaceMessage(messages, targetId, (message) => ({
               ...message,
               status: "done",
               tokens,
@@ -472,12 +561,13 @@ export const useSessionStore = create<SessionState>()(
 
       failTurn: (error) =>
         set((state) => {
-          const streaming = findStreamingAssistant(state.messages);
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
           return {
             messages:
               streaming === undefined
-                ? state.messages
-                : replaceMessage(state.messages, streaming.id, (message) => ({
+                ? messages
+                : replaceMessage(messages, streaming.id, (message) => ({
                     ...message,
                     status: "error",
                   })),
@@ -489,14 +579,15 @@ export const useSessionStore = create<SessionState>()(
 
       abortTurn: () =>
         set((state) => {
-          const streaming = findStreamingAssistant(state.messages);
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
           return {
             // 中断不是错误：已收到的内容保留下来，标成 done 让它可以被复制。
             // 用户自己按的「停止」，不该看到一条红色报错。
             messages:
               streaming === undefined
-                ? state.messages
-                : replaceMessage(state.messages, streaming.id, (message) => ({
+                ? messages
+                : replaceMessage(messages, streaming.id, (message) => ({
                     ...message,
                     status: "done",
                   })),
@@ -507,6 +598,12 @@ export const useSessionStore = create<SessionState>()(
 
       noteInvalidFrame: () =>
         set((state) => ({ invalidFrames: state.invalidFrames + 1 })),
+
+      flushTokenBuffer: () => {
+        const hasData = tokenBuffer.size > 0;
+        if (!hasData) return;
+        flushTokenBufferImpl(set);
+      },
 
       seedLecture: (step, content) => {
         let seeded = false;
@@ -554,7 +651,8 @@ export const useSessionStore = create<SessionState>()(
             ...applyBucket(saved),
           };
         }),
-      reset: () =>
+      reset: () => {
+        tokenBuffer.clear();
         set({
           messages: [],
           thinking: [],
@@ -566,7 +664,8 @@ export const useSessionStore = create<SessionState>()(
           invalidFrames: 0,
           turnStep: null,
           byModule: {},
-        }),
+        });
+      },
     }),
     {
       name: "sso.conversations",

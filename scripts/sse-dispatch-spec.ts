@@ -27,19 +27,7 @@ import type { SSEEventInput } from "@/schemas";
 // ---------------------------------------------------------------------------
 
 function resetAllStores(): void {
-  useSessionStore.setState({
-    messages: [],
-    thinking: [],
-    tools: [],
-    citations: [],
-    status: "idle",
-    error: null,
-    tokens: null,
-    invalidFrames: 0,
-    turnStep: null,
-    activeModuleId: null,
-    byModule: {},
-  });
+  useSessionStore.getState().reset();
   useCodeStore.setState({
     validationStatus: "idle",
     validationResult: null,
@@ -61,6 +49,7 @@ test("token 事件 → 写入 messages（懒创建助手消息）", () => {
     type: "token",
     data: { content: "你好", messageId: "msg_1" },
   } as SSEEventInput);
+  useSessionStore.getState().flushTokenBuffer();
 
   const state = useSessionStore.getState();
   assert.equal(state.messages.length, 1, "token 应创建一条助手消息");
@@ -78,6 +67,7 @@ test("token 事件多次调用 → 累积拼接同一条消息", () => {
     type: "token",
     data: { content: "句", messageId: "msg_1" },
   } as SSEEventInput);
+  useSessionStore.getState().flushTokenBuffer();
 
   const msgs = useSessionStore.getState().messages;
   assert.equal(msgs.length, 1, "同 messageId 应合并为一条消息");
@@ -93,6 +83,7 @@ test("token 事件不同 messageId → 另起新消息", () => {
     type: "token",
     data: { content: "第二条", messageId: "msg_2" },
   } as SSEEventInput);
+  useSessionStore.getState().flushTokenBuffer();
 
   const msgs = useSessionStore.getState().messages;
   assert.equal(msgs.length, 2, "不同 messageId 应各起一条消息");
