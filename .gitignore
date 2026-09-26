@@ -77,3 +77,11 @@ scaffold-tmp/
 
 # 走查证据截图（会话产物，不入库）
 gui-test-screenshots/
+
+# 走查会话产物副本与工具残留（不入库）
+walkthrough-output/
+.trae/
+test-output.txt
+
+# npm 误生成的锁文件（本项目用 pnpm，锁文件是 pnpm-lock.yaml）
+package-lock.json

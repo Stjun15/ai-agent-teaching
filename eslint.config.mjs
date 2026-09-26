@@ -17,5 +17,7 @@ export default defineConfig([
     "next-env.d.ts",
     "_backup/**",
     "_day0_test/**",
+    // 走查会话的产物副本（不入库），不要让 lint 扫进去
+    "walkthrough-output/**",
   ]),
 ]);
