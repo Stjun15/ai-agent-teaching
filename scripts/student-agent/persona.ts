@@ -52,6 +52,16 @@ function buildUserMessage(
   task: StudentTask,
   previousAttempt: { error: string; rawText: string } | null,
 ): string {
+  // 教学材料按空行分块、逐块编号：学生产出时必须标注来源编号 [N]，
+  // 驱动器据此做接地校验（submission 里的用法必须能在材料中找到）。
+  const materialBlocks = task.material
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter((block) => block.length > 0);
+  const numberedMaterial = materialBlocks
+    .map((block, index) => `[材料 ${index + 1}]\n${block}`)
+    .join("\n\n");
+
   const parts = [
     "## 本次输入",
     "",
@@ -59,9 +69,11 @@ function buildUserMessage(
     `- 步骤：${task.step}`,
     `- 任务：${task.instruction}`,
     "",
-    "## 教学材料",
+    "## 教学材料（已编号）",
     "",
-    task.material,
+    "这是你**唯一**的知识来源。材料里没有教的概念、API、语法，你不会 —— 也不允许使用。",
+    "",
+    numberedMaterial,
     "",
     "## 输出要求",
     "",
