@@ -47,11 +47,11 @@ function readConceptBody(moduleId: string): string {
 // ① 概念页开场白 ——「这是哪一站」
 // ---------------------------------------------------------------------------
 
-test("python-basics：开场白含定位段落「这是哪一站」与引导句式", () => {
+test("python-basics：开场白含定位段落「为什么需要这一站」与引导句式", () => {
   const body = readConceptBody("python-basics");
   assert.ok(
-    body.includes("这是哪一站"),
-    "python-basics 应包含「这是哪一站」章节",
+    body.includes("为什么需要这一站"),
+    "python-basics 应包含「为什么需要这一站」章节",
   );
   assert.ok(
     body.includes("看完开场白就可以进 LLM API"),
@@ -60,9 +60,12 @@ test("python-basics：开场白含定位段落「这是哪一站」与引导句�
   assert.ok(body.includes("不是要你学会"), "应包含「不是要你学会」安抚句");
 });
 
-test("ts-basics：开场白含定位段落「这是哪一站」与引导句式", () => {
+test("ts-basics：开场白含定位段落「为什么需要这一站」与引导句式", () => {
   const body = readConceptBody("ts-basics");
-  assert.ok(body.includes("这是哪一站"), "ts-basics 应包含「这是哪一站」章节");
+  assert.ok(
+    body.includes("为什么需要这一站"),
+    "ts-basics 应包含「为什么需要这一站」章节",
+  );
   assert.ok(
     body.includes("看完开场白就可以进 LLM API"),
     "应包含「看完开场白就可以进 LLM API」引导句",

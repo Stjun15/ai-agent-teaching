@@ -46,7 +46,7 @@ export const SECTION_ALIASES: Record<string, string[]> = {
   why: [SECTION_NAMES.why],
   misconceptions: [SECTION_NAMES.misconceptions, SECTION_NAMES.commonProblems],
   comparison: [SECTION_NAMES.comparison],
-  practice: [SECTION_NAMES.practice],
+  practice: [SECTION_NAMES.practice, "实践任务"],
   related: [SECTION_NAMES.related],
   demoCode: ["示范代码"],
 };
