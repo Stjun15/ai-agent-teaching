@@ -144,28 +144,121 @@ sqlite3 dev.db "SELECT * FROM mastery WHERE student_id = 'default';"
 
 ## 示范代码
 
-第一斧「对话骨架」的最小可抄版：一个 SSE 流式对话端点（Next.js API Route），逐行看。
+第一斧「对话骨架」的完整可抄版 —— 用原始 `fetch` 调模型 + 自己写 SSE 流解析。**不依赖任何 LLM SDK**，每一行都是你亲手控制的管线。
+
+### 后端：`src/app/api/chat/route.ts`
 
 ```typescript
-// ① API Route：收到学生消息，向模型要一份「流式」的回复
+// ① API Route：收到学生消息，用原始 fetch 调大模型，把 SSE 流桥接到前端
 export async function POST(req: Request) {
-  const { content } = await req.json(); // 学生的消息
-  // ② 调大模型：stream=true 让模型逐字吐，而不是憋一整段
-  const upstream = await callLLM({
-    messages: [
-      { role: "system", content: "你是教学导师，只讲学习相关内容。" },
-      { role: "user", content },
-    ],
-    stream: true,
+  const { content } = await req.json();
+  const apiKey = process.env.ARK_API_KEY!;
+  const model = "deepseek-v4-flash-ga-260731";
+  const baseUrl = "https://ark.cn-beijing.volces.com/api/v3";
+
+  // ② 用原始 fetch 直连大模型 API —— 不靠任何 SDK 封装
+  const upstream = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    // ③ JSON.stringify：把 JS 对象序列化成 wire format
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: "你是教学导师，只讲学习相关内容。" },
+        { role: "user", content },
+      ],
+      stream: true, // 让模型逐字吐，而不是憋一整段
+    }),
   });
-  // ③ 把模型的流原样转成 SSE 推给前端（打字机的数据来源）
+
+  if (!upstream.ok) {
+    return Response.json(
+      { error: `模型请求失败：HTTP ${upstream.status}` },
+      { status: 502 },
+    );
+  }
+
+  // ④ 把模型的 SSE 流原样桥接给前端 —— new Response 是内置的，不需要 import
   return new Response(upstream.body, {
-    headers: { "Content-Type": "text/event-stream" },
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
   });
 }
 ```
 
-前端那半边只需要一个循环：`reader.read()` 逐块读、拼到页面上 —— 打字机效果就是这么来的。
+### 前端：打字机渲染
+
+```typescript
+// ⑤ 前端用 fetch POST 到你的 /api/chat，然后用 reader 逐块读 SSE 响应
+async function sendMessage(content: string) {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok || !response.body) return;
+
+  // ⑥ getReader：拿到 ReadableStream 的读取器
+  const reader = response.body.getReader();
+  // ⑦ TextDecoder：把 Uint8Array 字节块解码成 JS 字符串
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  // ⑧ reader.read() 循环：逐块读取，done 为 true 时流结束
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    // ⑨ stream: true 让 decoder 跨 chunk 保留不完整的多字节字符
+    buffer += decoder.decode(value, { stream: true });
+
+    // ⑩ SSE 行解析：每个 data: 行就是一个模型吐出的 token
+    const lines = buffer.split("\n");
+    // 最后一行可能是不完整的 chunk，留着下次拼
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+      const data = trimmed.slice(6); // 去掉 "data: " 前缀
+      if (data === "[DONE]") break; // ⑪ [DONE] 是 SSE 协议里的流结束信号
+
+      const parsed = JSON.parse(data);
+      const text = parsed.choices?.[0]?.delta?.content;
+      if (text) {
+        // ⑫ 把 token 拼到页面上 → 打字机效果
+        appendToChat(text);
+      }
+    }
+  }
+}
+```
+
+### 管线全景
+
+```
+浏览器 sendMessage()
+  → fetch POST /api/chat（前端 ⑤）
+    → API Route POST（后端 ①）
+      → fetch POST https://ark.../chat/completions（后端 ②③）
+        → 模型逐字返回 SSE data: 行
+      ← new Response(upstream.body)（后端 ④）
+    ← 响应体 = SSE 流
+  → reader.read() 循环（前端 ⑥⑦⑧⑨）
+    → 按 \n 拆行，认 data: 前缀（⑩）
+    → JSON.parse 取 delta.content（⑪⑫）
+      → 逐字拼到 DOM → 打字机
+```
+
+**这 12 个标注就是第一斧的全部原料。** 没有 `import { callLLM }`，没有 `new OpenAI()`，每一个 `fetch`、每一个 `reader.read()`、每一个 `new TextDecoder()` 都是你亲手写的 —— 这就是「原始管线」。
 
 ## 动手任务：最终验收
 
