@@ -19,7 +19,7 @@
  * 运行：pnpm analyze:grounding（需 pnpm start 在跑，读讲稿缓存 API）
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { readDemoCode } from "@/lib/teaching-script";
