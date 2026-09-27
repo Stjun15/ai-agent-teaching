@@ -861,7 +861,7 @@ async function updatePage(path: string, content: string): Promise<void>;
     "synthesisLanguage": "zh",
     "taskModel": {
       "provider": "ark",
-      "id": "deepseek-v4-flash-ga-260731"
+      "id": "deepseek-v4-flash"
     },
     "auto_fix_lint": true,
     "trajectories": false,
@@ -869,4 +869,3 @@ async function updatePage(path: string, content: string): Promise<void>;
   }
 }
 ```
-

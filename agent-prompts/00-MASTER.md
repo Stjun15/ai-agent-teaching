@@ -60,7 +60,7 @@ Step 5: 出题 Agent 给变式练习，循环
 | Agent 底座 | piagentSDK |
 | 知识层 | LLM Wiki (`@zosmaai/pi-llm-wiki`) + 轻量 RAG |
 | 模型平台 | 火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`） |
-| 主模型（文本推理） | `deepseek-v4-flash-ga-260731`，读环境变量 `ARK_TEXT_MODEL` |
+| 主模型（文本推理） | `deepseek-v4-flash`，读环境变量 `ARK_TEXT_MODEL` |
 | 多模态模型（视觉理解） | `doubao-seed-2-1-pro-260915`，读环境变量 `ARK_VISION_MODEL` |
 | 后端平台 | 腾讯云 CloudBase（PostgreSQL 版） |
 | 数据库（开发期） | SQLite + repository 抽象层 |

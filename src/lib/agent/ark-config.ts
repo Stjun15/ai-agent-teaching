@@ -24,7 +24,7 @@ export const ARK_API_KEY_ENV = "ARK_API_KEY";
 export const ARK_DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
 
 /** 主模型（文本推理）默认值；可被 `ARK_TEXT_MODEL` 覆盖。 */
-export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash-ga-260731";
+export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash";
 
 /** 多模态模型（视觉理解）默认值；可被 `ARK_VISION_MODEL` 覆盖。 */
 export const ARK_DEFAULT_VISION_MODEL = "doubao-seed-2-1-pro-260915";
