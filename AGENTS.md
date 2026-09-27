@@ -25,7 +25,7 @@
 | 参赛信息   | README 已填（传智杯「AI WEB网页开发挑战赛」C 组 · 广东交通职业技术学院 · 江家俊）；演示视频与技术文档 PDF **未开始**                                                                                                                                                     |
 | Phase 0–6  | 已完成（9/9 可视化场景，场景断言 17 例）                                                                                                                                                                                                                                 |
 | Phase 7    | **9/12 完成**（安全 3 + 文档 3 + 提示词预算 + 跨浏览器测试 + 标签；见第八节）                                                                                                                                                                                            |
-| 质量门禁   | `npm run check` 全绿；`npm test` 31 组（29 纯函数 + 2 真模型，1 个已知 fail 见第八节）                                                                                                                                                                                   |
+| 质量门禁   | `npm run check` 全绿；`npm test` 36 组（33 纯函数 + 3 真模型）全绿，无已知 fail                                                                                                                                                                                          |     |
 | 仓库完整性 | `git fsck` missing 0；`git write-tree` == `HEAD^{tree}`                                                                                                                                                                                                                  |
 | 教学循环   | **已在真实数据库上跑通**（`agent_traces` 等已有真实流量行，见第八节）                                                                                                                                                                                                    |
 | 学生数据   | **已接到前端**：`StudentBootstrap` 每页 hydrate，掌握度卡显示真实 80% / 优秀                                                                                                                                                                                             |
@@ -73,7 +73,7 @@ pi SDK 的 **provider id 必须是 `ark`**（SDK 由 provider id 推导环境变
 
 ```bash
 pnpm check                                        # eslint + prettier --check + tsc
-pnpm test                                         # 31 组（29 纯函数 + 2 真模型回归，含 SSE dispatch 12 / ChatPanel 4）
+pnpm test                                         # 36 组（33 纯函数 + 3 真模型回归；无已知 fail）
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build        # 生产构建（开关只作用于本条命令）
 pnpm start                                        # 另开受管后台任务，不要用 (cmd &)
 node scripts/browser-acceptance.mjs               # 浏览器内端到端 A0–A8
