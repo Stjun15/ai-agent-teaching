@@ -40,7 +40,12 @@ function extractSubmission(reportPath: string): string | null {
   if (fenceStart === -1) return null;
   const fenceEnd = report.indexOf("```", fenceStart + 3);
   if (fenceEnd === -1) return null;
-  return report.slice(fenceStart + 3, fenceEnd).replace(/^\n/, "").trimEnd() || null;
+  return (
+    report
+      .slice(fenceStart + 3, fenceEnd)
+      .replace(/^\n/, "")
+      .trimEnd() || null
+  );
 }
 
 async function main(): Promise<void> {
@@ -60,8 +65,13 @@ async function main(): Promise<void> {
     const submission = extractSubmission(reportPath);
     if (submission === null) {
       rows.push({
-        moduleId: mod.id, name: mod.name, order: mod.order,
-        submissionBytes: 0, ungrounded: [], hasDemo: false, hasAssignment: false,
+        moduleId: mod.id,
+        name: mod.name,
+        order: mod.order,
+        submissionBytes: 0,
+        ungrounded: [],
+        hasDemo: false,
+        hasAssignment: false,
       });
       continue;
     }
@@ -134,7 +144,9 @@ async function main(): Promise<void> {
   writeFileSync(outPath, lines.join("\n"), "utf8");
   console.log(`接地分析完成：${outPath}`);
   for (const r of ranked.slice(0, 5)) {
-    console.log(`  ${r.name}: 材料外用法 ${r.ungrounded.length} 个${r.ungrounded.length > 0 ? `（${r.ungrounded.slice(0, 6).join("、")}）` : ""}`);
+    console.log(
+      `  ${r.name}: 材料外用法 ${r.ungrounded.length} 个${r.ungrounded.length > 0 ? `（${r.ungrounded.slice(0, 6).join("、")}）` : ""}`,
+    );
   }
 }
 
