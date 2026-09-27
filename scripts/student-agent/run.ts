@@ -39,13 +39,14 @@ const getArg = (name: string): string | undefined =>
     .slice(1)
     .join("=");
 
-const moduleId = getArg("module") ?? "llm-api";
+const moduleId = getArg("module") ?? "python-basics"; // 默认从教学链起点开始
 const mode = (getArg("mode") ?? "diligent") as "diligent" | "sloppy";
 const BASE = "http://localhost:3000";
-const STUDENT_ID = `agent-${mode === "sloppy" ? "sloppy" : "diligent"}-000000000001`;
-const STUDENT_NICKNAME =
-  mode === "sloppy" ? "学生Agent·易错" : "学生Agent·认真";
-
+const STUDENT_ID =
+  mode === "sloppy"
+    ? "a9e70000-0000-4000-8000-0000000000a2"
+    : "a9e70000-0000-4000-8000-0000000000a1";
+const STUDENT_NICKNAME = mode === "sloppy" ? "学生Agent·易错" : "学生Agent·认真";
 // ---- 学生身份注册（真实表，agent- 前缀隔离）----
 function ensureStudent(): void {
   const db = new DatabaseSync("dev.db");
@@ -258,10 +259,11 @@ async function main(): Promise<void> {
   );
 
   // ---- ⑦ mastery：掌握度更新验证 ----
-  const mastery = await apiGet<
-    { conceptId: string; score: number; updatedAt: string }[]
-  >("/api/student/mastery");
-  const mine = mastery.data?.find((m) => m.conceptId === moduleId);
+  // 端点返回 { mastery: [...] } 包一层：解包后再找当前模块。
+  const mastery = await apiGet<{
+    mastery: { conceptId: string; score: number; updatedAt: string }[];
+  }>("/api/student/mastery");
+  const mine = mastery.data?.mastery.find((m) => m.conceptId === moduleId);
   log(
     "mastery·掌握度",
     mastery.status === 200,
