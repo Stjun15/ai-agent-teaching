@@ -22,7 +22,7 @@ import type { WikiPage } from "@/wiki";
 import type { StepType } from "@/lib/db/types";
 
 /** 概念页小节标题的标准化名称。 */
-const SECTION_NAMES = {
+export const SECTION_NAMES = {
   definition: "定义",
   keyPoints: "关键点",
   keySteps: "关键步骤",
@@ -36,7 +36,7 @@ const SECTION_NAMES = {
 } as const;
 
 /** 哪些小节标题属于同一语义类（不同概念页用词不同）。 */
-const SECTION_ALIASES: Record<string, string[]> = {
+export const SECTION_ALIASES: Record<string, string[]> = {
   definition: [SECTION_NAMES.definition],
   keyPoints: [
     SECTION_NAMES.keyPoints,
@@ -60,14 +60,14 @@ const SECTION_ALIASES: Record<string, string[]> = {
  *   学生看完示范后最容易踩的坑提前预警。
  * imitate：自己动手 —— 动手任务 + 常见误解。定义段已经讲过了，不用重复。
  */
-const STEP_SECTION_MAP: Record<string, (keyof typeof SECTION_ALIASES)[]> = {
+export const STEP_SECTION_MAP: Record<string, (keyof typeof SECTION_ALIASES)[]> = {
   explain: ["definition", "keyPoints", "why", "comparison"],
   observe: ["keyPoints", "demoCode", "practice", "misconceptions"],
   imitate: ["practice", "misconceptions", "demoCode", "related"],
 };
 
 /** 解析 body 为 `{ heading: string; content: string }[]` 的段落列表。 */
-function parseSections(body: string): { heading: string; content: string }[] {
+export function parseSections(body: string): { heading: string; content: string }[] {
   const lines = body.split(/\r?\n/);
   const sections: { heading: string; content: string }[] = [];
   let currentHeading = "";
@@ -109,7 +109,7 @@ function sectionMatches(heading: string, kind: string): boolean {
  * 从概念页正文中选出指定类型的段落。
  * 返回的是 Markdown 片段（含 `## 标题`），顺序保持原页顺序。
  */
-function selectSections(
+export function selectSections(
   body: string,
   kinds: (keyof typeof SECTION_ALIASES)[],
 ): string[] {

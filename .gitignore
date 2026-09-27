@@ -83,5 +83,8 @@ walkthrough-output/
 .trae/
 test-output.txt
 
+# 学生 Agent 的运行报告（不入库，报告可随时重新生成）
+student-agent-output/
+
 # npm 误生成的锁文件（本项目用 pnpm，锁文件是 pnpm-lock.yaml）
 package-lock.json
