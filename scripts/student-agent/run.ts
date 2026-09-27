@@ -28,7 +28,26 @@ import { handleSSE } from "@/lib/sse";
 import { readDemoCode } from "@/lib/teaching-script";
 import { splitLecture } from "@/lib/lecture-split";
 import { findModule } from "@/lib/modules";
+import { extractTerms } from "./terms";
 import { askStudent } from "./persona";
+
+/**
+ * 接地校验：学生提交物里的标识符/术语，必须也能在**本模块教学材料**
+ * 里找到 —— 找不到的（ungrounded）说明作业用到了材料没教的东西，
+ * 对零基础学生而言这道坎迈不过去。这是「知识断层」的最直接动态证据。
+ * 口径与课程体检器（gap-audit）共用 terms.ts 单份提取器。
+ */
+function groundingCheck(
+  submission: string,
+  material: string,
+): { grounded: boolean; ungrounded: string[] } {
+  const materialTerms = extractTerms(material);
+  const used = [...extractTerms(submission)];
+  const ungrounded = used
+    .filter((term) => !materialTerms.has(term) && term.length >= 3)
+    .slice(0, 12);
+  return { grounded: ungrounded.length === 0, ungrounded };
+}
 
 // ---- 参数 ----
 const args = process.argv.slice(2);
@@ -202,6 +221,19 @@ async function main(): Promise<void> {
     reviewData
       ? `${reviewData.totalScore}/100，${reviewData.isCorrect ? "通过" : "未通过"}${reviewData.usedFallback ? "（兜底）" : ""}`
       : `HTTP ${review.status}`,
+  );
+
+  // ---- 接地校验：submission 是否只用了材料教过的东西 ----
+  const grounding = groundingCheck(
+    submissionReport.submission,
+    `${assignment}\n\n${demoCode}`,
+  );
+  log(
+    "grounding·接地",
+    grounding.grounded,
+    grounding.grounded
+      ? "提交物全部来自教学材料"
+      : `材料未覆盖的用法：${grounding.ungrounded.join("、")}——零基础学生迈不过去的坎`,
   );
 
   // ---- ⑥ practice：出题 + 作答 + 真实判分 ----

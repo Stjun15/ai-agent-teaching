@@ -42,101 +42,12 @@ import {
   selectSections,
 } from "@/lib/teaching-script";
 import { readPageSync } from "@/wiki";
+import { STOPWORDS as STOPWORD_SET, extractTerms } from "./student-agent/terms";
 
 type SectionKind = keyof typeof SECTION_ALIASES;
 
 /** 通用词白名单：不作为断层证据（语言关键字 / 内置 / 通用缩写）。 */
-const STOPWORDS = new Set([
-  "const",
-  "let",
-  "var",
-  "function",
-  "return",
-  "if",
-  "else",
-  "for",
-  "while",
-  "import",
-  "from",
-  "export",
-  "await",
-  "async",
-  "try",
-  "catch",
-  "throw",
-  "new",
-  "class",
-  "this",
-  "typeof",
-  "instanceof",
-  "true",
-  "false",
-  "null",
-  "undefined",
-  "console",
-  "log",
-  "json",
-  "math",
-  "object",
-  "string",
-  "number",
-  "boolean",
-  "promise",
-  "asyncfunction",
-  "print",
-  "def",
-  "int",
-  "str",
-  "list",
-  "dict",
-  "len",
-  "range",
-  "true",
-  "false",
-  "none",
-  "and",
-  "or",
-  "not",
-  "in",
-  "is",
-  "the",
-  "and",
-  "for",
-  "with",
-  "that",
-  "this",
-  "you",
-  "your",
-  "get",
-  "post",
-  "http",
-  "https",
-  "url",
-  "com",
-  "www",
-  "org",
-  "api",
-  "llm",
-  "ai",
-  "gpt",
-  "key",
-  "id",
-  "ok",
-  "utf",
-  "status",
-  "code",
-  "data",
-  "text",
-  "name",
-  "type",
-  "value",
-  "index",
-  "length",
-  "result",
-  "content",
-  "title",
-  "item",
-]);
+const STOPWORDS = STOPWORD_SET;
 
 interface ModuleAudit {
   id: string;
@@ -157,23 +68,6 @@ interface Finding {
   moduleId: string;
   moduleName: string;
   message: string;
-}
-
-/** 从 markdown 文本提取「使用」的术语/标识符（小写化）。 */
-function extractUsedTerms(text: string): Set<string> {
-  const terms = new Set<string>();
-  // 反引号与粗体术语
-  for (const m of text.matchAll(/`([^`]+)`/g))
-    terms.add(m[1].trim().toLowerCase());
-  for (const m of text.matchAll(/\*\*([^*]+)\*\*/g))
-    terms.add(m[1].trim().toLowerCase());
-  // 英文标识符（≥3 字符，允许点号链）
-  for (const m of text.matchAll(/\b[a-zA-Z_][a-zA-Z0-9_.]{2,}\b/g)) {
-    const token = m[0].toLowerCase().replace(/[.]+$/, "");
-    if (!STOPWORDS.has(token) && !/^\d/.test(token)) terms.add(token);
-  }
-  // 中文/复合术语本身（反引号内可能带空格），逐词拆分太噪，保留整体
-  return terms;
 }
 
 /** 从整页提取「定义」的术语（小写化）。 */
@@ -280,7 +174,7 @@ async function main(): Promise<void> {
     for (const step of Object.keys(STEP_SECTION_MAP)) {
       const text = audit.sectionTexts[step] ?? "";
       if (text === "") continue;
-      for (const term of extractUsedTerms(text)) {
+      for (const term of extractTerms(text)) {
         const definedAt = firstDefinedAt.get(term);
         if (definedAt === undefined || definedAt <= audit.order) continue;
         const later = audits.find((a) => a.order === definedAt);
@@ -336,7 +230,7 @@ async function main(): Promise<void> {
   const orphans = new Map<string, string[]>();
   for (const audit of audits) {
     for (const step of Object.keys(STEP_SECTION_MAP)) {
-      for (const term of extractUsedTerms(audit.sectionTexts[step] ?? "")) {
+      for (const term of extractTerms(audit.sectionTexts[step] ?? "")) {
         if (firstDefinedAt.has(term)) continue;
         if (!/^[\w.]+$/.test(term) || term.length < 4) continue;
         const list = orphans.get(term) ?? [];
