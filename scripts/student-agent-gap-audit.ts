@@ -40,7 +40,6 @@ import {
   SECTION_ALIASES,
   STEP_SECTION_MAP,
   selectSections,
-  type SECTION_NAMES,
 } from "@/lib/teaching-script";
 import { readPageSync } from "@/wiki";
 
@@ -48,16 +47,95 @@ type SectionKind = keyof typeof SECTION_ALIASES;
 
 /** 通用词白名单：不作为断层证据（语言关键字 / 内置 / 通用缩写）。 */
 const STOPWORDS = new Set([
-  "const", "let", "var", "function", "return", "if", "else", "for", "while",
-  "import", "from", "export", "await", "async", "try", "catch", "throw",
-  "new", "class", "this", "typeof", "instanceof", "true", "false", "null",
-  "undefined", "console", "log", "json", "math", "object", "string", "number",
-  "boolean", "promise", "asyncfunction", "print", "def", "int", "str", "list",
-  "dict", "len", "range", "true", "false", "none", "and", "or", "not", "in",
-  "is", "the", "and", "for", "with", "that", "this", "you", "your", "get",
-  "post", "http", "https", "url", "com", "www", "org", "api", "llm", "ai",
-  "gpt", "key", "id", "ok", "utf", "status", "code", "data", "text", "name",
-  "type", "value", "index", "length", "result", "content", "title", "item",
+  "const",
+  "let",
+  "var",
+  "function",
+  "return",
+  "if",
+  "else",
+  "for",
+  "while",
+  "import",
+  "from",
+  "export",
+  "await",
+  "async",
+  "try",
+  "catch",
+  "throw",
+  "new",
+  "class",
+  "this",
+  "typeof",
+  "instanceof",
+  "true",
+  "false",
+  "null",
+  "undefined",
+  "console",
+  "log",
+  "json",
+  "math",
+  "object",
+  "string",
+  "number",
+  "boolean",
+  "promise",
+  "asyncfunction",
+  "print",
+  "def",
+  "int",
+  "str",
+  "list",
+  "dict",
+  "len",
+  "range",
+  "true",
+  "false",
+  "none",
+  "and",
+  "or",
+  "not",
+  "in",
+  "is",
+  "the",
+  "and",
+  "for",
+  "with",
+  "that",
+  "this",
+  "you",
+  "your",
+  "get",
+  "post",
+  "http",
+  "https",
+  "url",
+  "com",
+  "www",
+  "org",
+  "api",
+  "llm",
+  "ai",
+  "gpt",
+  "key",
+  "id",
+  "ok",
+  "utf",
+  "status",
+  "code",
+  "data",
+  "text",
+  "name",
+  "type",
+  "value",
+  "index",
+  "length",
+  "result",
+  "content",
+  "title",
+  "item",
 ]);
 
 interface ModuleAudit {
@@ -85,8 +163,10 @@ interface Finding {
 function extractUsedTerms(text: string): Set<string> {
   const terms = new Set<string>();
   // 反引号与粗体术语
-  for (const m of text.matchAll(/`([^`]+)`/g)) terms.add(m[1].trim().toLowerCase());
-  for (const m of text.matchAll(/\*\*([^*]+)\*\*/g)) terms.add(m[1].trim().toLowerCase());
+  for (const m of text.matchAll(/`([^`]+)`/g))
+    terms.add(m[1].trim().toLowerCase());
+  for (const m of text.matchAll(/\*\*([^*]+)\*\*/g))
+    terms.add(m[1].trim().toLowerCase());
   // 英文标识符（≥3 字符，允许点号链）
   for (const m of text.matchAll(/\b[a-zA-Z_][a-zA-Z0-9_.]{2,}\b/g)) {
     const token = m[0].toLowerCase().replace(/[.]+$/, "");
@@ -97,7 +177,11 @@ function extractUsedTerms(text: string): Set<string> {
 }
 
 /** 从整页提取「定义」的术语（小写化）。 */
-function extractDefinedTerms(pageName: string, body: string, tags: readonly string[]): Set<string> {
+function extractDefinedTerms(
+  pageName: string,
+  body: string,
+  tags: readonly string[],
+): Set<string> {
   const terms = new Set<string>();
   terms.add(pageName.trim().toLowerCase());
   for (const tag of tags) terms.add(tag.trim().toLowerCase());
@@ -117,7 +201,8 @@ function extractDefinedTerms(pageName: string, body: string, tags: readonly stri
   // **代码块内的标识符也算本页教的**：示范代码是教学的一部分，
   // 代码里出现 `role` / `temperature` 即本页教了它的用法——
   // 漏掉这一来源会把第 3 讲自己教的 message/role 误判成前向引用。
-  const identifier = /(?<![a-zA-Z0-9_])[a-zA-Z_][a-zA-Z0-9_.]{1,}(?![a-zA-Z0-9_])/g;
+  const identifier =
+    /(?<![a-zA-Z0-9_])[a-zA-Z_][a-zA-Z0-9_.]{1,}(?![a-zA-Z0-9_])/g;
   for (const m of body.matchAll(identifier)) {
     const t = m[0].toLowerCase().replace(/[.]+$/, "");
     if (t.length >= 2 && !STOPWORDS.has(t)) terms.add(t);
@@ -137,7 +222,13 @@ async function main(): Promise<void> {
     try {
       const page = readPageSync(`concepts/${mod.id}.md`);
       body = page.body;
-      tags = page.frontmatter.tags ?? [];
+      // frontmatter 值是宽松联合：归一化为字符串数组
+      const rawTags = page.frontmatter.tags;
+      tags = Array.isArray(rawTags)
+        ? rawTags.map((t) => String(t))
+        : rawTags
+          ? [String(rawTags)]
+          : [];
     } catch {
       findings.push({
         severity: "ERROR",
@@ -146,9 +237,13 @@ async function main(): Promise<void> {
         message: "概念页不存在或读取失败 —— 该模块的教学脚本与冷启动全部失效",
       });
       audits.push({
-        id: mod.id, name: mod.name, order,
-        definedTerms: new Set(), sectionCoverage: {},
-        prerequisites: mod.prerequisites, sectionTexts: {},
+        id: mod.id,
+        name: mod.name,
+        order,
+        definedTerms: new Set(),
+        sectionCoverage: {},
+        prerequisites: mod.prerequisites,
+        sectionTexts: {},
       });
       continue;
     }
@@ -156,10 +251,7 @@ async function main(): Promise<void> {
     const coverage: Record<string, number> = {};
     const texts: Record<string, string> = {};
     for (const [step, kinds] of Object.entries(STEP_SECTION_MAP)) {
-      const picked = selectSections(
-        body,
-        kinds as SectionKind[],
-      );
+      const picked = selectSections(body, kinds as SectionKind[]);
       coverage[step] = picked.length;
       texts[step] = picked.join("\n\n");
     }
@@ -185,7 +277,7 @@ async function main(): Promise<void> {
 
   // ---- 检测 1：前向引用（教学小节使用 vs 首定义位置）----
   for (const audit of audits) {
-    for (const [step, kinds] of Object.entries(STEP_SECTION_MAP)) {
+    for (const step of Object.keys(STEP_SECTION_MAP)) {
       const text = audit.sectionTexts[step] ?? "";
       if (text === "") continue;
       for (const term of extractUsedTerms(text)) {
@@ -243,7 +335,7 @@ async function main(): Promise<void> {
   // ---- 检测 4：从未定义的英文标识符采样（INFO，限 20 个）----
   const orphans = new Map<string, string[]>();
   for (const audit of audits) {
-    for (const [step, kinds] of Object.entries(STEP_SECTION_MAP)) {
+    for (const step of Object.keys(STEP_SECTION_MAP)) {
       for (const term of extractUsedTerms(audit.sectionTexts[step] ?? "")) {
         if (firstDefinedAt.has(term)) continue;
         if (!/^[\w.]+$/.test(term) || term.length < 4) continue;
@@ -296,8 +388,12 @@ async function main(): Promise<void> {
   }
   lines.push("## 二、口径说明");
   lines.push("");
-  lines.push("- 「定义」= 术语以反引号 / 粗体 / 小节标题出现在某概念页；「使用」= 教学小节文本中的反引号 / 粗体 / 英文标识符。");
-  lines.push("- 中文无分词，纯中文断层由学生 Agent 动态模拟（P2）兜底；本报告覆盖高置信子集。");
+  lines.push(
+    "- 「定义」= 术语以反引号 / 粗体 / 小节标题出现在某概念页；「使用」= 教学小节文本中的反引号 / 粗体 / 英文标识符。",
+  );
+  lines.push(
+    "- 中文无分词，纯中文断层由学生 Agent 动态模拟（P2）兜底；本报告覆盖高置信子集。",
+  );
   lines.push("- INFO 级为低置信采样，仅列前 20 个，供人工判断是否补进知识库。");
 
   const outDir = path.resolve("student-agent-output");
@@ -305,7 +401,9 @@ async function main(): Promise<void> {
   const outPath = path.join(outDir, "course-audit.md");
   writeFileSync(outPath, lines.join("\n"), "utf8");
 
-  console.log(`课程体检完成：ERROR ${errors.length} / WARN ${warns.length} / INFO ${infos.length}`);
+  console.log(
+    `课程体检完成：ERROR ${errors.length} / WARN ${warns.length} / INFO ${infos.length}`,
+  );
   console.log(`报告：${outPath}`);
   for (const f of errors.slice(0, 12)) {
     console.log(`  [ERROR] ${f.moduleName}: ${f.message}`);
