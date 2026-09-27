@@ -46,7 +46,8 @@ const STUDENT_ID =
   mode === "sloppy"
     ? "a9e70000-0000-4000-8000-0000000000a2"
     : "a9e70000-0000-4000-8000-0000000000a1";
-const STUDENT_NICKNAME = mode === "sloppy" ? "学生Agent·易错" : "学生Agent·认真";
+const STUDENT_NICKNAME =
+  mode === "sloppy" ? "学生Agent·易错" : "学生Agent·认真";
 // ---- 学生身份注册（真实表，agent- 前缀隔离）----
 function ensureStudent(): void {
   const db = new DatabaseSync("dev.db");
