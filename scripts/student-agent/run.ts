@@ -178,6 +178,11 @@ async function main(): Promise<void> {
   if (session.status !== 200 || !session.data) {
     throw new Error(`建会话失败：${session.status}`);
   }
+  // 任务类型跟作业形态走：system-prompt 的作业是 Prompt 文本（prompt 评分
+  // 标准的维度是角色定义/输出格式等），其余模块的作业是代码。用错了
+  // 评分标准，点评就是答非所问（2026-09-27 模拟实测：prompt 被代码
+  // rubric 评出 14 分）。
+  const taskType = moduleId === "system-prompt" ? "prompt" : "code";
   const review = await apiPost<{
     totalScore: number;
     isCorrect: boolean;
@@ -187,7 +192,7 @@ async function main(): Promise<void> {
     studentId: STUDENT_ID,
     sessionId: session.data.sessionId,
     moduleId,
-    taskType: "code",
+    taskType,
     content: submissionReport.submission,
   });
   const reviewData = review.data;

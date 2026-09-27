@@ -161,15 +161,27 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       // 主观题由点评模型批改 → 与 validate 同属「点评写掌握度」的设计约定
-      // （02-agent-system.md「数据职责」）。客观题走规则判分，单题 0/100
-      // 映射 0/5 会大幅摆动掌握度，不更新 —— 客观题的信号进错题本。
+      // （02-agent-system.md「数据职责」），但练习语义是**只升不降**（max）：
+      // 练错一道题不该把已通过的掌握度砸回去、把已解锁的后续模块重新
+      // 锁死（2026-09-27 全链路模拟实测的连锁后果）。下降信号走错题本
+      // （errors 表，上面已写）；客观题走规则判分，不在此处更新掌握度。
       if (assessment.gradedBy === "model") {
         try {
-          await masteryDb.update(
+          const current = await masteryDb.getByConcept(
             body.studentId,
             question.conceptId,
+          );
+          const nextScore = Math.max(
+            current?.score ?? 0,
             masteryScoreFromPromptScore(assessment.score),
           );
+          if (nextScore !== (current?.score ?? -1)) {
+            await masteryDb.update(
+              body.studentId,
+              question.conceptId,
+              nextScore,
+            );
+          }
         } catch (error) {
           console.error("[answer-grade] 更新掌握度失败：", error);
         }
