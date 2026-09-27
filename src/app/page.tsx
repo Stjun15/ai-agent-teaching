@@ -16,27 +16,38 @@ const ABILITIES = [
   { name: "理解 AI 行为模式", detail: "知道 AI 的强项、弱项、幻觉、讨好倾向" },
 ] as const;
 
+// 七步口径与学习中心 / 模块页侧栏一致（lib/learning-steps.ts 的中文文案）。
 const TEACHING_FLOW = [
-  { step: "1", title: "导师展示预设代码", detail: "先看清「对的」长什么样" },
+  { step: "1", title: "概念讲解", detail: "导师讲清核心概念，先建立心智模型" },
   {
     step: "2",
-    title: "学生完成场景",
-    detail: "自己写 Prompt、工具定义或核心逻辑",
+    title: "观察示范",
+    detail: "看导师展示的示范代码，看清「对的」长什么样",
   },
   {
     step: "3",
-    title: "AI 校验并点评",
-    detail: "不通过就给出反馈与扣分理由，学生修改",
+    title: "动手模仿",
+    detail: "自己写 Prompt、工具定义或核心逻辑，AI 不代写",
   },
   {
     step: "4",
-    title: "可视化展示 Agent Loop",
-    detail: "看到刚才写的代码如何运转",
+    title: "校验点评",
+    detail: "点评 Agent 按评分标准给分项得分与扣分理由",
   },
   {
     step: "5",
-    title: "出题 Agent 给变式练习",
-    detail: "换一个条件再练一遍，循环",
+    title: "可视化",
+    detail: "把刚写的代码放进场景，看它逐步运转",
+  },
+  {
+    step: "6",
+    title: "变式练习",
+    detail: "出题 Agent 换一个条件再问一次，真实判分",
+  },
+  {
+    step: "7",
+    title: "掌握判定",
+    detail: "掌握度达标才解锁下一讲——掌握式学习的关卡",
   },
 ] as const;
 
@@ -141,7 +152,7 @@ export default async function HomePage() {
             一次学习的完整过程
           </h2>
         </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-5">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {TEACHING_FLOW.map((item) => (
             <Card
               key={item.step}

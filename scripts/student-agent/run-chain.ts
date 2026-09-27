@@ -38,10 +38,15 @@ interface ModuleOutcome {
 
 async function main(): Promise<void> {
   const modules = await loadModules();
+  // --from=<moduleId>：断点续跑（跳过该模块之前的全部模块）。
+  const from = getArg("from");
+  const startIndex = from ? modules.findIndex((m) => m.id === from) : 0;
+  if (from && startIndex === -1)
+    throw new Error(`--from=${from} 不在课程拓扑里`);
   const outcomes: ModuleOutcome[] = [];
   let consecutiveLocked = 0;
 
-  for (const mod of modules) {
+  for (const mod of modules.slice(startIndex)) {
     console.log(
       `\n===== [${mod.order + 1}/${modules.length}] ${mod.name} =====`,
     );
