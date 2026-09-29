@@ -273,7 +273,7 @@ export function ModuleWorkspace({
               )}
             </>
           ) : currentStepId === "observe" ? (
-            <Card className="h-[560px]">
+            <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
                 <Composer step={currentStepId} moduleId={teachingModule.id} />

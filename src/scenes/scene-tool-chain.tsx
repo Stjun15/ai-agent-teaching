@@ -125,12 +125,12 @@ export function SceneToolChain({
         </div>
 
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="text-[10px] text-muted-foreground">用户输入</p>
-          <p className="mt-0.5 text-xs">查北京天气，再算华氏度</p>
+          <p className="text-sm text-muted-foreground">用户输入</p>
+          <p className="mt-0.5 text-sm">查北京天气，再算华氏度</p>
         </div>
 
         {blocked ? (
-          <p className="animate-in rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-rose-900 duration-300 fade-in dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          <p className="animate-in rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-sm leading-relaxed text-rose-900 duration-300 fade-in dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
             getWeather 的描述是空的 —— Agent
             判断不了「什么时候该用它」，调用链断在
             第一环，后面的换算也不会发生。
@@ -157,10 +157,8 @@ export function SceneToolChain({
                       : "border-dashed border-border bg-card opacity-60",
                 )}
               >
-                <p className="font-mono text-[11px] font-medium">
-                  {link.name}()
-                </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="font-mono text-sm font-medium">{link.name}()</p>
+                <p className="text-sm text-muted-foreground">
                   {link.returned
                     ? `返回 ${link.result}`
                     : link.called
@@ -168,7 +166,7 @@ export function SceneToolChain({
                       : "还没轮到"}
                 </p>
                 {link.note !== undefined && !link.returned ? (
-                  <p className="font-mono text-[10px] text-muted-foreground">
+                  <p className="font-mono text-sm text-muted-foreground">
                     {link.note}
                   </p>
                 ) : null}
@@ -187,7 +185,7 @@ export function SceneToolChain({
           hint="把内容清空再看：Agent 选不到它了，链子断在第一环。"
         />
         <div className="min-w-[16rem] flex-1">
-          <p className="text-[11px] font-medium text-muted-foreground">
+          <p className="text-sm font-medium text-muted-foreground">
             模型看到的工具定义（点上面的卡片切换）
           </p>
           <MonoBlock tone="boxed">{JSON.stringify(detail, null, 2)}</MonoBlock>

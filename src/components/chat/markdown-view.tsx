@@ -87,12 +87,12 @@ function renderInline(tokens: InlineToken[], keyPrefix: string): ReactNode[] {
  * h2 及以下与正文同号、只靠字重区分。
  */
 const HEADING_CLASS: Record<number, string> = {
-  1: "text-base font-semibold",
-  2: "text-sm font-semibold",
-  3: "text-sm font-semibold",
-  4: "text-sm font-medium",
-  5: "text-sm font-medium",
-  6: "text-sm font-medium text-muted-foreground",
+  1: "text-[clamp(13px,2vw,18px)] font-semibold",
+  2: "text-[clamp(12px,1.8vw,16px)] font-semibold",
+  3: "text-[clamp(12px,1.6vw,15px)] font-semibold",
+  4: "text-[clamp(11px,1.4vw,14px)] font-medium",
+  5: "text-[clamp(11px,1.2vw,13px)] font-medium",
+  6: "text-[clamp(11px,1.2vw,13px)] font-medium text-muted-foreground",
 };
 
 const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
@@ -104,7 +104,7 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
 
     switch (block.type) {
       case "paragraph":
-        return <p key={key}>{renderInline(block.children, key)}</p>;
+        return <p key={key} className="text-[clamp(12px,1.8vw,18px)]">{renderInline(block.children, key)}</p>;
 
       case "heading": {
         const level = Math.min(Math.max(block.level, 1), HEADING_TAGS.length);
@@ -131,7 +131,7 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
                 {block.language}
               </div>
             ) : null}
-            <pre className="overflow-x-auto p-2 text-[12px] leading-relaxed">
+            <pre className="overflow-x-auto p-2 text-[clamp(11px,1.8vw,16px)] leading-relaxed whitespace-pre-wrap break-words">
               <code>{block.value}</code>
             </pre>
           </div>

@@ -73,11 +73,11 @@ export function SceneOrchestration({
     <div className="flex flex-col gap-2">
       <SceneFrame label="多 Agent 通信" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <User className="size-3" />
             用户输入
           </p>
-          <p className="mt-0.5 text-xs">{USER_REQUEST}</p>
+          <p className="mt-0.5 text-sm">{USER_REQUEST}</p>
         </div>
 
         {reached(1) ? (
@@ -117,8 +117,8 @@ export function SceneOrchestration({
                           : TONE_SURFACE.idle,
                       )}
                     >
-                      <p className="text-xs font-medium">{agent.name}</p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed opacity-80">
+                      <p className="text-sm font-medium">{agent.name}</p>
+                      <p className="mt-0.5 text-sm leading-relaxed opacity-80">
                         {agent.duty}
                       </p>
                     </button>
@@ -134,7 +134,7 @@ export function SceneOrchestration({
 
         {reached(2) ? (
           <div className="flex animate-in flex-col gap-1 duration-300 fade-in">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {active.name} 的 System Prompt —— 三张卡的区别就在这一段
             </span>
             <MonoBlock tone="boxed">{active.systemPrompt}</MonoBlock>
@@ -144,7 +144,7 @@ export function SceneOrchestration({
         {reached(5) ? (
           <div
             className={cn(
-              "animate-in rounded-md border px-2.5 py-2 text-xs duration-300 fade-in",
+              "animate-in rounded-md border px-2.5 py-2 text-sm duration-300 fade-in",
               passed
                 ? "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
                 : "border-rose-300 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40",
@@ -160,7 +160,7 @@ export function SceneOrchestration({
             </p>
             <p className="mt-1 leading-relaxed opacity-90">{review.reason}</p>
             {passed ? null : (
-              <p className="mt-1 text-[10px] leading-relaxed opacity-80">
+              <p className="mt-1 text-sm leading-relaxed opacity-80">
                 打回是个循环。只写「不合格就退回」、不写「怎样才算合格」，
                 它就会一直转下去 —— 这是多 Agent 最容易翻车的地方。
               </p>

@@ -57,8 +57,8 @@ export function SceneRequestResponse({
     <div className="flex flex-col gap-2">
       <SceneFrame label="请求-响应流程" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="text-[10px] text-muted-foreground">用户输入</p>
-          <p className="mt-0.5 font-mono text-xs">
+          <p className="text-sm text-muted-foreground">用户输入</p>
+          <p className="mt-0.5 font-mono text-sm">
             {stepIndex === 0 ? <Typewriter text={QUESTION} /> : QUESTION}
           </p>
         </div>
@@ -93,7 +93,7 @@ export function SceneRequestResponse({
                   />
                 </>
               ) : (
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   消息卡片还没生成。
                 </p>
               )}
@@ -122,13 +122,13 @@ export function SceneRequestResponse({
         {reached(5) ? (
           <div
             className={cn(
-              "rounded-md border px-2.5 py-2 text-xs",
+              "rounded-md border px-2.5 py-2 text-sm",
               stream
                 ? "border-emerald-300 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
                 : "border-border bg-muted/40",
             )}
           >
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {stream
                 ? "stream: true —— 逐字返回，界面能边收边显示"
                 : "stream: false —— 等整段生成完再一次性返回，这之前界面是空的"}
@@ -154,7 +154,8 @@ export function SceneRequestResponse({
           label="system 消息"
           value={system}
           onChange={(value) => setParam("system", value)}
-          hint="改完回看第 2 步：system 卡片里的字会跟着变 —— 它就是角色设定本身。"
+          readOnly
+          hint="系统设定消息，由课程预设，不可编辑。"
         />
         <ParamToggle
           label="stream（流式输出）"
@@ -187,7 +188,7 @@ function TokenChip({ label, value }: { label: string; value: number }) {
   }, [shown, value, stride]);
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-[11px]">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono font-medium tabular-nums">
         {Math.min(shown, value)}

@@ -66,14 +66,12 @@ export function NodeCard({
         className,
       )}
     >
-      <p className="flex items-center gap-1.5 text-xs font-medium">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
         {icon}
         <span className="truncate">{title}</span>
       </p>
       {subtitle === undefined ? null : (
-        <p className="mt-0.5 text-[11px] leading-relaxed opacity-80">
-          {subtitle}
-        </p>
+        <p className="mt-0.5 text-sm leading-relaxed opacity-80">{subtitle}</p>
       )}
       {lines === undefined || lines.length === 0 ? null : (
         <div className="mt-1.5">
@@ -102,7 +100,7 @@ export function MonoBlock({
   return (
     <pre
       className={cn(
-        "overflow-x-auto rounded font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap",
+        "overflow-x-auto rounded font-mono text-sm leading-relaxed break-words whitespace-pre-wrap",
         tone === "boxed"
           ? "border border-border bg-muted/50 p-2"
           : "bg-black/[0.04] px-1.5 py-1 dark:bg-white/[0.06]",
@@ -172,7 +170,7 @@ export function SceneArrow({
         </svg>
       </span>
       {label === undefined ? null : (
-        <span className="text-[10px] leading-tight">{label}</span>
+        <span className="text-sm leading-tight">{label}</span>
       )}
     </span>
   );
@@ -214,13 +212,13 @@ export function ToolCard({
 }) {
   const body = (
     <>
-      <p className="flex items-center gap-1.5 font-mono text-xs font-medium">
+      <p className="flex items-center gap-1.5 font-mono text-sm font-medium">
         {icon}
         {name}
       </p>
       <p
         className={cn(
-          "mt-0.5 text-[11px] leading-relaxed",
+          "mt-0.5 text-sm leading-relaxed",
           trouble
             ? "text-rose-900 dark:text-rose-200"
             : "text-muted-foreground",

@@ -61,8 +61,8 @@ export function SceneRetrieveGenerate({
     <div className="flex flex-col gap-2">
       <SceneFrame label="检索-生成流程" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="text-[10px] text-muted-foreground">用户输入</p>
-          <p className="mt-0.5 text-xs">{QUESTION}</p>
+          <p className="text-sm text-muted-foreground">用户输入</p>
+          <p className="mt-0.5 text-sm">{QUESTION}</p>
         </div>
 
         {reached(1) ? (
@@ -81,7 +81,7 @@ export function SceneRetrieveGenerate({
             reached(3) ? "border-ring" : "border-border opacity-60",
           )}
         >
-          <p className="flex items-center gap-1.5 text-[11px] font-medium">
+          <p className="flex items-center gap-1.5 text-sm font-medium">
             <Search className="size-3.5" />
             知识库
             <span className="font-normal text-muted-foreground">
@@ -95,7 +95,7 @@ export function SceneRetrieveGenerate({
               <div
                 key={chunk.id}
                 className={cn(
-                  "flex items-start gap-2 rounded border px-2 py-1.5 text-[11px] leading-relaxed transition-colors",
+                  "flex items-start gap-2 rounded border px-2 py-1.5 text-sm leading-relaxed transition-colors",
                   focused === chunk.id
                     ? "border-ring bg-accent"
                     : chunk.relevant
@@ -103,12 +103,12 @@ export function SceneRetrieveGenerate({
                       : "border-dashed border-border bg-muted/40 text-muted-foreground",
                 )}
               >
-                <span className="shrink-0 font-mono text-[10px]">
+                <span className="shrink-0 font-mono text-sm">
                   引用 {index + 1}
                 </span>
                 <span className="min-w-0 flex-1">{chunk.text}</span>
                 {chunk.relevant ? null : (
-                  <span className="shrink-0 rounded bg-rose-100 px-1 text-[10px] text-rose-900 dark:bg-rose-950 dark:text-rose-200">
+                  <span className="shrink-0 rounded bg-rose-100 px-1 text-sm text-rose-900 dark:bg-rose-950 dark:text-rose-200">
                     低相关
                   </span>
                 )}
@@ -119,7 +119,7 @@ export function SceneRetrieveGenerate({
 
         {reached(4) ? (
           <div className="flex animate-in flex-col gap-1 duration-300 fade-in">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               发给模型的新 Prompt —— 资料与问题拼在一起
             </span>
             <MonoBlock tone="boxed">{prompt}</MonoBlock>
@@ -127,13 +127,13 @@ export function SceneRetrieveGenerate({
         ) : null}
 
         {reached(5) ? (
-          <div className="animate-in rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-xs duration-300 fade-in dark:border-emerald-900 dark:bg-emerald-950/40">
-            <p className="text-[10px] text-muted-foreground">生成回答</p>
+          <div className="animate-in rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-sm duration-300 fade-in dark:border-emerald-900 dark:bg-emerald-950/40">
+            <p className="text-sm text-muted-foreground">生成回答</p>
             <p className="mt-1 leading-relaxed">
               <Typewriter text={answer} />
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 点引用看原文：
               </span>
               {retrieved.map((chunk, index) => (
@@ -143,7 +143,7 @@ export function SceneRetrieveGenerate({
                   onClick={() => setParam("focused", chunk.id)}
                   aria-pressed={focused === chunk.id}
                   className={cn(
-                    "rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors",
+                    "rounded border px-1.5 py-0.5 font-mono text-sm transition-colors",
                     focused === chunk.id
                       ? "border-ring bg-accent font-medium"
                       : "border-border text-muted-foreground hover:text-foreground",
@@ -154,7 +154,7 @@ export function SceneRetrieveGenerate({
               ))}
             </div>
             {missing < RELEVANT_COUNT ? (
-              <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 只检索到 {missing} 条相关片段，回答就只有这么多 ——
                 缺的要点它并不知道， 它只会基于检索到的内容说。
               </p>

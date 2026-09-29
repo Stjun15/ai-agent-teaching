@@ -59,11 +59,11 @@ export function SceneAttackDefense({
     <div className="flex flex-col gap-2">
       <SceneFrame label="攻击-防护对比" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <User className="size-3" />
             用户输入
           </p>
-          <p className="mt-0.5 font-mono text-xs leading-relaxed break-words">
+          <p className="mt-0.5 font-mono text-sm leading-relaxed break-words">
             {input}
           </p>
         </div>
@@ -81,7 +81,7 @@ export function SceneAttackDefense({
               screened.blocked ? TONE_SURFACE.done : TONE_SURFACE.alert,
             )}
           >
-            <p className="flex items-center gap-1.5 text-[11px] font-medium">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
               {screened.blocked ? (
                 <Check className="size-3.5" />
               ) : (
@@ -89,7 +89,7 @@ export function SceneAttackDefense({
               )}
               输入过滤{inputFilter ? "已开启" : "已关闭"}
             </p>
-            <p className="mt-1 text-[11px] leading-relaxed">
+            <p className="mt-1 text-sm leading-relaxed">
               {screened.hits.length === 0
                 ? "没有命中任何危险词，请求照常进入模型。把上面那句改成「忽略之前的指令」试试。"
                 : screened.blocked
@@ -124,7 +124,7 @@ export function SceneAttackDefense({
                   : TONE_SURFACE.done,
             )}
           >
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {screened.blocked
                 ? "兜底回复（规格里那句原话）"
                 : "模型的回复 —— 输入过滤没拦住，它照着做了"}
@@ -133,13 +133,13 @@ export function SceneAttackDefense({
               {screened.blocked ? FALLBACK : reply.text}
             </MonoBlock>
             {reply.redacted > 0 ? (
-              <span className="text-[10px] leading-relaxed">
+              <span className="text-sm leading-relaxed">
                 输出过滤打码 {reply.redacted} 处 —— 第二道防线兜住了。
                 前面漏了，后面还有一次机会。
               </span>
             ) : null}
             {leaked ? (
-              <span className="text-[10px] leading-relaxed">
+              <span className="text-sm leading-relaxed">
                 两道都关着，密钥就原样送出去了。防护不是一道墙，是几道筛子串联。
               </span>
             ) : null}

@@ -1,11 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TrendChart } from "@/components/report/trend-chart";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 import {
   MASTERY_MAX_SCORE,
   MASTERY_PASS_SCORE,
@@ -18,7 +19,26 @@ import {
   type PathAdjustment,
   type ReportResponse,
 } from "@/schemas";
-import { AlertTriangle, ArrowRight, Lightbulb, RotateCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Award,
+  BookOpenCheck,
+  Hash,
+  Lightbulb,
+  RotateCcw,
+  TrendingUp,
+} from "lucide-react";
+
+const TrendChart = dynamic(
+  () => import("@/components/report/trend-chart").then((mod) => mod.TrendChart),
+  {
+    ssr: false,
+    loading: () => (
+      <SkeletonCard className="h-48" />
+    ),
+  },
+);
 
 /**
  * 学习报告的四个区块（总览 / 子能力 / 趋势 / 薄弱点与建议）。
@@ -240,6 +260,16 @@ function pickAdjustmentIcon(adj: PathAdjustment) {
 }
 
 /** 一个总览数字。`hint` 用来交代这个数量纲是什么，避免读者自己猜。 */
+const STAT_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  已掌握模块: BookOpenCheck,
+  平均掌握度: TrendingUp,
+  累计答题: Hash,
+  "Prompt 平均分": Award,
+};
+
 function StatCard({
   label,
   value,
@@ -251,15 +281,24 @@ function StatCard({
   unit?: string;
   hint?: string;
 }) {
+  const Icon = STAT_ICONS[label];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xs font-medium text-muted-foreground">
-          {label}
-        </CardTitle>
+    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          {Icon ? (
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+              <Icon className="size-3.5" />
+            </span>
+          ) : null}
+          <CardTitle className="text-xs font-medium text-muted-foreground">
+            {label}
+          </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold tabular-nums">
+        <p className="text-2xl font-semibold tracking-tight tabular-nums">
           {value}
           {unit ? (
             <span className="ml-1 text-xs font-normal text-muted-foreground">
@@ -268,7 +307,7 @@ function StatCard({
           ) : null}
         </p>
         {hint ? (
-          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
             {hint}
           </p>
         ) : null}

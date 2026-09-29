@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Film,
+  Maximize,
+  Minimize,
   Pause,
   Play,
   RotateCcw,
   SkipBack,
   SkipForward,
+  X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +77,26 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
   const reset = useVisualizationStore((state) => state.reset);
   const setSpeed = useVisualizationStore((state) => state.setSpeed);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  // ESC 退出全屏
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
+
   // 只灌一次：本讲配置的场景是初始值，之后由 Store 主导（可能被
   // `visualization` 事件切到别的场景）。
   //
@@ -88,7 +112,7 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
 
   if (sceneId === null && activeId === null) {
     return (
-      <p className="text-xs leading-relaxed text-muted-foreground">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         本讲没有配置可视化场景。
       </p>
     );
@@ -107,6 +131,45 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
   const registered = scene !== undefined;
   const total = scene?.steps.length ?? 0;
 
+  const sceneStepList = registered ? (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          第 {Math.min(stepIndex + 1, total)} / {total} 步
+        </span>
+        <span>{statusLabel(status)}</span>
+      </div>
+      <ol className="flex flex-col gap-1">
+        {scene.steps.map((step, index) => (
+          <li
+            key={step.id}
+            className={cn(
+              "rounded-md border px-2 py-1.5 text-sm",
+              index === stepIndex
+                ? "border-ring bg-accent/50"
+                : index < stepIndex
+                  ? "opacity-60"
+                  : "opacity-40",
+            )}
+          >
+            <p className="font-medium">
+              {index + 1}. {step.title}
+            </p>
+            <p className="mt-0.5 leading-relaxed text-muted-foreground">
+              {step.description}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  ) : (
+    <p className="text-sm leading-relaxed text-muted-foreground">
+      本讲对应的场景
+      <code className="mx-1 rounded bg-muted px-1 py-0.5">{displayId}</code>
+      尚未交付。控制条已就绪，场景的视觉与步骤定义补齐后即可播放。
+    </p>
+  );
+
   /**
    * 播放键：正在播就暂停；播完了则**从头**再放一次。
    *
@@ -124,137 +187,245 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="muted">
-          <Film />
-          {displayId !== null && isSceneId(displayId)
-            ? SCENE_LABELS[displayId]
-            : "流程演示"}
-        </Badge>
-        {registered ? (
-          <span className="text-sm font-medium">{scene.title}</span>
+    <>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="muted">
+            <Film />
+            {displayId !== null && isSceneId(displayId)
+              ? SCENE_LABELS[displayId]
+              : "流程演示"}
+          </Badge>
+          {registered ? (
+            <span className="text-sm font-medium">{scene.title}</span>
+          ) : (
+            <Badge variant="levelMid">场景待交付</Badge>
+          )}
+        </div>
+
+        {/* 控制条 */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant={status === "playing" ? "secondary" : "default"}
+            disabled={!registered}
+            onClick={togglePlay}
+          >
+            {status === "playing" ? (
+              <Pause className="size-4" />
+            ) : (
+              <Play className="size-4" />
+            )}
+            {status === "playing" ? "暂停" : "播放"}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!registered}
+            onClick={prevStep}
+            aria-label="上一步"
+          >
+            <SkipBack className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!registered}
+            onClick={nextStep}
+            aria-label="下一步"
+          >
+            <SkipForward className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!registered}
+            onClick={reset}
+          >
+            <RotateCcw className="size-4" />
+            重置
+          </Button>
+
+          <div
+            role="group"
+            aria-label="播放速度"
+            className="ml-auto flex items-center gap-1"
+          >
+            {PLAYBACK_SPEEDS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                disabled={!registered}
+                onClick={() => setSpeed(option as PlaybackSpeed)}
+                aria-pressed={speed === option}
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-sm tabular-nums transition-colors",
+                  speed === option
+                    ? "bg-accent font-medium text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                  !registered && "cursor-not-allowed opacity-50",
+                )}
+              >
+                {option}×
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title="全屏"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Maximize className="size-3.5" />
+          </button>
+        </div>
+
+        {/*
+          未全屏时直接渲染舞台 + 步骤列表；全屏时由覆盖层接管，
+          避免 SceneStage 双重挂载导致计时器重复。
+        */}
+        {!isFullscreen ? (
+          <>
+            <SceneStage sceneId={displayId} />
+            {sceneStepList}
+          </>
         ) : (
-          <Badge variant="levelMid">场景待交付</Badge>
+          <div className="text-sm text-muted-foreground">
+            已进入全屏 — 按 ESC 或点击 ⛶ 退出
+          </div>
         )}
       </div>
 
-      {/* 控制条。场景尚未交付时禁用 —— 可点但没反应比不可点更让人困惑。 */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Button
-          type="button"
-          size="sm"
-          variant={status === "playing" ? "secondary" : "default"}
-          disabled={!registered}
-          onClick={togglePlay}
-        >
-          {status === "playing" ? (
-            <Pause className="size-4" />
-          ) : (
-            <Play className="size-4" />
-          )}
-          {status === "playing" ? "暂停" : "播放"}
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={!registered}
-          onClick={prevStep}
-          aria-label="上一步"
-        >
-          <SkipBack className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={!registered}
-          onClick={nextStep}
-          aria-label="下一步"
-        >
-          <SkipForward className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={!registered}
-          onClick={reset}
-        >
-          <RotateCcw className="size-4" />
-          重置
-        </Button>
-
-        <div
-          role="group"
-          aria-label="播放速度"
-          className="ml-auto flex items-center gap-1"
-        >
-          {PLAYBACK_SPEEDS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              disabled={!registered}
-              onClick={() => setSpeed(option as PlaybackSpeed)}
-              aria-pressed={speed === option}
-              className={cn(
-                "rounded px-1.5 py-0.5 text-[11px] tabular-nums transition-colors",
-                speed === option
-                  ? "bg-accent font-medium text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-                !registered && "cursor-not-allowed opacity-50",
+      {/* 全屏覆盖层 */}
+      <AnimatePresence>
+        {isFullscreen ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex flex-col gap-4 overflow-y-auto bg-background p-6 sm:p-8"
+          >
+            {/* 顶部：标题 + 关闭按钮 */}
+            <div className="flex items-center gap-3">
+              <Badge variant="muted">
+                <Film />
+                {displayId !== null && isSceneId(displayId)
+                  ? SCENE_LABELS[displayId]
+                  : "流程演示"}
+              </Badge>
+              {registered ? (
+                <span className="text-lg font-semibold">{scene.title}</span>
+              ) : (
+                <Badge variant="levelMid">场景待交付</Badge>
               )}
-            >
-              {option}×
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 舞台：正在播的场景本体。未交付时它自己渲染 null，面板下方给出说明。 */}
-      <SceneStage sceneId={displayId} />
-
-      {registered ? (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>
-              第 {Math.min(stepIndex + 1, total)} / {total} 步
-            </span>
-            <span>{statusLabel(status)}</span>
-          </div>
-          <ol className="flex flex-col gap-1">
-            {scene.steps.map((step, index) => (
-              <li
-                key={step.id}
-                className={cn(
-                  "rounded-md border px-2 py-1.5 text-xs",
-                  index === stepIndex
-                    ? "border-ring bg-accent/50"
-                    : index < stepIndex
-                      ? "opacity-60"
-                      : "opacity-40",
-                )}
+              <button
+                type="button"
+                onClick={closeFullscreen}
+                title="退出全屏"
+                className="ml-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
-                <p className="font-medium">
-                  {index + 1}. {step.title}
-                </p>
-                <p className="mt-0.5 leading-relaxed text-muted-foreground">
-                  {step.description}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      ) : (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          本讲对应的场景
-          <code className="mx-1 rounded bg-muted px-1 py-0.5">{displayId}</code>
-          尚未交付。控制条已就绪，场景的视觉与步骤定义补齐后即可播放。
-        </p>
-      )}
-    </div>
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* 控制条（全屏版） */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={status === "playing" ? "secondary" : "default"}
+                disabled={!registered}
+                onClick={togglePlay}
+              >
+                {status === "playing" ? (
+                  <Pause className="size-4" />
+                ) : (
+                  <Play className="size-4" />
+                )}
+                {status === "playing" ? "暂停" : "播放"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!registered}
+                onClick={prevStep}
+                aria-label="上一步"
+              >
+                <SkipBack className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!registered}
+                onClick={nextStep}
+                aria-label="下一步"
+              >
+                <SkipForward className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!registered}
+                onClick={reset}
+              >
+                <RotateCcw className="size-4" />
+                重置
+              </Button>
+              <div
+                role="group"
+                aria-label="播放速度"
+                className="ml-auto flex items-center gap-1"
+              >
+                {PLAYBACK_SPEEDS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    disabled={!registered}
+                    onClick={() => setSpeed(option as PlaybackSpeed)}
+                    aria-pressed={speed === option}
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-sm tabular-nums transition-colors",
+                      speed === option
+                        ? "bg-accent font-medium text-accent-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                      !registered && "cursor-not-allowed opacity-50",
+                    )}
+                  >
+                    {option}×
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={closeFullscreen}
+                title="退出全屏"
+                className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Minimize className="size-3.5" />
+              </button>
+            </div>
+
+            {/* 舞台：全屏放大版 */}
+            <div className="flex-1">
+              <SceneStage sceneId={displayId} />
+            </div>
+
+            {/* 步骤列表 */}
+            {sceneStepList}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 }
 

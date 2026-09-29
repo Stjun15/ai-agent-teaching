@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye } from "lucide-react";
+import { Eye, Maximize, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { MarkdownView } from "@/components/chat/markdown-view";
 import { parseMarkdown } from "@/lib/markdown";
+import { cn } from "@/lib/utils";
 
 /**
  * 观察示范面板——七步第2步的主视图。
@@ -44,7 +46,25 @@ export function ObservePanel({
   demoCode?: string;
 }) {
   const [hasUnderstood, setUnderstood] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const router = useRouter();
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
 
   const codeBlocks = useMemo(() => {
     if (!demoCode) return [];
@@ -64,66 +84,131 @@ export function ObservePanel({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        这些是给本讲准备的示范代码——看清「对的」长什么样。有疑问直接在下面
-        的对话框问导师。
-      </p>
-
-      {codeBlocks.length === 0 ? (
-        <MarkdownView source={demoCode} />
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {codeBlocks.map((block, index) => {
-            if (block.type !== "code") return null;
-            const fenced =
-              "```" + (block.language ?? "") + "\n" + block.value + "\n```";
-            return (
-              <li
-                key={index}
-                className="overflow-hidden rounded-lg border bg-card"
-              >
-                <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
-                  <span className="text-xs font-medium">示范 {index + 1}</span>
-                  {block.language ? (
-                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                      {block.language}
-                    </span>
-                  ) : null}
-                </div>
-                <MarkdownView source={fenced} />
-              </li>
-            );
-          })}
-        </ol>
-      )}
-
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2.5">
-        <input
-          id="observe-understood"
-          type="checkbox"
-          checked={hasUnderstood}
-          onChange={(event) => setUnderstood(event.target.checked)}
-          className="size-4 accent-primary"
-        />
-        <label htmlFor="observe-understood" className="text-xs leading-relaxed">
-          我理解这些示范代码在做什么了
-        </label>
-        <Button
-          type="button"
-          size="sm"
-          className="ml-auto"
-          disabled={!hasUnderstood}
-          title={hasUnderstood ? undefined : "先勾选上面的确认，按钮才会解锁"}
-          onClick={() => router.push(`/learn/${moduleId}/imitate`)}
-        >
-          进入动手模仿→
-        </Button>
-        <p className="w-full text-[11px] leading-relaxed text-muted-foreground">
-          还没理解？不着急——多读几遍，或在下面的对话框里问导师。
-          进入动手模仿之后，也随时可以跳回这一步重看。
+    <>
+      <div className="flex flex-col gap-3">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          这些是给本讲准备的示范代码——看清「对的」长什么样。有疑问直接在下面
+          的对话框问导师。
         </p>
+
+        {codeBlocks.length === 0 ? (
+          <MarkdownView source={demoCode} />
+        ) : (
+          <ol className="flex flex-col gap-3">
+            {codeBlocks.map((block, index) => {
+              if (block.type !== "code") return null;
+              const fenced =
+                "```" + (block.language ?? "") + "\n" + block.value + "\n```";
+              return (
+                <li
+                  key={index}
+                  className="rounded-lg border bg-card"
+                >
+                  <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
+                    <span className="text-xs font-medium">示范 {index + 1}</span>
+                    {block.language ? (
+                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                        {block.language}
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={toggleFullscreen}
+                      title="全屏查看代码"
+                      className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Maximize className="size-3.5" />
+                      全屏
+                    </button>
+                  </div>
+                  <MarkdownView source={fenced} />
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2.5">
+          <input
+            id="observe-understood"
+            type="checkbox"
+            checked={hasUnderstood}
+            onChange={(event) => setUnderstood(event.target.checked)}
+            className="size-4 accent-primary"
+          />
+          <label htmlFor="observe-understood" className="text-xs leading-relaxed">
+            我理解这些示范代码在做什么了
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            className="ml-auto"
+            disabled={!hasUnderstood}
+            title={hasUnderstood ? undefined : "先勾选上面的确认，按钮才会解锁"}
+            onClick={() => router.push(`/learn/${moduleId}/imitate`)}
+          >
+            进入动手模仿→
+          </Button>
+          <p className="w-full text-[11px] leading-relaxed text-muted-foreground">
+            还没理解？不着急——多读几遍，或在下面的对话框里问导师。
+            进入动手模仿之后，也随时可以跳回这一步重看。
+          </p>
+        </div>
       </div>
-    </div>
+
+      {/* 全屏覆盖层 */}
+      <AnimatePresence>
+        {isFullscreen ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex flex-col gap-4 overflow-y-auto bg-background p-6 sm:p-8"
+          >
+            {/* 顶部：标题 + 关闭按钮 */}
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-semibold">示范代码</span>
+              <button
+                type="button"
+                onClick={closeFullscreen}
+                title="退出全屏"
+                className="ml-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* 代码内容 */}
+            <div className="flex-1 overflow-auto">
+              {codeBlocks.map((block, index) => {
+                if (block.type !== "code") return null;
+                const fenced =
+                  "```" + (block.language ?? "") + "\n" + block.value + "\n```";
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "mb-4 overflow-hidden rounded-lg border bg-card",
+                      index === codeBlocks.length - 1 ? "mb-0" : "",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
+                      <span className="text-sm font-medium">示范 {index + 1}</span>
+                      {block.language ? (
+                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                          {block.language}
+                        </span>
+                      ) : null}
+                    </div>
+                    <MarkdownView source={fenced} />
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 }

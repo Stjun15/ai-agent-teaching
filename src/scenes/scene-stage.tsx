@@ -28,43 +28,65 @@
  */
 
 import { useEffect, type ComponentType } from "react";
+import dynamic from "next/dynamic";
 
 import { useVisualizationStore } from "@/stores";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 import { SCENE_CATALOG, getSceneDefinition } from "./scene-catalog";
-import { SceneRequestResponse } from "./scene-request-response";
-import { SceneLoopWeather } from "./scene-loop-weather";
-import { SceneRoleFilter } from "./scene-role-filter";
-import { SceneRagVsWiki } from "./scene-rag-vs-wiki";
-import { SceneRetrieveGenerate } from "./scene-retrieve-generate";
-import { SceneOrchestration } from "./scene-orchestration";
-import { SceneMcpFlow } from "./scene-mcp-flow";
-import { SceneAttackDefense } from "./scene-attack-defense";
-import { SceneToolChain } from "./scene-tool-chain";
-import type { SceneId } from "@/lib/agent/scene-ids";
 import type { SceneProps } from "./scene-types";
 
-/** 场景 id → 组件；键必须与目录里**已注册**的场景一一对应。 */
-export const SCENE_COMPONENTS = {
-  "scene-request-response": SceneRequestResponse,
-  "scene-role-filter": SceneRoleFilter,
-  "scene-loop-weather": SceneLoopWeather,
-  "scene-tool-chain": SceneToolChain,
-  "scene-retrieve-generate": SceneRetrieveGenerate,
-  "scene-rag-vs-wiki": SceneRagVsWiki,
-  "scene-orchestration": SceneOrchestration,
-  "scene-mcp-flow": SceneMcpFlow,
-  "scene-attack-defense": SceneAttackDefense,
-} satisfies Record<keyof typeof SCENE_CATALOG, ComponentType<SceneProps>>;
+function SceneSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 p-2">
+      <SkeletonCard />
+      <SkeletonCard />
+    </div>
+  );
+}
 
-/**
- * 查组件用的放宽视图。
- *
- * 与 `scene-catalog.ts` 里那份 `LOOKUP` 同一个理由：写入侧要窄类型（编译期
- * 查漏），读取侧要宽类型（运行期按任意 id 查）。这里额外多一层理由 ——
- * 运行时的 id 来自目录，类型上是 `SceneId`，比「已注册的键」宽。
- */
-const RENDERERS: Partial<Record<SceneId, ComponentType<SceneProps>>> =
-  SCENE_COMPONENTS;
+const DYNAMIC_SCENES: Partial<
+  Record<
+    keyof typeof SCENE_CATALOG,
+    ComponentType<SceneProps>
+  >
+> = {
+  "scene-request-response": dynamic(
+    () => import("./scene-request-response").then((mod) => mod.SceneRequestResponse),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-role-filter": dynamic(
+    () => import("./scene-role-filter").then((mod) => mod.SceneRoleFilter),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-loop-weather": dynamic(
+    () => import("./scene-loop-weather").then((mod) => mod.SceneLoopWeather),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-tool-chain": dynamic(
+    () => import("./scene-tool-chain").then((mod) => mod.SceneToolChain),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-retrieve-generate": dynamic(
+    () => import("./scene-retrieve-generate").then((mod) => mod.SceneRetrieveGenerate),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-rag-vs-wiki": dynamic(
+    () => import("./scene-rag-vs-wiki").then((mod) => mod.SceneRagVsWiki),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-orchestration": dynamic(
+    () => import("./scene-orchestration").then((mod) => mod.SceneOrchestration),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-mcp-flow": dynamic(
+    () => import("./scene-mcp-flow").then((mod) => mod.SceneMcpFlow),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+  "scene-attack-defense": dynamic(
+    () => import("./scene-attack-defense").then((mod) => mod.SceneAttackDefense),
+    { ssr: false, loading: SceneSkeleton },
+  ),
+};
 
 /**
  * `sceneId` 是**兜底**：Store 里已经有选中的场景时以 Store 为准。
@@ -93,12 +115,12 @@ export function SceneStage({ sceneId }: { sceneId: string | null }) {
 
   if (scene === undefined) return null;
 
-  const Renderer = RENDERERS[scene.id];
+  const Renderer = DYNAMIC_SCENES[scene.id];
 
   return (
     <div className="flex flex-col gap-2">
       {Renderer === undefined ? (
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           场景 <code className="mx-1">{scene.id}</code>{" "}
           有步骤定义但没有组件，暂时无法播放。
         </p>

@@ -10,6 +10,7 @@ import {
   LineChart,
   Settings,
 } from "lucide-react";
+import { motion } from "motion/react";
 
 import { Badge } from "@/components/ui/badge";
 import { siteConfig } from "@/lib/site";
@@ -66,7 +67,7 @@ export function TopNav() {
           <span className="text-sm font-semibold">{siteConfig.name}</span>
         </Link>
 
-        <nav aria-label="主导航" className="flex items-center gap-1">
+        <nav aria-label="主导航" className="relative flex items-center gap-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active =
@@ -97,14 +98,23 @@ export function TopNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                  "relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
                   active
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                    ? "font-medium text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className="size-4" />
-                {item.label}
+                {active ? (
+                  <motion.span
+                    layoutId="topnav-active"
+                    className="absolute inset-0 rounded-md bg-accent"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                ) : null}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Icon className="size-4" />
+                  {item.label}
+                </span>
               </Link>
             );
           })}

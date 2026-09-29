@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 const FIELD =
   "w-full rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring";
 
-const LABEL = "text-[11px] font-medium text-muted-foreground";
+const LABEL = "text-sm font-medium text-muted-foreground";
 
 /** 控件栏：虚线框把「这些是可以改的」和画布里的动画区分开。 */
 export function SceneControls({
@@ -54,12 +54,14 @@ export function ParamText({
   onChange,
   rows = 3,
   hint,
+  readOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   rows?: number;
   hint?: string;
+  readOnly?: boolean;
 }) {
   return (
     <label className="flex min-w-[16rem] flex-1 flex-col gap-1">
@@ -68,10 +70,15 @@ export function ParamText({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         rows={rows}
-        className={cn(FIELD, "resize-y font-mono text-[11px] leading-relaxed")}
+        readOnly={readOnly}
+        className={cn(
+          FIELD,
+          "resize-y font-mono text-sm leading-relaxed",
+          readOnly && "cursor-default border-muted-foreground/30 bg-muted/50",
+        )}
       />
       {hint === undefined ? null : (
-        <span className="text-[11px] leading-relaxed text-muted-foreground">
+        <span className="text-sm leading-relaxed text-muted-foreground">
           {hint}
         </span>
       )}
@@ -103,7 +110,7 @@ export function ParamToggle({
         {label}
       </span>
       {hint === undefined ? null : (
-        <span className="text-[11px] leading-relaxed text-muted-foreground">
+        <span className="text-sm leading-relaxed text-muted-foreground">
           {hint}
         </span>
       )}
@@ -150,7 +157,7 @@ export function ParamSlider({
         className="accent-[var(--color-foreground)]"
       />
       {hint === undefined ? null : (
-        <span className="text-[11px] leading-relaxed text-muted-foreground">
+        <span className="text-sm leading-relaxed text-muted-foreground">
           {hint}
         </span>
       )}
@@ -181,7 +188,7 @@ export function ParamChoice({
             onClick={() => onChange(option.value)}
             aria-pressed={option.value === value}
             className={cn(
-              "rounded border px-2 py-0.5 text-[11px] transition-colors",
+              "rounded border px-2 py-0.5 text-sm transition-colors",
               option.value === value
                 ? "border-ring bg-accent font-medium text-accent-foreground"
                 : "text-muted-foreground hover:text-foreground",

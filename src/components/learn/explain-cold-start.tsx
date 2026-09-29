@@ -185,7 +185,7 @@ export function ExplainColdStart({
                     {expanded && (
                       <div className="border-t px-4 pt-3 pb-4">
                         {/* 表格渲染（做什么 / 用到的模块 / 关键文件） */}
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:text-[clamp(11px,1.6vw,16px)] [&_li]:text-[clamp(11px,1.6vw,16px)]">
                           <MarkdownView source={axe.body} />
                         </div>
                       </div>
@@ -229,7 +229,7 @@ export function ExplainColdStart({
     return (
       <Card className="mb-4">
         <CardContent>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:text-[clamp(12px,1.8vw,18px)] [&_li]:text-[clamp(12px,1.8vw,18px)]">
             <MarkdownView source={pathData.intro} />
           </div>
           <div className="mt-5 flex items-center justify-end">
@@ -256,7 +256,7 @@ export function ExplainColdStart({
   return (
     <Card className="mb-4">
       <CardContent>
-        <div className="prose prose-sm dark:prose-invert max-w-none">
+        <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:text-[clamp(12px,1.8vw,18px)] [&_li]:text-[clamp(12px,1.8vw,18px)]">
           <MarkdownView source={content} />
         </div>
         <div className="mt-5 flex items-center justify-end">

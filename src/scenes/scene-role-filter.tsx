@@ -70,8 +70,8 @@ export function SceneRoleFilter({
     <div className="flex flex-col gap-2">
       <SceneFrame label="角色滤镜对比" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="text-[10px] text-muted-foreground">同一个问题</p>
-          <p className="mt-0.5 text-xs">{QUESTION}</p>
+          <p className="text-sm text-muted-foreground">同一个问题</p>
+          <p className="mt-0.5 text-sm">{QUESTION}</p>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr]">
@@ -93,7 +93,7 @@ export function SceneRoleFilter({
             {reached(2) ? (
               <span
                 className={cn(
-                  "flex items-center gap-1 rounded-full border px-2 py-1 text-[10px]",
+                  "flex items-center gap-1 rounded-full border px-2 py-1 text-sm",
                   reached(3)
                     ? "animate-in border-emerald-300 bg-emerald-50 text-emerald-900 duration-500 fade-in slide-in-from-left-2 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
                     : "border-ring bg-accent text-accent-foreground",
@@ -103,7 +103,7 @@ export function SceneRoleFilter({
                 {reached(3) ? "滤镜已应用" : "滤镜"}
               </span>
             ) : (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 两栏还没并排
               </span>
             )}
@@ -119,7 +119,7 @@ export function SceneRoleFilter({
 
         {reached(4) ? (
           <div className="animate-in rounded-md border border-ring bg-accent/40 p-2 duration-300 fade-in">
-            <p className="text-[10px] font-medium">
+            <p className="text-sm font-medium">
               滤镜的本体就是这几行 —— 换掉它，右边那栏的回答方式就换掉
             </p>
             <div className="mt-1.5">
@@ -171,11 +171,11 @@ function ReplyPanel({
             : "border-border bg-card",
       )}
     >
-      <p className="text-xs font-medium">{title}</p>
-      <p className="text-[11px] text-muted-foreground">{note}</p>
+      <p className="text-sm font-medium">{title}</p>
+      <p className="text-sm text-muted-foreground">{note}</p>
       <p
         key={reply}
-        className="animate-in text-xs leading-relaxed duration-300 fade-in"
+        className="animate-in text-sm leading-relaxed duration-300 fade-in"
       >
         {reply}
       </p>

@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Sparkles, Workflow } from "lucide-react";
 
+import {
+  AnimatedGrid,
+  AnimatedSection,
+} from "@/components/layout/animated-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,71 +63,81 @@ export default async function HomePage() {
   }, 0);
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-12 sm:px-6 sm:py-16">
+    <main className="mx-auto w-full max-w-[1600px] flex-1">
       {/* Hero */}
-      <section className="mx-auto max-w-3xl text-center">
-        <Badge variant="secondary" className="mb-4">
-          <Sparkles className="size-3" />用 Agent 教 Agent
-        </Badge>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          {siteConfig.name}
-        </h1>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-          <Button asChild size="lg">
-            <Link href="/learn">
-              开始学习
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="#modules">查看课程大纲</Link>
-          </Button>
+      <section className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-24 left-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
+          <div className="absolute right-1/4 -bottom-16 h-64 w-64 rounded-full bg-amber-500/5 blur-3xl" />
         </div>
+        <div className="mx-auto max-w-3xl text-center">
+          <Badge variant="secondary" className="mb-4">
+            <Sparkles className="size-3" />用 Agent 教 Agent
+          </Badge>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            {siteConfig.name}
+          </h1>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
+            12 个教学模块，七步掌握式学习，用 AI 教学生理解 AI —— 从第一行
+            Prompt 到完整 Agent 系统。
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/learn">
+                开始学习
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="#modules">查看课程大纲</Link>
+            </Button>
+          </div>
 
-        <dl className="mx-auto mt-10 grid max-w-lg grid-cols-3 gap-4 text-sm text-muted-foreground">
-          <div>
-            <dt className="sr-only">模块数</dt>
-            <dd>
-              <span className="block text-2xl font-semibold text-foreground tabular-nums">
-                {modules.length}
-              </span>
-              教学模块
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">总时长</dt>
-            <dd>
-              <span className="block text-2xl font-semibold text-foreground tabular-nums">
-                {requiredMinutes}
-              </span>
-              分钟主线
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">可视化场景</dt>
-            <dd>
-              <span className="block text-2xl font-semibold text-foreground tabular-nums">
-                {
-                  modules.filter(
-                    (teachingModule) => teachingModule.sceneId !== null,
-                  ).length
-                }
-              </span>
-              可视化场景
-            </dd>
-          </div>
-        </dl>
+          <dl className="mx-auto mt-10 grid max-w-lg grid-cols-3 gap-4 text-sm text-muted-foreground">
+            <div>
+              <dt className="sr-only">模块数</dt>
+              <dd>
+                <span className="block text-2xl font-semibold text-foreground tabular-nums">
+                  {modules.length}
+                </span>
+                教学模块
+              </dd>
+            </div>
+            <div>
+              <dt className="sr-only">总时长</dt>
+              <dd>
+                <span className="block text-2xl font-semibold text-foreground tabular-nums">
+                  {requiredMinutes}
+                </span>
+                分钟主线
+              </dd>
+            </div>
+            <div>
+              <dt className="sr-only">可视化场景</dt>
+              <dd>
+                <span className="block text-2xl font-semibold text-foreground tabular-nums">
+                  {
+                    modules.filter(
+                      (teachingModule) => teachingModule.sceneId !== null,
+                    ).length
+                  }
+                </span>
+                可视化场景
+              </dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       {/* 六个子能力 */}
-      <section className="mt-20">
+      <AnimatedSection className="mt-6 px-4 sm:px-6">
         <h2 className="text-xl font-semibold tracking-tight">
           我们训练的是这六件事
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           所有功能都服务于这六个子能力 —— 不训练它们的功能，不做。
         </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatedGrid className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ABILITIES.map((ability) => (
             <Card
               key={ability.name}
@@ -141,18 +155,18 @@ export default async function HomePage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </section>
+        </AnimatedGrid>
+      </AnimatedSection>
 
       {/* 教学流程 */}
-      <section className="mt-20">
+      <AnimatedSection className="mt-16 px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <Workflow className="size-5 text-muted-foreground" />
           <h2 className="text-xl font-semibold tracking-tight">
             一次学习的完整过程
           </h2>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <AnimatedGrid className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {TEACHING_FLOW.map((item) => (
             <Card
               key={item.step}
@@ -171,11 +185,11 @@ export default async function HomePage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </section>
+        </AnimatedGrid>
+      </AnimatedSection>
 
       {/* 课程大纲 */}
-      <section id="modules" className="mt-20 scroll-mt-20">
+      <AnimatedSection id="modules" className="mt-16 scroll-mt-20 px-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -272,7 +286,7 @@ export default async function HomePage() {
             </li>
           ))}
         </ul>
-      </section>
+      </AnimatedSection>
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Circle } from "lucide-react";
+import { motion } from "motion/react";
 
 import type { StepType } from "@/lib/db";
 import { LEARNING_STEPS } from "@/lib/learning-steps";
@@ -30,7 +31,12 @@ export function StepNav({
 
   if (collapsed) {
     return (
-      <div className="w-fit rounded-md border bg-card p-2">
+      <motion.div
+        initial={{ opacity: 0, width: 0 }}
+        animate={{ opacity: 1, width: "auto" }}
+        exit={{ opacity: 0, width: 0 }}
+        className="w-fit rounded-md border bg-card p-2"
+      >
         <button
           type="button"
           onClick={toggle}
@@ -42,7 +48,7 @@ export function StepNav({
           <ChevronRight className="size-4" aria-hidden />
           <span className="text-xs [writing-mode:vertical-rl]">学习步骤</span>
         </button>
-      </div>
+      </motion.div>
     );
   }
 
@@ -84,11 +90,11 @@ export function StepNav({
               >
                 <span
                   className={cn(
-                    "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px]",
+                    "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors duration-300",
                     isDone
                       ? "border-transparent bg-emerald-500 text-white"
                       : isCurrent
-                        ? "border-foreground/40"
+                        ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_2px_var(--primary)]/20"
                         : "border-muted-foreground/40",
                   )}
                 >

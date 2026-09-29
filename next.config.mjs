@@ -7,6 +7,9 @@ const nextConfig = {
     "@earendil-works/chord",
     "@earendil-works/pi-agent-core",
   ],
+  experimental: {
+    optimizePackageImports: ["lucide-react", "motion", "zustand"],
+  },
 };
 
 export default nextConfig;

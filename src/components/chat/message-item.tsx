@@ -94,7 +94,7 @@ export const MessageItem = memo(
 
           <div
             className={cn(
-              "rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
+              "rounded-lg px-3 py-2 text-[clamp(11px,1.6vw,16px)] leading-relaxed break-words whitespace-pre-wrap",
               isStudent
                 ? "bg-secondary text-secondary-foreground"
                 : "border border-l-2 border-l-primary/50 bg-primary/5",
