@@ -90,5 +90,8 @@ student-agent-output/
 login-tmp.json
 *-tmp.json
 
+# 内网穿透工具与安装包（不入库）
+tools/cpolar/
+
 # npm 误生成的锁文件（本项目用 pnpm，锁文件是 pnpm-lock.yaml）
 package-lock.json

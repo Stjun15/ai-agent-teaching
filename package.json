@@ -47,6 +47,7 @@
     "simulate:module": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/student-agent/run.ts",
     "simulate:chain": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/student-agent/run-chain.ts",
     "analyze:grounding": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/student-agent/grounding-analysis.ts",
+    "demo:reset": "node scripts/demo-reset.mjs",
     "audit:course": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/student-agent-gap-audit.ts",
     "test:mastery": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/mastery-hydrate-spec.ts",
     "test:agent:reviewer": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/agent-regression-reviewer.ts",
