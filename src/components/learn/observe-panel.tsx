@@ -100,12 +100,11 @@ export function ObservePanel({
               const fenced =
                 "```" + (block.language ?? "") + "\n" + block.value + "\n```";
               return (
-                <li
-                  key={index}
-                  className="rounded-lg border bg-card"
-                >
+                <li key={index} className="rounded-lg border bg-card">
                   <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
-                    <span className="text-xs font-medium">示范 {index + 1}</span>
+                    <span className="text-xs font-medium">
+                      示范 {index + 1}
+                    </span>
                     {block.language ? (
                       <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                         {block.language}
@@ -136,7 +135,10 @@ export function ObservePanel({
             onChange={(event) => setUnderstood(event.target.checked)}
             className="size-4 accent-primary"
           />
-          <label htmlFor="observe-understood" className="text-xs leading-relaxed">
+          <label
+            htmlFor="observe-understood"
+            className="text-xs leading-relaxed"
+          >
             我理解这些示范代码在做什么了
           </label>
           <Button
@@ -194,7 +196,9 @@ export function ObservePanel({
                     )}
                   >
                     <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
-                      <span className="text-sm font-medium">示范 {index + 1}</span>
+                      <span className="text-sm font-medium">
+                        示范 {index + 1}
+                      </span>
                       {block.language ? (
                         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                           {block.language}

@@ -34,9 +34,7 @@ const TrendChart = dynamic(
   () => import("@/components/report/trend-chart").then((mod) => mod.TrendChart),
   {
     ssr: false,
-    loading: () => (
-      <SkeletonCard className="h-48" />
-    ),
+    loading: () => <SkeletonCard className="h-48" />,
   },
 );
 

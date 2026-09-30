@@ -104,7 +104,11 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
 
     switch (block.type) {
       case "paragraph":
-        return <p key={key} className="text-[clamp(12px,1.8vw,18px)]">{renderInline(block.children, key)}</p>;
+        return (
+          <p key={key} className="text-[clamp(12px,1.8vw,18px)]">
+            {renderInline(block.children, key)}
+          </p>
+        );
 
       case "heading": {
         const level = Math.min(Math.max(block.level, 1), HEADING_TAGS.length);
@@ -131,7 +135,7 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
                 {block.language}
               </div>
             ) : null}
-            <pre className="overflow-x-auto p-2 text-[clamp(11px,1.8vw,16px)] leading-relaxed whitespace-pre-wrap break-words">
+            <pre className="overflow-x-auto p-2 text-[clamp(11px,1.8vw,16px)] leading-relaxed break-words whitespace-pre-wrap">
               <code>{block.value}</code>
             </pre>
           </div>
