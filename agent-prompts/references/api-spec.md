@@ -669,7 +669,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 # 模型平台：火山方舟 Ark（OpenAI 兼容端点 /api/v3）
 ARK_API_KEY=your-ark-api-key
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_TEXT_MODEL=deepseek-v4-flash
+ARK_TEXT_MODEL=deepseek-v4-flash-ga-260731
 ARK_VISION_MODEL=doubao-seed-2-1-pro-260915
 # CloudBase
 CLOUDBASE_ENV_ID=your-env-id

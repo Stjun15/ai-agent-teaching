@@ -153,7 +153,7 @@ sqlite3 dev.db "SELECT * FROM mastery WHERE student_id = 'default';"
 export async function POST(req: Request) {
   const { content } = await req.json();
   const apiKey = process.env.ARK_API_KEY!;
-  const model = "deepseek-v4-flash";
+  const model = "deepseek-v4-flash-ga-260731";
   const baseUrl = "https://ark.cn-beijing.volces.com/api/v3";
 
   // ② 用原始 fetch 直连大模型 API —— 不靠任何 SDK 封装

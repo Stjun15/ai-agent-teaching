@@ -861,7 +861,7 @@ async function updatePage(path: string, content: string): Promise<void>;
     "synthesisLanguage": "zh",
     "taskModel": {
       "provider": "ark",
-      "id": "deepseek-v4-flash"
+      "id": "deepseek-v4-flash-ga-260731"
     },
     "auto_fix_lint": true,
     "trajectories": false,

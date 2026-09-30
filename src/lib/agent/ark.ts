@@ -5,7 +5,7 @@
  * --------
  * `00-MASTER.md` 技术栈表：
  *   - 模型平台 = 火山方舟 Ark（OpenAI 兼容端点 `/api/v3`）
- *   - 主模型（文本推理）`deepseek-v4-flash`，读环境变量 `ARK_TEXT_MODEL`
+ *   - 主模型（文本推理）`deepseek-v4-flash-ga-260731`，读环境变量 `ARK_TEXT_MODEL`
  *   - 多模态模型（视觉理解）`doubao-seed-2-1-pro-260915`，读环境变量 `ARK_VISION_MODEL`
  * `00-MASTER.md` 约束：「API 密钥绝不进仓库，走环境变量」。
  *
