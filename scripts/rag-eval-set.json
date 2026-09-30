@@ -1,24 +1,90 @@
 [
-  { "module": "python-basics", "question": "Python 的变量和列表基础怎么理解，写第一个程序要注意什么" },
-  { "module": "ts-basics", "question": "TypeScript 的类型注解和 interface 有什么用，跟 JS 比好在哪" },
-  { "module": "llm-api", "question": "调用大模型 API 时 role 和 messages 是怎么组织的，stream 模式返回什么" },
-  { "module": "llm-api", "question": "temperature 参数调高调低分别会发生什么，为什么说 API 调用是无状态的" },
-  { "module": "system-prompt", "question": "怎么给助教机器人写一段好的系统提示词，角色定义和输出格式怎么约束" },
-  { "module": "system-prompt", "question": "为什么 system prompt 要放在消息列表最前面，改一个词影响有多大" },
-  { "module": "agent-loop", "question": "Agent 循环里模型怎么决定什么时候调用工具什么时候直接回答" },
-  { "module": "agent-loop", "question": "真实模型的工具决策机制和写死的 fake_llm 有什么区别，为什么会迷失在中间" },
-  { "module": "tool-calling", "question": "Function Calling 的参数 schema 怎么写，模型传来的参数怎么校验" },
-  { "module": "tool-calling", "question": "一个请求里可以定义多个工具吗，模型选错工具了怎么办" },
-  { "module": "rag", "question": "RAG 的检索和生成两段是怎么接起来的，向量库存的是什么" },
-  { "module": "rag", "question": "embedding 是把文本变成向量吗，为什么相似意思的文本向量会接近" },
-  { "module": "llm-wiki", "question": "为什么知识库要用 Markdown 文件存而不用向量数据库，页面类型怎么定" },
-  { "module": "llm-wiki", "question": "知识库页面之间怎么交叉引用，索引文件是干什么的" },
-  { "module": "multi-agent", "question": "多个 Agent 之间怎么分工协作，消息怎么在 Agent 之间传递" },
-  { "module": "multi-agent", "question": "编排器是怎么决定该让哪个 Agent 干活的，共享状态放哪" },
-  { "module": "mcp", "question": "MCP 协议解决的是什么问题，跟 Function Calling 比有什么优势" },
-  { "module": "mcp", "question": "MCP 的 server 和 client 分别是什么，工具是怎么被发现和调用的" },
-  { "module": "ai-safety", "question": "提示注入攻击是什么样子的，输入过滤应该拦在哪个环节" },
-  { "module": "ai-safety", "question": "沙箱是怎么隔离 Agent 的，审计日志和预算上限怎么落地" },
-  { "module": "platform-replica", "question": "怎么用原始 fetch 调大模型接口并把 SSE 流桥接给前端" },
-  { "module": "platform-replica", "question": "复刻教学平台的整体架构分几层，后端和前端各负责什么" }
+  {
+    "module": "python-basics",
+    "question": "Python 的变量和列表基础怎么理解，写第一个程序要注意什么"
+  },
+  {
+    "module": "ts-basics",
+    "question": "TypeScript 的类型注解和 interface 有什么用，跟 JS 比好在哪"
+  },
+  {
+    "module": "llm-api",
+    "question": "调用大模型 API 时 role 和 messages 是怎么组织的，stream 模式返回什么"
+  },
+  {
+    "module": "llm-api",
+    "question": "temperature 参数调高调低分别会发生什么，为什么说 API 调用是无状态的"
+  },
+  {
+    "module": "system-prompt",
+    "question": "怎么给助教机器人写一段好的系统提示词，角色定义和输出格式怎么约束"
+  },
+  {
+    "module": "system-prompt",
+    "question": "为什么 system prompt 要放在消息列表最前面，改一个词影响有多大"
+  },
+  {
+    "module": "agent-loop",
+    "question": "Agent 循环里模型怎么决定什么时候调用工具什么时候直接回答"
+  },
+  {
+    "module": "agent-loop",
+    "question": "真实模型的工具决策机制和写死的 fake_llm 有什么区别，为什么会迷失在中间"
+  },
+  {
+    "module": "tool-calling",
+    "question": "Function Calling 的参数 schema 怎么写，模型传来的参数怎么校验"
+  },
+  {
+    "module": "tool-calling",
+    "question": "一个请求里可以定义多个工具吗，模型选错工具了怎么办"
+  },
+  {
+    "module": "rag",
+    "question": "RAG 的检索和生成两段是怎么接起来的，向量库存的是什么"
+  },
+  {
+    "module": "rag",
+    "question": "embedding 是把文本变成向量吗，为什么相似意思的文本向量会接近"
+  },
+  {
+    "module": "llm-wiki",
+    "question": "为什么知识库要用 Markdown 文件存而不用向量数据库，页面类型怎么定"
+  },
+  {
+    "module": "llm-wiki",
+    "question": "知识库页面之间怎么交叉引用，索引文件是干什么的"
+  },
+  {
+    "module": "multi-agent",
+    "question": "多个 Agent 之间怎么分工协作，消息怎么在 Agent 之间传递"
+  },
+  {
+    "module": "multi-agent",
+    "question": "编排器是怎么决定该让哪个 Agent 干活的，共享状态放哪"
+  },
+  {
+    "module": "mcp",
+    "question": "MCP 协议解决的是什么问题，跟 Function Calling 比有什么优势"
+  },
+  {
+    "module": "mcp",
+    "question": "MCP 的 server 和 client 分别是什么，工具是怎么被发现和调用的"
+  },
+  {
+    "module": "ai-safety",
+    "question": "提示注入攻击是什么样子的，输入过滤应该拦在哪个环节"
+  },
+  {
+    "module": "ai-safety",
+    "question": "沙箱是怎么隔离 Agent 的，审计日志和预算上限怎么落地"
+  },
+  {
+    "module": "platform-replica",
+    "question": "怎么用原始 fetch 调大模型接口并把 SSE 流桥接给前端"
+  },
+  {
+    "module": "platform-replica",
+    "question": "复刻教学平台的整体架构分几层，后端和前端各负责什么"
+  }
 ]
