@@ -103,21 +103,44 @@ export const STOPWORDS = new Set([
   "content",
   "title",
   "item",
+  // 编程语言关键字：出现在示范代码里但永远不该算「未定义概念」
+  // （2026-09-30 体检器 INFO 采样实测）。
+  "await",
+  "class",
+  "import",
+  "type",
+  "const",
+  "function",
 ]);
 
 /** 从 markdown 文本提取「使用」的术语/标识符（小写化）。 */
 export function extractTerms(text: string): Set<string> {
   const terms = new Set<string>();
-  // 反引号与粗体术语
-  for (const m of text.matchAll(/`([^`]+)`/g))
-    terms.add(m[1].trim().toLowerCase());
+  // 反引号配对前先剥掉代码围栏的定界符（```），保留围栏内容：围栏里嵌着
+  // 模板字符串反引号（`Bearer ${apiKey}`），围栏自身的三连反引号会让顺序
+  // 配对整体错位，把材料里本该命中的词误判成未接地（2026-09-30
+  // platform-replica 模拟实测误报：材料与学生提交物完全接地仍报 ✗）。
+  // 学生提交物是裸代码无围栏，剥定界符后两侧口径一致。
+  const prose = text.replace(/```[a-zA-Z]*\n?/g, "\n");
+  for (const m of prose.matchAll(/`([^`\n]+)`/g)) {
+    const term = m[1].trim().toLowerCase();
+    // 模板表达式（${...}）是代码结构不是人类概念，其中的标识符由下方
+    // 英文标识符规则单独覆盖；留会把体检器 INFO 采样灌满代码噪音。
+    if (!term.includes("${")) terms.add(term);
+  }
   for (const m of text.matchAll(/\*\*([^*]+)\*\*/g))
     terms.add(m[1].trim().toLowerCase());
   // 英文标识符（≥3 字符，允许点号链）
   for (const m of text.matchAll(/\b[a-zA-Z_][a-zA-Z0-9_.]{2,}\b/g)) {
     const token = m[0].toLowerCase().replace(/[.]+$/, "");
-    if (!STOPWORDS.has(token) && !/^\d/.test(token)) terms.add(token);
+    terms.add(token);
   }
-  // 中文/复合术语本身（反引号内可能带空格），逐词拆分太噪，保留整体
+  // 中文/复合术语本身（反引号内可能带空格），逐词拆分太噪，保留整体。
+  // 停用词在出口统一过滤：反引号/粗体环路提取的词同样可能是代码关键字
+  // 或模板表达式，逐环路过滤会漏。
+  for (const term of terms) {
+    if (STOPWORDS.has(term) || term.includes("${") || /^\d/.test(term))
+      terms.delete(term);
+  }
   return terms;
 }
