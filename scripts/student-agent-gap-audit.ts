@@ -289,6 +289,14 @@ async function main(): Promise<void> {
     "- 中文无分词，纯中文断层由学生 Agent 动态模拟（P2）兜底；本报告覆盖高置信子集。",
   );
   lines.push("- INFO 级为低置信采样，仅列前 20 个，供人工判断是否补进知识库。");
+  // INFO 项的 moduleId 是「-」，按模块渲染永远匹配不上，只报数不见内容；
+  // 单列一节展示。
+  if (infos.length > 0) {
+    lines.push("");
+    lines.push("## 三、INFO 采样（跨模块，低置信）");
+    lines.push("");
+    for (const f of infos) lines.push(`- ${f.message}`);
+  }
 
   const outDir = path.resolve("student-agent-output");
   mkdirSync(outDir, { recursive: true });
