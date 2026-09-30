@@ -57,38 +57,43 @@ function chunkId(pagePath: string, ordinal: number): string {
 }
 
 export const knowledgeEmbeddingDb = {
-  /** 整表重建用：清空后按块 upsert。索引脚本在一个事务里完成这两步。 */
-  clear(): void {
-    getDb().prepare("DELETE FROM knowledge_embeddings").run();
-  },
-
-  upsert(chunk: KnowledgeChunk): void {
-    getDb()
-      .prepare(
+  /**
+   * 整表重建：一个事务里先清后写。索引脚本只走这一个入口 —— 半途失败的
+   * 索引比没有索引更糟（查询时会拿到「看起来能用」的残缺召回）。
+   */
+  rebuildAll(chunks: KnowledgeChunk[]): void {
+    const db = getDb();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare("DELETE FROM knowledge_embeddings").run();
+      const insert = db.prepare(
         `INSERT INTO knowledge_embeddings
            (id, page_path, page_id, heading, ordinal, content, embedding, model, dim, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT (id) DO UPDATE SET
-           page_id = excluded.page_id,
-           heading = excluded.heading,
-           content = excluded.content,
-           embedding = excluded.embedding,
-           model = excluded.model,
-           dim = excluded.dim,
-           updated_at = excluded.updated_at`,
-      )
-      .run(
-        chunkId(chunk.pagePath, chunk.ordinal),
-        chunk.pagePath,
-        chunk.pageId,
-        chunk.heading,
-        chunk.ordinal,
-        chunk.content,
-        Buffer.from(chunk.embedding.buffer, chunk.embedding.byteOffset, chunk.embedding.byteLength),
-        chunk.model,
-        chunk.embedding.length,
-        nowIso(),
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       );
+      for (const chunk of chunks) {
+        insert.run(
+          chunkId(chunk.pagePath, chunk.ordinal),
+          chunk.pagePath,
+          chunk.pageId,
+          chunk.heading,
+          chunk.ordinal,
+          chunk.content,
+          Buffer.from(
+            chunk.embedding.buffer,
+            chunk.embedding.byteOffset,
+            chunk.embedding.byteLength,
+          ),
+          chunk.model,
+          chunk.embedding.length,
+          nowIso(),
+        );
+      }
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   },
 
   /** 全量加载到内存。当前语料（66 页 × 按节切块）几百条，余弦在内存算微秒级。 */
