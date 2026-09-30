@@ -45,13 +45,13 @@ function SceneSkeleton() {
 }
 
 const DYNAMIC_SCENES: Partial<
-  Record<
-    keyof typeof SCENE_CATALOG,
-    ComponentType<SceneProps>
-  >
+  Record<keyof typeof SCENE_CATALOG, ComponentType<SceneProps>>
 > = {
   "scene-request-response": dynamic(
-    () => import("./scene-request-response").then((mod) => mod.SceneRequestResponse),
+    () =>
+      import("./scene-request-response").then(
+        (mod) => mod.SceneRequestResponse,
+      ),
     { ssr: false, loading: SceneSkeleton },
   ),
   "scene-role-filter": dynamic(
@@ -67,7 +67,10 @@ const DYNAMIC_SCENES: Partial<
     { ssr: false, loading: SceneSkeleton },
   ),
   "scene-retrieve-generate": dynamic(
-    () => import("./scene-retrieve-generate").then((mod) => mod.SceneRetrieveGenerate),
+    () =>
+      import("./scene-retrieve-generate").then(
+        (mod) => mod.SceneRetrieveGenerate,
+      ),
     { ssr: false, loading: SceneSkeleton },
   ),
   "scene-rag-vs-wiki": dynamic(
@@ -83,7 +86,8 @@ const DYNAMIC_SCENES: Partial<
     { ssr: false, loading: SceneSkeleton },
   ),
   "scene-attack-defense": dynamic(
-    () => import("./scene-attack-defense").then((mod) => mod.SceneAttackDefense),
+    () =>
+      import("./scene-attack-defense").then((mod) => mod.SceneAttackDefense),
     { ssr: false, loading: SceneSkeleton },
   ),
 };
