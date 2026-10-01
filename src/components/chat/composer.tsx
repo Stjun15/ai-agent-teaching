@@ -368,6 +368,8 @@ export function Composer({
               size="sm"
               onClick={() => setShowCode((value) => !value)}
               aria-pressed={showCode}
+              aria-label={showCode ? "收起代码" : "附带代码"}
+              title={showCode ? "收起代码" : "附带代码"}
               className={cn(showCode && "border-ring")}
             >
               <Code2 className="size-4" />
