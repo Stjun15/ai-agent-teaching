@@ -64,6 +64,38 @@ const EDGE =
 // 把生产构建起在 3312 上跑验收，不必先去关别人的服务）。
 const APP_URL = process.env.APP_URL ?? "http://localhost:3311/learn/llm-api";
 const CDP_PORT = 9333;
+// AuthGate（2026-09 引入）会拦截无令牌的浏览器并重定向到 /auth —— 验收用的
+// 是一次性临时 profile，没有任何存储，必须有身份才能进工作区。这里用内置
+// 评审账号（.workbuddy/评审演示账号.md，播种脚本 scripts/seed-auth-accounts.mjs）
+// 换一枚真 JWT，通过 Page.addScriptToEvaluateOnNewDocument 在应用脚本运行前
+// 种进 localStorage。这不是绕过鉴权：走的是与真人登录完全相同的签发路径。
+const AUTH_CREDENTIALS = { username: "test", password: "test1234" };
+const APP_ORIGIN = new URL(APP_URL).origin;
+
+async function loginForToken() {
+  const res = await fetch(`${APP_ORIGIN}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(AUTH_CREDENTIALS),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `验收登录失败（HTTP ${res.status}）：请确认已跑 pnpm db:seed:auth 播种评审账号`,
+    );
+  }
+  return await res.json();
+}
+
+/** 在应用源上种身份的初始化脚本：每个新文档加载前执行，about:blank 上空跑。 */
+function authSeedSource(auth) {
+  return `
+    if (location.origin === ${JSON.stringify(APP_ORIGIN)}) {
+      localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+      localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+      localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+    }
+  `;
+}
 // 要求长输出：短答案几百毫秒就吐完，400ms 的采样抓不到中间态，
 // 会把「流式渲染」误判成「一次性出现」。同时保留工具调用（断言乘积）。
 // 末尾显式要求 Markdown 结构：AX 系列断言的是渲染结果，不能靠「期望模型碰巧
@@ -192,6 +224,14 @@ function connect(wsUrl) {
 
 // ---------- 验收流程 ----------
 try {
+  // AuthGate 需要 identity：先走真实登录端点换一枚 JWT（见 AUTH_CREDENTIALS 注释）。
+  const auth = await loginForToken();
+  console.log(
+    "验收身份就绪：",
+    auth.username,
+    `(${auth.studentId.slice(0, 8)}…）`,
+  );
+
   // ⚠️ 可能有多个 page target（旧会话恢复的错误页 + 当前正常页），
   // 必须逐个试，选第一个已水合的 —— 只取第一个会抓到错误页。
   const pageTargets = [];
@@ -221,6 +261,15 @@ try {
     try {
       await candidate.ready;
       await candidate.send("Runtime.enable");
+      // AuthGate 种身份：注册「新文档初始化脚本」后重新导航一次 —— 初始化
+      // 脚本会在应用 JS 之前把 JWT 种进 localStorage，AuthGate 第一次渲染
+      // 就看得到令牌。只注册不导航不行：初始文档（被重定向到 /auth 的）
+      // 已经加载完了，注册对它不生效。
+      await candidate.send("Page.enable");
+      await candidate.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: authSeedSource(auth),
+      });
+      await candidate.send("Page.navigate", { url: APP_URL }).catch(() => {});
     } catch {
       continue;
     }
@@ -242,6 +291,11 @@ try {
     const fallback = connect(pageTargets[0].webSocketDebuggerUrl);
     await fallback.ready;
     await fallback.send("Runtime.enable");
+    await fallback.send("Page.enable");
+    // 初始化脚本注册在父页面上，子 iframe 的每个新文档同样会执行
+    await fallback.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: authSeedSource(auth),
+    });
     await fallback.evaluate(`
       (() => {
         const old = document.getElementById('app-frame');
@@ -273,6 +327,24 @@ try {
     app = connect(appWs);
     await app.ready;
     await app.send("Runtime.enable");
+    await app.send("Page.enable");
+    // iframe 文档可能在注册初始化脚本之前就已加载（AuthGate 已把它重定向到
+    // /auth）：补种一次身份并重新导航，让令牌在应用 JS 之前就位。
+    try {
+      await app.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: authSeedSource(auth),
+      });
+      await app.evaluate(`
+        localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+        localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+        localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+        location.href = ${JSON.stringify(APP_URL)};
+        'reseeded'
+      `);
+      await sleep(2500);
+    } catch {
+      /* 顶层路径已处理过身份的情况 */
+    }
   } else {
     console.log("已附加到已水合的页面");
   }
@@ -487,6 +559,23 @@ try {
   // ---------------------------------------------------------------------------
   // B 系列：代码编辑区（Phase 6 首个提交点）
   // ---------------------------------------------------------------------------
+  // 2026-09-19/20 分屏改版后，编辑区只在 imitate 及之后的步骤展开
+  // （explain/observe 收起工作面板）。A-AX 系列在 explain 步跑对话断言，
+  // 这里先导航到 imitate 步再断言编辑器 —— 断言意图不变，改的是脚本的落点。
+  await app.evaluate(`
+    location.href = ${JSON.stringify(APP_URL.replace(/\/$/, "") + "/imitate")};
+    'navigating'
+  `);
+  await sleep(2500);
+  for (let i = 0; i < 20; i++) {
+    const has = await app
+      .evaluate(
+        `return !!(document.querySelector('.monaco-editor') || document.querySelector('textarea[aria-label^="代码编辑区"]'))`,
+      )
+      .catch(() => false);
+    if (has) break;
+    await sleep(500);
+  }
 
   const editor = JSON.parse(
     await app.evaluate(`
@@ -589,24 +678,8 @@ try {
     typedVia = "textarea";
   }
 
-  const storeCode = JSON.parse(
-    await app.evaluate(`
-      const toggle = [...document.querySelectorAll('button')].find((b) => /附带代码|收起代码/.test(b.textContent));
-      if (!toggle) return JSON.stringify({ found: false, value: null });
-      if (toggle.textContent.includes('附带代码')) toggle.click();
-      await new Promise((r) => setTimeout(r, 300));
-      const ta = [...document.querySelectorAll('textarea')].find((t) => (t.placeholder ?? '').startsWith('把你的 Prompt'));
-      return JSON.stringify({ found: true, value: ta ? ta.value : null });
-    `),
-  );
-  const codeReachedStore = storeCode.value === PROBE_CODE;
-  console.log(
-    "B2 输入入了 CodeStore（经输入区回读）:",
-    codeReachedStore ? "PASS" : "FAIL",
-    `通道=${typedVia}`,
-    JSON.stringify(storeCode.value),
-  );
-
+  // B3 语言切换：必须在仍在 imitate 步时做 —— B2 的回读会 SPA 导航到
+  // observe 步，那边没有编辑器工具栏。
   const languageSwitch = JSON.parse(
     await app.evaluate(`
       const group = document.querySelector('[role="group"][aria-label="语言"]');
@@ -627,6 +700,40 @@ try {
     "B3 切换语言为 Python:",
     languageOk ? "PASS" : "FAIL",
     JSON.stringify(languageSwitch.pressed),
+  );
+
+  const storeCode = JSON.parse(
+    await app.evaluate(`
+      // 2026-09-19/20 分屏改版后 imitate 步没有输入区（提交走点评面板），
+      // 「附带代码」开关在 observe 步的 Composer 里。CodeStore 是全局
+      // zustand：点「回到观察示范」（next/link，SPA 导航，store 不重置）
+      // 后回读 —— 这正是「编辑器改动进入 CodeStore」原本要证明的链路。
+      const backLink = [...document.querySelectorAll('a')].find((a) => /回到观察示范/.test(a.textContent));
+      if (backLink) {
+        backLink.click();
+        await new Promise((r) => setTimeout(r, 1200));
+        for (let i = 0; i < 10; i++) {
+          if ([...document.querySelectorAll('textarea')].some((t) => (t.placeholder ?? '').startsWith('说说你的思路'))) break;
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+      const toggle =
+        document.querySelector('[aria-label="附带代码"]') ??
+        [...document.querySelectorAll('button')].find((b) => /附带代码|收起代码/.test(b.textContent));
+      if (!toggle) return JSON.stringify({ found: false, value: null });
+      const expanded = toggle.getAttribute('aria-pressed') === 'true';
+      if (!expanded) toggle.click();
+      await new Promise((r) => setTimeout(r, 300));
+      const ta = [...document.querySelectorAll('textarea')].find((t) => (t.placeholder ?? '').startsWith('把你的 Prompt'));
+      return JSON.stringify({ found: true, value: ta ? ta.value : null });
+    `),
+  );
+  const codeReachedStore = storeCode.value === PROBE_CODE;
+  console.log(
+    "B2 输入入了 CodeStore（经输入区回读）:",
+    codeReachedStore ? "PASS" : "FAIL",
+    `通道=${typedVia}`,
+    JSON.stringify(storeCode.value),
   );
 
   const ok =

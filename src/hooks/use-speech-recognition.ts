@@ -92,10 +92,17 @@ export function useSpeechRecognition(
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isSupported =
-    typeof window !== "undefined" &&
-    (typeof window.SpeechRecognition !== "undefined" ||
-      typeof window.webkitSpeechRecognition !== "undefined");
+  // 麦克风支持检测必须**挂载后**才置真：直接在渲染期读 `window` 是经典的
+  // server/client 分支——服务端渲染出「提交截图」按钮，客户端水合时却换成了
+  // 「语音输入」按钮，Composer 所在的每一页都因此整树水合失败（React #418，
+  // 浏览器验收 A7 实测抓到）。初始 false 与服务端一致，挂载后再探测。
+  const [isSupported, setIsSupported] = useState(false);
+  useEffect(() => {
+    setIsSupported(
+      typeof window.SpeechRecognition !== "undefined" ||
+        typeof window.webkitSpeechRecognition !== "undefined",
+    );
+  }, []);
 
   // 错误 3 秒后自动清除
   useEffect(() => {
