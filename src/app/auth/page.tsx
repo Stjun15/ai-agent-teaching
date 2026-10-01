@@ -13,7 +13,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Info, LogOut } from "lucide-react";
+import { Blocks, Info, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import {
   clearAuthToken,
@@ -202,6 +203,17 @@ export default function AuthPage() {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:py-16">
       <div className="flex flex-col gap-6">
+        <div className="text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+            <Blocks className="size-6" />
+          </span>
+          <h1 className="mt-4 text-xl font-semibold tracking-tight">
+            {siteConfig.name}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            登录后继续你的七步学习旅程
+          </p>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>账户登录</CardTitle>
