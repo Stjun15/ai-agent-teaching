@@ -55,19 +55,25 @@ export function TopNav() {
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2"
           aria-label="返回首页"
         >
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Blocks className="size-4" />
           </span>
-          <span className="text-sm font-semibold">{siteConfig.name}</span>
+          {/* 小屏只留图形标：四个字在 390px 下会把顶栏挤成三行 */}
+          <span className="hidden text-sm font-semibold sm:inline">
+            {siteConfig.name}
+          </span>
         </Link>
 
-        <nav aria-label="主导航" className="relative flex items-center gap-1">
+        <nav
+          aria-label="主导航"
+          className="relative flex flex-1 items-center gap-0.5 sm:gap-1"
+        >
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active =
@@ -77,11 +83,11 @@ export function TopNav() {
               return (
                 <span
                   key={item.href}
-                  className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground/70"
+                  className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground/70 sm:px-2.5"
                   title="该页面在后续阶段实现"
                 >
-                  <Icon className="size-4" />
-                  {item.label}
+                  <Icon className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">{item.label}</span>
                   <Badge
                     variant="muted"
                     className="ml-0.5 hidden sm:inline-flex"
@@ -97,8 +103,9 @@ export function TopNav() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                title={item.label}
                 className={cn(
-                  "relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                  "relative flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors sm:px-2.5",
                   active
                     ? "font-medium text-accent-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -112,8 +119,8 @@ export function TopNav() {
                   />
                 ) : null}
                 <span className="relative z-10 flex items-center gap-1.5">
-                  <Icon className="size-4" />
-                  {item.label}
+                  <Icon className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">{item.label}</span>
                 </span>
               </Link>
             );
