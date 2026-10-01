@@ -115,6 +115,45 @@
   }
 }
 
+/* Hero 光斑的极慢漂移：让首屏「活」但不抢内容（14s 周期，视差感） */
+@keyframes hero-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3rem, 1.5rem, 0) scale(1.08);
+  }
+}
+
+.animate-hero-drift {
+  animation: hero-drift 14s ease-in-out infinite alternate;
+}
+
+/* 首屏装饰网格：radial mask 让网格从中心向边缘淡出，避免满屏铺线 */
+.bg-grid-fade {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(
+    ellipse 72% 62% at 50% 36%,
+    black 26%,
+    transparent 78%
+  );
+}
+
+/* 系统级动效降级：前庭敏感用户面前，所有装饰动画退化为静止 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* 场景箭头的流动虚线：数据「正在流动」的视觉语言。
    只挂在 active/done 档的连线上（idle 静态 = 还没轮到）。 */
 @keyframes scene-dash-flow {

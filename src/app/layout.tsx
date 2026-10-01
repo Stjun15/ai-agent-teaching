@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthGate } from "@/components/auth/auth-gate";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { TopNav } from "@/components/layout/top-nav";
 import { StudentBootstrap } from "@/components/student/student-bootstrap";
 import { ThemeBootstrap } from "@/components/settings/theme-choice";
@@ -40,6 +41,7 @@ export default function RootLayout({
           <StudentBootstrap />
           <TopNav />
           {children}
+          <SiteFooter />
         </AuthGate>
       </body>
     </html>
