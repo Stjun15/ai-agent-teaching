@@ -46,11 +46,15 @@ function sceneLabel(sceneId: string): string {
  * 不是给 TEACHING_EXPLAIN_PROMPT 当参考资料的。渲染 ExplainColdStart
  * 卡片后学生自己决定要不要启动 AI 对聊。
  */
-const INTERACTIVE_EXPLAIN_MODULES = new Set([
-  "platform-replica",
-  "python-basics",
-  "ts-basics",
-]);
+/**
+ * 冷启动交互卡的适用集合。2026-10-01 收窄到只剩 platform-replica：
+ * python-basics / ts-basics 的讲稿缓存早已生成（lecture_cache 表 model 列
+ * 可查），却因在此集合内永远用不上；「开始对聊」点下去反而是一次现场等
+ * 模型的调用。统一为与其余九讲相同——LectureLauncher 自动种入缓存讲稿，
+ * 点开即有（学生 Agent 全链路模拟也是按这个口径验证的）。
+ * platform-replica 是项目模块，三板斧交互卡就是它的导学形态，保留。
+ */
+const INTERACTIVE_EXPLAIN_MODULES = new Set(["platform-replica"]);
 
 /**
  * 模块学习工作区 —— 三栏布局本体（`04-frontend.md`「模块学习页（三栏）」）。
