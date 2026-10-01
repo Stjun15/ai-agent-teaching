@@ -238,27 +238,31 @@ export default async function HomePage() {
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
             一次学习的完整过程
           </h2>
-          <AnimatedGrid className="relative mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            {/* 连接线：xl 屏下穿过每个节点的序号圆心（p-4 + size-8 → 圆心在 32px） */}
+          <div className="relative mt-8">
+            {/* 连接线：xl 屏下穿过每个节点的序号圆心（p-4 + size-8 → 圆心在 32px）。
+                必须放在 AnimatedGrid 外面 —— AnimatedGrid 会把「子元素数组」逐个包进
+                motion.div，混进一个绝对定位兄弟会把七张卡折成一根 161px 宽的柱子。 */}
             <div
               aria-hidden
               className="absolute top-8 right-0 left-0 hidden h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent xl:block"
             />
-            {TEACHING_FLOW.map((item) => (
-              <div
-                key={item.step}
-                className="relative h-full rounded-xl border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
-              >
-                <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground ring-4 ring-background">
-                  {item.step}
-                </span>
-                <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
-          </AnimatedGrid>
+            <AnimatedGrid className="relative grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+              {TEACHING_FLOW.map((item) => (
+                <div
+                  key={item.step}
+                  className="relative h-full rounded-xl border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                >
+                  <span className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground ring-4 ring-background">
+                    {item.step}
+                  </span>
+                  <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    {item.detail}
+                  </p>
+                </div>
+              ))}
+            </AnimatedGrid>
+          </div>
         </div>
       </AnimatedSection>
 
