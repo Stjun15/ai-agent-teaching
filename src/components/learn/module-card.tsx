@@ -38,7 +38,7 @@ export function ModuleCard({
 }) {
   return (
     <Card
-      className="h-full gap-3 overflow-hidden border-t-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+      className="group h-full gap-3 overflow-hidden border-t-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"
       style={{
         borderTopColor:
           ACCENT_COLORS[teachingModule.order % ACCENT_COLORS.length],
@@ -112,13 +112,13 @@ export function ModuleCard({
         </div>
       </CardContent>
 
-      <div className="px-5">
+      <div className="mt-auto border-t px-5 pt-3">
         <Link
           href={teachingModule.href}
-          className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          className="flex items-center justify-between text-sm font-medium transition-colors group-hover:text-primary"
         >
           进入本讲
-          <ArrowRight className="size-3.5" />
+          <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
         </Link>
       </div>
     </Card>

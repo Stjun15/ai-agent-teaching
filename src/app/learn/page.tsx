@@ -31,10 +31,15 @@ export default async function LearnPage() {
   }, 0);
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-12 sm:px-6">
       <header className="max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight">学习中心</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="text-xs font-medium tracking-[0.3em] text-primary/80 uppercase">
+          Learning
+        </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          学习中心
+        </h1>
+        <p className="mt-4 text-sm leading-relaxed text-pretty text-muted-foreground">
           {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes} 分钟。
           每个模块走完「概念讲解 → 观察示范 → 动手模仿 → 校验点评 → 可视化 →
           变式练习 → 掌握判定」七步，掌握度达标后再进入下一个 ——
@@ -50,7 +55,7 @@ export default async function LearnPage() {
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {/* 欢迎卡片：独立页面，不走七步教学流程 */}
           <div>
-            <Card className="h-full gap-3 border-ring/30 bg-muted/20 transition-colors hover:border-ring/60">
+            <Card className="group h-full gap-3 border-ring/30 bg-muted/20 transition-all duration-300 hover:-translate-y-1 hover:border-ring/60 hover:shadow-lg hover:shadow-primary/5">
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-base">
@@ -103,13 +108,13 @@ export default async function LearnPage() {
                 </div>
               </CardContent>
 
-              <div className="px-5">
+              <div className="mt-auto border-t px-5 pt-3">
                 <Link
                   href="/learn/welcome"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                  className="flex items-center justify-between text-sm font-medium transition-colors group-hover:text-primary"
                 >
                   进来坐
-                  <ArrowRight className="size-3.5" />
+                  <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </div>
             </Card>
