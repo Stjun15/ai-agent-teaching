@@ -89,7 +89,12 @@ test("verifyToken：篡改负载返回 null", () => {
 test("verifyToken：篡改签名返回 null", () => {
   const token = createToken(TEST_STUDENT_ID);
   const parts = token.split(".");
-  const badSig = `_${parts[2].slice(1)}`;
+  // 替换签名的第一个字符。不能无脑换成 `_`：base64url 字母表含 `_`，
+  // 真实签名恰好以 `_` 开头时（签名随 iat 每秒变化，约 1/64 概率）
+  // 「篡改」结果与原签名相同，断言随机红。选一个与原字符必异的字符。
+  const firstChar = parts[2][0];
+  const replacement = firstChar === "_" ? "0" : "_";
+  const badSig = `${replacement}${parts[2].slice(1)}`;
   const tampered = `${parts[0]}.${parts[1]}.${badSig}`;
   assert.equal(verifyToken(tampered), null);
 });

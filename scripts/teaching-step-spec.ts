@@ -77,12 +77,20 @@ test("教学提示词要求讲透 + 实例", () => {
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /做完发给我/);
   // explain 版：讲透 + 实例，但**没有**动手环节
   assert.match(TEACHING_EXPLAIN_PROMPT, /禁止一句话回答/);
-  assert.match(TEACHING_EXPLAIN_PROMPT, /门禁确认/);
+  // 2026-10-01：旧结构第一节是「🚪 门禁确认」，会把「编排层没有提示前置
+  // 掌握度不足」这类系统术语直接讲给学生（与铁律 5 冲突）。改为学生视角
+  // 的「开场」——守卫双向钉住：新结构在，旧术语不出。
+  assert.match(TEACHING_EXPLAIN_PROMPT, /### 开场/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /不需要任何基础/);
   assert.match(TEACHING_EXPLAIN_PROMPT, /为什么需要/);
   assert.match(TEACHING_EXPLAIN_PROMPT, /核心概念/);
   assert.match(TEACHING_EXPLAIN_PROMPT, /防踩坑/);
   assert.match(TEACHING_EXPLAIN_PROMPT, /概念测验/);
   assert.match(TEACHING_EXPLAIN_PROMPT, /通关宣告/);
+  assert.ok(
+    !/🚪|门禁通过|编排层提示|编排层没有提示/.test(TEACHING_EXPLAIN_PROMPT),
+    "讲解提示词的结构节不得指挥模型输出系统内部术语（铁律 5 枚举的禁用词本身除外）",
+  );
   assert.ok(
     !/现在轮到你/.test(TEACHING_EXPLAIN_PROMPT),
     "概念讲解版提示词不得包含动手环节（第四节必须是'概念测验'）",
