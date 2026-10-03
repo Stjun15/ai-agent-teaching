@@ -6,7 +6,13 @@
  * 亲手搭出一个能用的教学平台。
  *
  * 阶段的权威来源：`llm-wiki/concepts/platform-replica.md`
- * 「🔨 怎么造：三板斧 + 一条龙骨」。
+ * 「关键步骤：三板斧 + 一条龙骨（详细步骤）」。
+ *
+ * ⚠️ 同步义务：本文件是 wiki 页的**镜像**（界面要的是结构化数据，
+ * wiki 是唯一事实源）。改 wiki 的三板斧内容时必须同步改这里——
+ * 两处都改过再跑 `pnpm test:lecture-cache` 与复刻模拟复核，
+ * 否则学生看到的阶段与讲稿口径会脱节（2026-10-01 曾因此漂移：
+ * 文件路径指向了本仓库不存在的文件、验收端点 /api/agent/teach 不存在）。
  */
 
 export interface ReplicaTask {
@@ -34,8 +40,9 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
   {
     index: 0,
     title: "启动台",
-    goal: "把空壳跑通，浏览器打开 localhost:3000，看到 Next.js 欢迎页",
+    goal: "装 Node ≥ 22.5，把空壳跑通，浏览器打开 localhost:3000，看到 Next.js 欢迎页",
     tasks: [
+      { label: "确认 Node ≥ 22.5", file: "node --version" },
       { label: "创建项目", file: "npx create-next-app teaching-platform" },
       { label: "启动开发服", file: "npm run dev" },
       { label: "浏览器打开 localhost:3000，确认空壳能跑" },
@@ -47,52 +54,59 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     title: "第一斧 · 对话骨架",
     goal: "搭完能跟 AI 聊天。SSE 流式，打字机渲染，角色是教学导师。",
     tasks: [
-      { label: "封装 LLM 调用", moduleRef: "llm-api", file: "src/lib/llm.ts" },
+      {
+        label: "封装 LLM 调用（原始 fetch）",
+        moduleRef: "llm-api",
+        file: "src/lib/llm.ts",
+      },
       {
         label: "写教学 System Prompt",
         moduleRef: "system-prompt",
-        file: "agent-prompts/teaching-chat.ts",
       },
       { label: "实现 SSE 流式接口", file: "src/app/api/chat/route.ts" },
       { label: "前端打字机聊天", file: "src/components/chat/" },
-      { label: "API Key 配置", file: ".env.local + 设置页" },
+      { label: "API Key 配置", file: ".env.local" },
     ],
     acceptanceScript: `curl -X POST http://localhost:3000/api/chat \\
   -H "Content-Type: application/json" \\
   -d '{"content":"你好，请介绍一下你自己"}'
 # → 200 + SSE 流式响应
 # → 角色是"教学导师"
-# → 前端打字机正常渲染`,
+# → 前端打字机正常渲染
+# （完整可抄版见 wiki「示范代码」节）`,
   },
   {
     index: 2,
     title: "第二斧 · 多步 Agent",
-    goal: "搭完 AI 能讲课、能出题。Agent 多步推理，出题带选项和解析。",
+    goal: "搭完 AI 能讲课、能出题。模型点菜（要工具）你端菜（执行）再喂回，直到它说完。",
     tasks: [
       {
-        label: "runAgent 核心循环",
+        label: "把一次调用包成带工具的循环",
         moduleRef: "agent-loop",
-        file: "src/lib/agent/runtime.ts",
+        file: "src/lib/agent-loop.ts",
       },
       {
-        label: "教学 Agent（多步讲解）",
-        moduleRef: "agent-loop",
-        file: "src/lib/agent/teaching-agent.ts",
-      },
-      {
-        label: "出题 Agent（function calling）",
+        label: "出题工具 + 参数 Schema（题目/选项/答案/解析）",
         moduleRef: "tool-calling",
-        file: "src/lib/agent/examiner-agent.ts",
+        file: "src/lib/quiz-tool.ts",
+      },
+      {
+        label: "工具结果喂回模型，直到产出讲解 + 测验",
+        moduleRef: "agent-loop",
       },
     ],
-    acceptanceScript: `curl -X POST http://localhost:3000/api/agent/teach \\
-  -d '{"concept":"llm-api","step":"explain"}'
-# → Agent 多步输出：概念定义 → 核心原理 → 防踩坑 → 两道测验题`,
+    acceptanceScript: `curl -X POST http://localhost:3000/api/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{"content":"给我讲讲什么是 System Prompt，讲完出两道选择题"}'
+# → 回答先讲透（类比 + 定义 + 例子）
+# → 结尾有两道选择题，带选项和答案
+# → 服务端日志：模型请求工具 → 你执行 → 结果喂回 → 模型继续说
+# （完整可抄版见 wiki「Agent 循环（第二斧可抄版）」节）`,
   },
   {
     index: 3,
-    title: "第三斧 · 知识 + 数据库",
-    goal: "搭完 AI 知道你在学什么、学了什么。上下文注入 + 进度持久化。",
+    title: "第三斧 · 知识 + 数据库 + 点评",
+    goal: "搭完 AI 知道你在学什么、学了什么、学得怎么样。注入上下文 + 进度持久化 + 作业点评。",
     tasks: [
       {
         label: "概念页注入上下文",
@@ -100,14 +114,23 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "src/lib/lecture-context.ts",
       },
       {
-        label: "SQLite 存掌握度",
+        label: "SQLite 存掌握度（内置 node:sqlite，免编译）",
         moduleRef: "llm-wiki",
-        file: "src/lib/db/sqlite.ts",
+        file: "src/lib/db.ts",
       },
-      { label: "进度追踪", file: "掌握度表 + 会话表" },
+      {
+        label: "点评 Agent：按验收清单给维度分 + 落库",
+        moduleRef: "system-prompt",
+        file: "src/lib/review.ts",
+      },
     ],
-    acceptanceScript: `sqlite3 dev.db "SELECT * FROM mastery WHERE student_id = 'default';"
-# → 有记录，分数随学习变化`,
+    acceptanceScript: `node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('dev.db');console.log(db.prepare('SELECT * FROM mastery').all())"
+# → 有记录，分数随学习变化（无需安装 sqlite3 命令行）
+
+curl -X POST http://localhost:3000/api/validate \\
+  -H "Content-Type: application/json" \\
+  -d '{"content":"const name = (void 0).name"}'
+# → JSON 返回维度分、扣分点、改进建议，并且落库`,
   },
   {
     index: 4,
@@ -131,9 +154,11 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       { label: "AI 被 System Prompt 约束为教学导师，不讲无关内容" },
       { label: "Agent 能多步输出：讲概念 → 给示范 → 出测验题" },
       { label: "出题 Agent 输出的题目符合 Schema（有选项、有答案、有解析）" },
+      { label: "点评 Agent：交作业能拿到维度分、扣分点、改进建议，且落库" },
       { label: "SQLite 记录学习进度，刷新不丢" },
       { label: "页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置" },
     ],
-    acceptanceDesc: "在 localhost:3000 上全部跑通 → 达标",
+    acceptanceDesc:
+      "在 localhost:3000 上全部跑通 → 达标。把两个关键文件（route.ts + agent-loop.ts）和清单自查贴给点评导师出检验单",
   },
 ];
