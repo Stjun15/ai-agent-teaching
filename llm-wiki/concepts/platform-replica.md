@@ -17,6 +17,17 @@ tags: [core, integration, project]
 
 它是课程的总验收：不是选择题得分，而是「你能不能独立做一个 AI 应用」的试金石。复刻的对象就是**你正在用的这个平台本身**——学什么就造什么，造什么就验证什么。
 
+**单机版包含 / 不包含**（先说清楚，避免错误期待）：
+
+| 包含（三板斧产出）           | 不包含（进阶方向） |
+| ---------------------------- | ------------------ |
+| 对话 + SSE 流式打字机        | 可视化场景播放     |
+| 多步 Agent + 出题 Agent      | 多用户与登录体系   |
+| 点评 Agent（作业按维度打分） | 学习报告与错题本   |
+| 掌握度 SQLite 落库           | 部署上线与域名     |
+
+「不包含」不是砍需求，是**把毕业项目的边界画清楚**：上面左列全部跑通，你就独立做出了一个 AI 应用；右列每一项都是你之后自己就能加的零件。
+
 ## 为什么需要：最终目标
 
 用前面 9 个模块教的每一个零件，从零搭出一个**能教别人学 AI 的单机版教学平台**。
@@ -46,13 +57,21 @@ tags: [core, integration, project]
 
 ### 启动台
 
+**前置：** 安装 Node.js **≥ 22.5**（进度存储用内置的 `node:sqlite`，免编译依赖）。先验证：
+
+```bash
+node --version   # 必须 ≥ v22.5
+```
+
+然后三行命令把空壳跑起来：
+
 ```
 npx create-next-app teaching-platform
 cd teaching-platform
 npm run dev
 ```
 
-先把空壳跑通。浏览器打开 `localhost:3000`，看到一个 Next.js 欢迎页。—— 这就是你的起点。
+浏览器打开 `localhost:3000`，看到一个 Next.js 欢迎页。—— 这就是你的起点。
 
 **验收：** 空壳能跑。
 
@@ -87,37 +106,51 @@ curl -X POST http://localhost:3000/api/chat \
 
 **目标：** 搭完 AI 能讲课、能出题。
 
-| 做什么                         | 用到的模块   | 关键文件                          |
-| ------------------------------ | ------------ | --------------------------------- |
-| runAgent 核心循环              | agent-loop   | `src/lib/agent/runtime.ts`        |
-| 教学 Agent（多步讲解）         | agent-loop   | `src/lib/agent/teaching-agent.ts` |
-| 出题 Agent（function calling） | tool-calling | `src/lib/agent/examiner-agent.ts` |
+第一斧是「一问一答」：模型说完就结束。第二斧升级成「模型说了不算完」——模型可以**点菜**（调用你提供的工具），你把菜端上来（执行工具），它接着往下说。这就是 Agent Loop 的全部秘密：**循环调用，直到模型不再要工具为止。**
+
+| 做什么                                            | 用到的模块   | 建议落点（你自己项目里的文件） |
+| ------------------------------------------------- | ------------ | ------------------------------ |
+| 把「一次调用」包成「带工具的循环」                | agent-loop   | `src/lib/agent-loop.ts`        |
+| 定义出题工具 + 参数 Schema（题目/选项/答案/解析） | tool-calling | `src/lib/quiz-tool.ts`         |
+| 工具结果喂回模型，直到产出「讲解 + 测验」         | agent-loop   | 就在上面的循环里               |
+
+注意：右列是**建议你自己项目里的文件名**，不是本平台的文件——本平台的文件你看不到也不该抄，每一行都该照着下面的示范代码自己写出来。
 
 **验收脚本：**
 
 ```bash
-curl -X POST http://localhost:3000/api/agent/teach \
-  -d '{"concept":"llm-api","step":"explain"}'
-# → Agent 多步输出：概念定义 → 核心原理 → 防踩坑 → 两道测验题
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"content":"给我讲讲什么是 System Prompt，讲完出两道选择题"}'
+# → 回答先讲透（类比 + 定义 + 例子）
+# → 结尾有两道选择题，带选项和答案
+# → 服务端日志能看到：模型请求工具 → 你执行 → 结果喂回 → 模型继续说
 ```
 
 ---
 
-### 第三斧：知识 + 数据库
+### 第三斧：知识 + 数据库 + 点评
 
-**目标：** 搭完 AI 知道你在学什么、学了什么。
+**目标：** 搭完 AI 知道你在学什么、学了什么、学得怎么样。
 
-| 做什么           | 用到的模块 | 关键文件                     |
-| ---------------- | ---------- | ---------------------------- |
-| 概念页注入上下文 | rag        | `src/lib/lecture-context.ts` |
-| SQLite 存掌握度  | llm-wiki   | `src/lib/db/sqlite.ts`       |
-| 进度追踪         | —          | 掌握度表 + 会话表            |
+| 做什么                                 | 用到的模块                 | 建议落点（你自己项目里的文件） |
+| -------------------------------------- | -------------------------- | ------------------------------ |
+| 概念页注入上下文（讲课时只给本讲材料） | rag                        | `src/lib/lecture-context.ts`   |
+| SQLite 存掌握度                        | llm-wiki                   | `src/lib/db.ts`                |
+| 点评 Agent：按验收清单给作业打维度分   | system-prompt + agent-loop | `src/lib/review.ts`            |
+
+点评 Agent 是闭环的最后一块：学生交一段作业，系统返回「维度分 + 扣分点 + 改进建议」并落库——这正是你一直在用的「校验点评」步。
 
 **验收脚本：**
 
 ```bash
-sqlite3 dev.db "SELECT * FROM mastery WHERE student_id = 'default';"
-# → 有记录，分数随学习变化
+node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('dev.db');console.log(db.prepare('SELECT * FROM mastery').all())"
+# → 有记录，分数随学习变化（不需要安装 sqlite3 命令行）
+
+curl -X POST http://localhost:3000/api/validate \
+  -H "Content-Type: application/json" \
+  -d '{"content":"const name = (void 0).name"}'
+# → JSON 返回维度分、扣分点、改进建议，并且落库
 ```
 
 ---
@@ -242,6 +275,80 @@ async function sendMessage(content: string) {
 }
 ```
 
+### Agent 循环（第二斧可抄版）`src/lib/agent-loop.ts`
+
+第一斧的管线是「调用一次就结束」。第二斧在它外面**套一层循环**：模型如果要工具，你执行工具、把结果喂回去，再问一次——直到模型不再要工具。照抄即可，注释里 ①②③ 是新增的关键步：
+
+```typescript
+// ① 工具定义：出题 Agent 的「手」。参数用 JSON Schema 钉死——
+//    模型只能按这个形状出题（题目/选项/答案/解析），这就是 Schema 约束输出
+const quizTool = {
+  type: "function",
+  function: {
+    name: "make_quiz",
+    description: "出一道考察当前概念的选择题",
+    parameters: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "题干" },
+        options: {
+          type: "array",
+          items: { type: "string" },
+          description: "四个选项",
+        },
+        answer: { type: "string", description: "正确选项，如 B" },
+        explanation: { type: "string", description: "解析：为什么选它" },
+      },
+      required: ["question", "options", "answer", "explanation"],
+    },
+  },
+};
+
+// ② Agent 循环本体
+export async function runAgentLoop(
+  messages: { role: string; content: string }[],
+): Promise<string> {
+  for (let step = 0; step < 5; step++) {
+    // 和第一斧同一个 fetch，多传一个 tools 数组
+    const res = await fetch(
+      "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.ARK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-v4-flash-ga-260731",
+          messages,
+          tools: [quizTool], // ③ 告诉模型：你有一件工具可点
+        }),
+      },
+    );
+    const choice = (await res.json()).choices[0];
+
+    // ④ 模型没要工具 = 它说完了，返回最终讲解
+    if (!choice.message.tool_calls) return choice.message.content;
+
+    // ⑤ 模型要了工具：执行它（出题），把结果喂回去，循环再问
+    messages.push(choice.message); // 别丢掉模型这句「我要工具」
+    for (const call of choice.message.tool_calls) {
+      const quiz = JSON.parse(call.function.arguments); // Schema 保证形状
+      // 这里就是你执行工具的地方：真实项目里把题存库、返回题 id
+      messages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: JSON.stringify({ ok: true, quiz }),
+      });
+    }
+    // ⑥ 带着工具结果回到循环开头，再问模型一次
+  }
+  return "（本轮讲解已结束）";
+}
+```
+
+读这段代码只需要记住一件事：**Agent 不是更聪明的模型，是「会点菜的普通模型 + 一个愿意端菜的循环」。** 第二斧验收脚本里「服务端日志能看到模型请求工具」，看到的就是这五步在转。
+
 ### 管线全景
 
 ```
@@ -270,8 +377,16 @@ async function sendMessage(content: string) {
 - [ ] AI 被 System Prompt 约束为教学导师，不讲无关内容
 - [ ] Agent 能多步输出：讲概念 → 给示范 → 出测验题
 - [ ] 出题 Agent 输出的题目符合 Schema（有选项、有答案、有解析）
+- [ ] **点评 Agent：交一段作业能拿到维度分、扣分点、改进建议，且落库**
 - [ ] SQLite 记录学习进度，刷新不丢
 - [ ] 页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置
+
+**提交什么给点评导师：** 把下面两样贴进对话（一个多文件工程塞不进一个文本框，所以只交关键件）：
+
+1. 两个关键文件的全文——`route.ts`（第一斧管线）+ `agent-loop.ts`（第二斧循环）；
+2. 上面清单的逐条自查：每条 ✓/✗ 加一句话证据（「验收脚本的返回贴这里」）。
+
+点评导师按同一份清单逐条核，给维度分与改进建议——你交的不是「作业」，是一台车的出厂检验单。
 
 ---
 
