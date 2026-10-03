@@ -152,6 +152,37 @@ test("gradeObjective：选择题对账选项字母与整段选项文本", () => 
   assert.equal(otherLetter.isCorrect, false, "选错字母仍应判错");
 });
 
+test("gradeObjective：选择题对账裸选项文本（无字母前缀）", () => {
+  // 实测失败模式（2026-10-03 复刻模拟）：题库 options 存裸文本（无
+  // 「B. 」前缀），学生/界面提交裸选项文本 —— 既不是字母精确匹配，
+  // 也没有前缀字母可提取，答对判 0。三种形态（字母/带前缀/裸文本）
+  // 必须全对账。同时钉住：不同选项的裸文本不得被放行。
+  const q = {
+    type: "选择题",
+    text: "这份需求描述最关键的缺陷是什么？",
+    correctAnswer: "B",
+    explanation: "需求要有用户、场景和完成标准。",
+    options: [
+      "没有写编程语言",
+      "缺少具体用户、核心场景和完成标准",
+      "没有设计数据库表结构",
+      "没有提到界面颜色",
+    ],
+  };
+
+  const bareText = gradeObjective(q, "缺少具体用户、核心场景和完成标准");
+  assert.equal(bareText.isCorrect, true, "裸选项文本应对账到字母 B");
+
+  const wrongText = gradeObjective(q, "没有提到界面颜色");
+  assert.equal(wrongText.isCorrect, false, "其它选项的文本必须判错");
+
+  const prefixStillWorks = gradeObjective(
+    q,
+    "B. 缺少具体用户、核心场景和完成标准",
+  );
+  assert.equal(prefixStillWorks.isCorrect, true, "带前缀形态回归不破");
+});
+
 test("runAssessLoop：客观题不调模型直接走规则", async () => {
   const q = {
     type: "填空题",

@@ -325,6 +325,11 @@ export async function runAgentLoop(
         }),
       },
     );
+    // ⑦ 先查状态码再解析：上游 4xx/5xx 时 res.json() 会抛出难懂的错，
+    //    早点抛出可读的错误（点评 Agent 会按「边界处理」维度查这一行）
+    if (!res.ok) {
+      return `模型请求失败：HTTP ${res.status}`;
+    }
     const choice = (await res.json()).choices[0];
 
     // ④ 模型没要工具 = 它说完了，返回最终讲解
@@ -333,8 +338,20 @@ export async function runAgentLoop(
     // ⑤ 模型要了工具：执行它（出题），把结果喂回去，循环再问
     messages.push(choice.message); // 别丢掉模型这句「我要工具」
     for (const call of choice.message.tool_calls) {
-      const quiz = JSON.parse(call.function.arguments); // Schema 保证形状
-      // 这里就是你执行工具的地方：真实项目里把题存库、返回题 id
+      // ⑧ 工具参数解析也要兜底：模型偶尔产出不合 Schema 的参数，
+      //    一处 JSON.parse 抛异常会打断整个循环
+      let quiz: Record<string, unknown>;
+      try {
+        quiz = JSON.parse(call.function.arguments);
+      } catch {
+        messages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: JSON.stringify({ ok: false, error: "参数不是合法 JSON" }),
+        });
+        continue;
+      }
+      // 真实项目里在这里存库、返回题 id
       messages.push({
         role: "tool",
         tool_call_id: call.id,

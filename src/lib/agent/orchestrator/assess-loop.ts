@@ -50,6 +50,13 @@ export interface GradeableQuestion {
   text: string;
   correctAnswer: string;
   explanation: string;
+  /**
+   * 选择题的选项文本（裸文本，无字母前缀）。带上的目的：学生/界面
+   * 可能提交**裸选项文本**而不是字母或「B. 前缀」形态——题库存字母时
+   * 三种形态必须都能对账，否则**答对判 0**（2026-10-03 复刻模拟实测：
+   * 学生提交「缺少具体用户、核心场景和完成标准」= B 选项原文，判 0）。
+   */
+  options?: readonly string[];
 }
 
 /** 客观题类型：可规则判分。 */
@@ -124,8 +131,20 @@ export function gradeObjective(
   // 选择题：correct_answer 是单个选项字母时，比对界面送来的选项前缀字母。
   const isBareLetter = /^[a-d]$/.test(correct);
   const givenLetter = leadingOptionLetter(studentAnswer);
-  const letterMatch =
+  // 裸选项文本对账：学生/界面可能送裸选项文本（无「B. 」前缀）——
+  // 在 options 里找到与提交文本相同的选项，把它的位置换算成字母再比对。
+  let optionTextLetter: string | null = null;
+  if (isBareLetter && question.options && given.length > 0) {
+    const index = question.options.findIndex(
+      (option) => normalize(option) === given,
+    );
+    if (index >= 0) optionTextLetter = String.fromCharCode(97 + index);
+  }
+  const prefixLetterMatch =
     isBareLetter && givenLetter !== null && givenLetter === correct;
+  const textLetterMatch =
+    isBareLetter && optionTextLetter !== null && optionTextLetter === correct;
+  const letterMatch = prefixLetterMatch || textLetterMatch;
   const isCorrect =
     correct.length > 0 &&
     (correct === given ||

@@ -92,6 +92,8 @@ export async function POST(request: Request): Promise<Response> {
         text: question.question,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
+        // 选项文本：裸选项提交形态的判分对账需要，见 assess-loop.ts。
+        options: question.options ?? undefined,
       },
       studentAnswer: body.studentAnswer,
       moduleId: body.moduleId,
