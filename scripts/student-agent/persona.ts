@@ -78,6 +78,9 @@ function buildUserMessage(
     "## 输出要求",
     "",
     "严格按 System Prompt 里「输出格式」声明的 JSON 返回。只输出 JSON 本身。",
+    "submission 里要放代码时，把代码整体写成 JSON 字符串（换行写成 \\n、" +
+      "引号按 JSON 规则转义），**不要用 Markdown 围栏（```）包代码**，" +
+      "也不要在 JSON 前后附加任何解释。",
   ];
   if (previousAttempt) {
     parts.push(
