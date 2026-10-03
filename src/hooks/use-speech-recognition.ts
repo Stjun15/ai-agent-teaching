@@ -98,6 +98,9 @@ export function useSpeechRecognition(
   // 浏览器验收 A7 实测抓到）。初始 false 与服务端一致，挂载后再探测。
   const [isSupported, setIsSupported] = useState(false);
   useEffect(() => {
+    // 挂载后探测只发生一次，不构成 set-state-in-effect 要防的级联渲染；
+    // 渲染期读 window 的替代方案才是真 bug（见上）。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSupported(
       typeof window.SpeechRecognition !== "undefined" ||
         typeof window.webkitSpeechRecognition !== "undefined",
