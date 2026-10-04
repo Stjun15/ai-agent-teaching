@@ -114,7 +114,12 @@ function extractDefinition(body: string): string {
     }
     paragraph.push(trimmed);
   }
-  return paragraph.join("");
+  /**
+   * 摘要是给学生看的纯文本：strip 掉行内强调标记（`**`）与行内代码反引号
+   * —— 卡片/工作区直接渲染字符串，markdown 星号会原样裸给学生
+   * （2026-10-04 学生走查实测「从零搭出一个**能跑的**单机版…」）。
+   */
+  return paragraph.join("").replace(/\*\*/g, "").replace(/`/g, "");
 }
 
 /**
