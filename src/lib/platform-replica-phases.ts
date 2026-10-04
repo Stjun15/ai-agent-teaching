@@ -159,6 +159,6 @@ curl -X POST http://localhost:3000/api/validate \\
       { label: "页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置" },
     ],
     acceptanceDesc:
-      "在 localhost:3000 上全部跑通 → 达标。把两个关键文件（route.ts + agent-loop.ts）和清单自查贴给点评导师出检验单",
+      "在 localhost:3000 上全部跑通 → 达标。把 agent-loop.ts 全文贴进下方「交付与检验单」编辑器，点「提交点评」拿正式检验单（维度分、扣分点、建议，计入掌握度）；route.ts 用一句话说明改动点即可，清单自查在对话里与导师核对。",
   },
 ];

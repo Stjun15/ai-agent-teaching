@@ -90,7 +90,18 @@ function normalizeIssue(
   };
 }
 
-export function ValidateSubmit({ moduleId }: { moduleId: string }) {
+export function ValidateSubmit({
+  moduleId,
+  redirectOnComplete = true,
+}: {
+  moduleId: string;
+  /**
+   * 提交成功后是否跳转该模块的 validate 步。通用七步的 imitate/validate
+   * 卡里用默认跳转；platform-replica 结算阶段内嵌本组件时关掉 —— 复刻
+   * 没有 validate 步（跳过去是 404），检验单就地展示。
+   */
+  redirectOnComplete?: boolean;
+}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   // 兜底点评标记：store 的 ValidationResult 没有这个字段（那是库行的形状），
@@ -147,7 +158,9 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         suggestions: result.suggestions.map(normalizeSuggestion),
         createdAt: new Date().toISOString(),
       });
-      router.push(`/learn/${moduleId}/validate`);
+      if (redirectOnComplete) {
+        router.push(`/learn/${moduleId}/validate`);
+      }
     } catch (error) {
       const message =
         error instanceof ApiError ? error.message : "网络异常，请重试。";
@@ -155,7 +168,7 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [moduleId, submitting, router]);
+  }, [moduleId, submitting, router, redirectOnComplete]);
 
   return (
     <div className="flex flex-col gap-4">

@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { Composer } from "@/components/chat/composer";
+import { ValidateSubmit } from "@/components/code/validate-submit";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import { useReplicaPhase } from "@/hooks/use-replica-phase";
 
 import {
   REPLICA_PHASES,
@@ -32,7 +34,10 @@ export function PlatformReplicaWorkspace({
   teachingModule: TeachingModule;
   allModules: readonly TeachingModule[];
 }) {
-  const [activePhaseIndex, setActivePhaseIndex] = useState(0);
+  // 阶段位置持久化在 localStorage（use-replica-phase.ts 文件头写了为什么）：
+  // 180 分钟的项目模块必然跨刷新，此前一次整页刷新就把学生打回启动台。
+  const { phaseIndex: activePhaseIndex, setPhaseIndex: setActivePhaseIndex } =
+    useReplicaPhase(REPLICA_PHASES.length);
   const [chatOpen, setChatOpen] = useState(false);
 
   const prerequisiteNames = teachingModule.prerequisites.map(
@@ -81,6 +86,17 @@ export function PlatformReplicaWorkspace({
           {teachingModule.summary}
         </p>
       ) : null}
+
+      {/*
+        定位说明（2026-10-04 学生走查）：其余 11 讲都在本页内学，唯独这一讲
+        的「作业」是学生自己电脑上的一个真项目。零基础走查实测学生分不清
+        「命令敲在哪里」——一句话把边界钉在视线主轴上。
+      */}
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        这一讲在浏览器外完成：命令敲在<b>你自己电脑的终端</b>里，代码写在
+        <b>你自己的项目</b>
+        里。这个页面是你的任务卡、验收速查和导师——卡住了随时问。
+      </p>
 
       {/* ---------- 双栏：阶段导航 + 阶段详情 ---------- */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -150,13 +166,41 @@ export function PlatformReplicaWorkspace({
             <p className="text-sm text-muted-foreground">阶段数据缺失</p>
           )}
 
+          {/*
+            结算阶段的正式交付口（2026-10-04 学生走查补上）：wiki 让学生
+            「把 agent-loop.ts 交给点评导师出检验单」，此前界面没有任何点评
+            入口，对话里贴作业只会得到答疑口径的即兴点评（不落库、不更新
+            掌握度）。复用通用 validate 步的接线层（建会话 → /api/agent/
+            validate → 落库 validation_results/prompt_history），仅在结算
+            阶段出现、不跳转步骤页。
+          */}
+          {phase !== undefined && phase.index === REPLICA_PHASES.length - 1 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>交付与检验单</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  把 agent-loop.ts 全文贴进编辑器，点「提交点评」——点评导师按
+                  评分维度出正式检验单（维度分、扣分点、改进建议，并计入掌握度）。
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ValidateSubmit
+                  moduleId={teachingModule.id}
+                  redirectOnComplete={false}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+
           {/* 阶段切换按钮 */}
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
               disabled={activePhaseIndex === 0}
-              onClick={() => setActivePhaseIndex((i) => i - 1)}
+              onClick={() =>
+                setActivePhaseIndex(Math.max(0, activePhaseIndex - 1))
+              }
             >
               上一阶段
             </Button>
@@ -167,7 +211,11 @@ export function PlatformReplicaWorkspace({
               variant="outline"
               size="sm"
               disabled={activePhaseIndex === REPLICA_PHASES.length - 1}
-              onClick={() => setActivePhaseIndex((i) => i + 1)}
+              onClick={() =>
+                setActivePhaseIndex(
+                  Math.min(REPLICA_PHASES.length - 1, activePhaseIndex + 1),
+                )
+              }
             >
               下一阶段
               <ArrowRight className="ml-1.5 size-3.5" />
@@ -198,7 +246,15 @@ export function PlatformReplicaWorkspace({
             {chatOpen ? (
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} />
-                <Composer moduleId={teachingModule.id} />
+                {/*
+                  step 是 /api/chat 上身份层与概念页注入的总开关
+                  （resolveStepAgent + buildTeachingScript 都要求 step 存在）。
+                  此前没传 → 复刻导师跌回答疑口径、看不到复刻材料，答错过
+                  「启动台 Node ≥ 22.5」这种平台自己的硬要求（2026-10-04
+                  学生走查实测）。explain 的注入映射恰好命中「定义 + 关键
+                  步骤（启动台/三板斧/验收）+ 为什么需要」。
+                */}
+                <Composer moduleId={teachingModule.id} step="explain" />
               </CardContent>
             ) : null}
           </Card>
