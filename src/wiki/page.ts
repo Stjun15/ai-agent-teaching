@@ -143,10 +143,27 @@ export function writePageFile(
 
 const WIKI_LINK_PATTERN = /\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g;
 
-/** 取出正文中全部 `[[wiki-link]]` 的目标（去重，保留出现顺序）。 */
+/**
+ * 剥掉代码段：围栏代码块与行内代码里的 `[[...]]` 是语法示例或代码本体
+ * （如 Python 的 `Callable[[...], ...]` 类型标注），不是交叉引用。
+ *
+ * 为什么在抽取层而不是 maintain 层剥：`extractWikiLinks` 的两个消费方
+ * （maintain 的死链/孤立页扫描、query 的相关页图）对「什么是引用」的
+ * 语义完全一致 —— 代码里的不是引用。2026-10-05 实测：不剥会产生 5 条
+ * 永不消失的死链假阳性；差分探针确认全库仅 `concepts/llm-wiki.md` 有一条
+ * 代码注释里的活引用（已转为正文链接，图拓扑不变）。
+ */
+function stripCodeSegments(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/~~~[\s\S]*?~~~/g, " ")
+    .replace(/`[^`\n]*`/g, " ");
+}
+
+/** 取出正文中全部 `[[wiki-link]]` 的目标（去重，保留出现顺序；代码段不算）。 */
 export function extractWikiLinks(text: string): string[] {
   const links = new Set<string>();
-  for (const match of text.matchAll(WIKI_LINK_PATTERN)) {
+  for (const match of stripCodeSegments(text).matchAll(WIKI_LINK_PATTERN)) {
     links.add(match[1].trim());
   }
   return [...links];
