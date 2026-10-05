@@ -1,6 +1,6 @@
 ---
 type: index
-last_updated: 2026-09-17
+last_updated: 2026-10-05
 ---
 
 # LLM Wiki 索引
@@ -15,17 +15,20 @@ last_updated: 2026-09-17
 
 `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety`
 
-| 页面                                         | 名称               | 难度 | 状态 |
-| -------------------------------------------- | ------------------ | ---- | ---- |
-| [llm-api](./concepts/llm-api.md)             | LLM API 入门       | 1    | 已建 |
-| [system-prompt](./concepts/system-prompt.md) | System Prompt 设计 | 2    | 已建 |
-| [agent-loop](./concepts/agent-loop.md)       | Agent Loop         | 3    | 已建 |
-| [tool-calling](./concepts/tool-calling.md)   | 工具调用           | 3    | 已建 |
-| [rag](./concepts/rag.md)                     | RAG 检索增强生成   | 4    | 已建 |
-| [llm-wiki](./concepts/llm-wiki.md)           | LLM Wiki 知识编译  | 4    | 已建 |
-| [multi-agent](./concepts/multi-agent.md)     | 多 Agent 协作      | 5    | 已建 |
-| [mcp](./concepts/mcp.md)                     | MCP 工具集成       | 4    | 已建 |
-| [ai-safety](./concepts/ai-safety.md)         | AI 安全与可控性    | 4    | 已建 |
+| 页面                                               | 名称               | 难度 | 状态 |
+| -------------------------------------------------- | ------------------ | ---- | ---- |
+| [llm-api](./concepts/llm-api.md)                   | LLM API 入门       | 1    | 已建 |
+| [system-prompt](./concepts/system-prompt.md)       | System Prompt 设计 | 2    | 已建 |
+| [agent-loop](./concepts/agent-loop.md)             | Agent Loop         | 3    | 已建 |
+| [tool-calling](./concepts/tool-calling.md)         | 工具调用           | 3    | 已建 |
+| [rag](./concepts/rag.md)                           | RAG 检索增强生成   | 4    | 已建 |
+| [llm-wiki](./concepts/llm-wiki.md)                 | LLM Wiki 知识编译  | 4    | 已建 |
+| [multi-agent](./concepts/multi-agent.md)           | 多 Agent 协作      | 5    | 已建 |
+| [mcp](./concepts/mcp.md)                           | MCP 工具集成       | 4    | 已建 |
+| [ai-safety](./concepts/ai-safety.md)               | AI 安全与可控性    | 4    | 已建 |
+| [python-basics](./concepts/python-basics.md)       | Python 基础        | 1    | 已建 |
+| [ts-basics](./concepts/ts-basics.md)               | TypeScript 基础    | 1    | 已建 |
+| [platform-replica](./concepts/platform-replica.md) | 平台复刻           | 5    | 已建 |
 
 ## 设计模式（patterns/）
 
@@ -75,15 +78,15 @@ last_updated: 2026-09-17
 
 | 页面                                                       | 名称          | 状态 |
 | ---------------------------------------------------------- | ------------- | ---- |
-| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 待建 |
-| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 待建 |
-| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 待建 |
-| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 待建 |
-| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 待建 |
-| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 待建 |
-| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 待建 |
-| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 待建 |
-| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 待建 |
+| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 已建 |
+| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 已建 |
+| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 已建 |
+| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 已建 |
+| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 已建 |
+| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 已建 |
+| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 已建 |
+| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 已建 |
+| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 已建 |
 
 ## 测验（assessments/）
 
