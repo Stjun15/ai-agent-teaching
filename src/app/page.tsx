@@ -366,21 +366,26 @@ export default async function HomePage() {
                       `第 ${teachingModule.order + 1} 讲`}
                   </span>
                   <span className="font-medium">{teachingModule.name}</span>
-                  {/* 难度刻度：5 格点亮 difficulty 格，一眼看出这门课多重 */}
+                  {/* 难度刻度：5 格点亮 difficulty 格 + 数字标注 */}
                   <span
                     aria-label={`难度 ${teachingModule.difficulty} / 5`}
-                    className="hidden items-center gap-0.5 sm:flex"
+                    className="hidden items-center gap-1 sm:flex"
                   >
-                    {Array.from({ length: 5 }).map((_, dot) => (
-                      <span
-                        key={dot}
-                        className={
-                          dot < teachingModule.difficulty
-                            ? "size-1.5 rounded-full bg-primary"
-                            : "size-1.5 rounded-full bg-border"
-                        }
-                      />
-                    ))}
+                    <span className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, dot) => (
+                        <span
+                          key={dot}
+                          className={
+                            dot < teachingModule.difficulty
+                              ? "size-1.5 rounded-full bg-primary"
+                              : "size-1.5 rounded-full bg-border"
+                          }
+                        />
+                      ))}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {teachingModule.difficulty}/5
+                    </span>
                   </span>
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                     {teachingModule.estimatedTime}
