@@ -15,6 +15,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { moduleRubricSupplement } from "../src/lib/agent/skills/module-rubric";
+
 const read = (path: string): string =>
   readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -128,4 +130,64 @@ test("点评路径必须更新掌握度（设计数据职责的第三张表）",
       `${route} 的量纲换算必须走 scores.ts 共享口径，不得手写 / 20`,
     );
   }
+});
+
+test("复刻检验单必须按验收清单评分（rubric 模块定制）", () => {
+  // HANDOFF 待办 2（2026-10-05）：复刻的点评对象是最终交付，检验单此前
+  // 按通用四维（参数/返回值/边界/可读性）打分，评不出「这台车能不能跑」。
+  // 定制分两层钉住：
+  //   ① skills 层有复刻追加段（怎么按清单评 + 无证据不编分的诚实条款）；
+  //   ② 题面（七条清单）由路由从 wiki 现读经 question_text 下发 —— 清单
+  //      唯一事实源是概念页，追加段与路由都不得抄一份清单正文。
+  const supplement = moduleRubricSupplement("platform-replica");
+  assert.ok(supplement, "复刻模块必须返回 rubric 追加段");
+  assert.match(supplement, /验收清单/, "追加段必须以验收清单为评分依据");
+  assert.match(
+    supplement,
+    /不得给分、不得扣分/,
+    "无证据条目不得编分的诚实条款必须在场",
+  );
+  assert.doesNotMatch(
+    supplement,
+    /- \[ \]/,
+    "追加段不得复制清单正文 —— wiki 是唯一事实源，抄一份必然漂移",
+  );
+  assert.equal(
+    moduleRubricSupplement("llm-api"),
+    undefined,
+    "非复刻模块不得被追加 —— 通用四维是九讲的正确口径",
+  );
+
+  // 拼接链路：validation-loop 取追加段，runtime 拼到 Skill 内容尾部
+  //（skill id 与 allowedSkills 白名单不变 —— 铁律 3 的收敛不能绕）。
+  const loop = read("../src/lib/agent/orchestrator/validation-loop.ts");
+  assert.match(
+    loop,
+    /moduleRubricSupplement\(/,
+    "validation-loop 必须按模块取追加段",
+  );
+  const runtime = read("../src/lib/agent/runtime.ts");
+  assert.match(
+    runtime,
+    /skillSupplement/,
+    "runtime 必须有 skillSupplement 拼接通道",
+  );
+
+  // 题面：复刻点评必须带 wiki 现读的验收清单；其他模块不带。
+  const route = read("../src/app/api/agent/validate/route.ts");
+  assert.match(
+    route,
+    /REPLICA_ACCEPTANCE_MODULE/,
+    "路由必须按模块键控题面（只有复刻带验收清单）",
+  );
+  assert.match(
+    route,
+    /readPracticeTask\(/,
+    "题面必须从概念页「动手任务」节现读，不得内联一份清单常量",
+  );
+
+  // 事实源健康：清单真在概念页里（页面被改名/删节时这里先红）。
+  const wiki = read("../llm-wiki/concepts/platform-replica.md");
+  assert.match(wiki, /## 动手任务：最终验收/);
+  assert.match(wiki, /- \[ \] 能跟 AI 实时对话/);
 });

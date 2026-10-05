@@ -101,6 +101,12 @@ export interface RunAgentOptions<Id extends AgentId> {
   agent: Id;
   /** 省略时用该 Agent 的 `defaultSkill`。 */
   skill?: SkillId;
+  /**
+   * 追加在 Skill 内容尾部的模块定制段（如复刻模块的验收清单评分指令，
+   * 见 `./skills/module-rubric.ts`）。省略时 prompt 与不传逐字符一致；
+   * skill id 不变，`allowedSkills` 白名单照常生效。
+   */
+  skillSupplement?: string;
   /** 本次输入，会被序列化成 JSON 放进用户消息。 */
   input: unknown;
   /** 校验失败后的重试次数，默认 `DEFAULT_MAX_RETRIES`。 */
@@ -272,6 +278,7 @@ async function executeAgent<Id extends AgentId>(
   const {
     agent: agentId,
     skill: skillId,
+    skillSupplement,
     input,
     maxRetries = DEFAULT_MAX_RETRIES,
     fallback,
@@ -288,7 +295,11 @@ async function executeAgent<Id extends AgentId>(
         `可用：${agent.allowedSkills.join("、")}。`,
     );
   }
-  const skill = getSkill(skillIdToUse);
+  const baseSkill = getSkill(skillIdToUse);
+  const skill =
+    skillSupplement === undefined
+      ? baseSkill
+      : { ...baseSkill, content: `${baseSkill.content}\n\n${skillSupplement}` };
 
   // 泛型 `Id` 尚未实例化时，TS 把 `AgentOutputMap[Id]` 解析成各分支的**交集**
   // （TeacherOutput & ReviewerOutput & …），而它们的 `type` 字段互斥 → 交集退化成

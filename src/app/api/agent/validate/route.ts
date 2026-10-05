@@ -47,6 +47,8 @@ import { analyzePath, writeAdjustments } from "@/lib/agent/path-adjuster";
 import { findModule } from "@/lib/modules";
 import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
+import { REPLICA_ACCEPTANCE_MODULE } from "@/lib/agent/skills/module-rubric";
+import { readPracticeTask } from "@/lib/teaching-script";
 import { ValidateSchema, type ValidateInput } from "@/schemas";
 
 export const runtime = "nodejs";
@@ -91,11 +93,21 @@ export async function POST(request: Request): Promise<Response> {
       return jsonError("NOT_FOUND", `模块 ${body.moduleId} 不存在。`);
     }
 
+    // 复刻模块的最终交付：题面 = 概念页「动手任务：最终验收」的七条清单
+    // （wiki 唯一事实源，现读）。点评 Agent 收到题面后按清单组织检验单；
+    // 读不到（页面缺失）就传 undefined，rubric 追加段里的诚实条款会让它
+    // 按通用维度评并注明「未取得验收清单」，不装作评过清单。
+    const questionText =
+      body.moduleId === REPLICA_ACCEPTANCE_MODULE
+        ? readPracticeTask(body.moduleId) || undefined
+        : undefined;
+
     const result = await runValidationLoop({
       taskType: body.taskType,
       studentAnswer: body.content,
       moduleId: body.moduleId,
       conceptId: body.moduleId,
+      ...(questionText === undefined ? {} : { questionText }),
       attemptNumber: 1,
       trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });

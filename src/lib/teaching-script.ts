@@ -14,7 +14,8 @@
  * ---------------------------------------------------
  * 只有这三个步骤走聊天管道。`validate` / `practice` / `mastery` 走结构化端点
  *（`/api/agent/validate` / `/api/agent/generate-question`），
- * `visualize` 走前端组件订阅 —— 这些不经过本文件。
+ * `visualize` 走前端组件订阅 —— 这些不经过 `buildTeachingScript`；
+ * 但 validate 路由会用 `readPracticeTask` 从这里取「动手任务」节作点评题面。
  */
 
 import { readPageSync } from "@/wiki";
@@ -154,6 +155,32 @@ export function readDemoCode(moduleId: string): string {
     const sections = parseSections(page.body);
     const demo = sections.find((s) => s.heading === "示范代码");
     return demo?.content.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 读取概念页「动手任务」小节全文（含验收清单），作为点评的题面。
+ *
+ * 为什么单独成函数而不是复用 buildTeachingScript
+ * --------------------------------------------
+ * 教学脚本按步骤裁段，而点评题面永远是完整的小节（动手任务的验收清单、
+ * 交付要求一个都不能少——少一条，点评 Agent 就少评一条）。取节口径用
+ * `sectionMatches` 的语义类别而非精确标题，与 STEP_SECTION_MAP 同源：
+ * 概念页用「实践任务」作标题的页也能命中。
+ *
+ * 返回空串 = 页面不存在或没有动手任务节。调用方（`/api/agent/validate`）
+ * 据此降级为不带题面的通用 rubric 点评 —— 点评 Agent 的追加段里有对应的
+ * 诚实条款（注明「未取得验收清单」），不会装作评过。
+ */
+export function readPracticeTask(moduleId: string): string {
+  try {
+    const page = readPageSync(`concepts/${moduleId}.md`);
+    const sections = parseSections(page.body);
+    const task = sections.find((s) => sectionMatches(s.heading, "practice"));
+    if (!task) return "";
+    return `## ${task.heading}\n\n${task.content}`.trim();
   } catch {
     return "";
   }

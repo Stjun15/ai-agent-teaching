@@ -27,6 +27,7 @@
 
 import { lowerDifficultyInstruction, reviewerFallback } from "../fallback";
 import { runAgent } from "../runtime";
+import { moduleRubricSupplement } from "../skills/module-rubric";
 import type { ReviewerOutput } from "../outputs";
 import type { SkillId } from "../types";
 import type { ArkEnv } from "../ark";
@@ -120,10 +121,16 @@ export async function runValidationLoop(
   } = input;
 
   const lower = lowerDifficultyInstruction(attemptNumber);
+  // 模块定制的评分指令（目前只有复刻模块的「按验收清单评」），其他模块
+  // 返回 undefined —— 不传，prompt 与无定制时逐字符一致。
+  const rubricSupplement = moduleRubricSupplement(moduleId);
 
   const result = await runAgent({
     agent: "reviewer",
     skill: VALIDATION_SKILLS[taskType],
+    ...(rubricSupplement === undefined
+      ? {}
+      : { skillSupplement: rubricSupplement }),
     input: {
       task_type: taskType,
       student_answer: studentAnswer,

@@ -294,6 +294,13 @@ markdown
 - 无严重错误
 ## 通过后
 返回 `{ "is_correct": true, "next_action": "visualize" }`，触发可视化场景。
+（模块定制，2026-10-05 实测修正，适用于 validate-prompt / validate-tool / validate-code 三个校验 Skill）
+platform-replica 模块的点评对象是最终交付，评价标准 = 概念页「动手任务：最终验收」的
+七条验收清单，不是通用四维。实现为**追加段**而非新 Skill（skill id 与 allowedSkills
+白名单不变）：题面（七条清单）由 `/api/agent/validate` 路由从概念页「动手任务」节现读、
+经 question_text 下发（wiki 是清单唯一事实源，本文件不复制清单正文）；「怎么按清单评」
+的评分指令在 `src/lib/agent/skills/module-rubric.ts`，由 validation-loop 拼到 Skill
+内容尾部。诚实条款：提交文本里找不到证据的清单条目不得给分、不得扣分、不设维度。
 5. generate-question.md
 markdown
 # Skill: 生成题目
