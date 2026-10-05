@@ -65,3 +65,4 @@ await wiki.maintain();
 
 - [[rag]]
 - [[multi-agent]]
+- [[agent-loop]]

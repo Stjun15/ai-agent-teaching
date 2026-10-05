@@ -98,3 +98,4 @@ async function safeAgentRun(userInput: string) {
 
 - [[mcp]]
 - [[rag]]
+- [[platform-replica]]（安全这一讲收尾后，下一步就是用它验收整个平台：教学平台复刻）
