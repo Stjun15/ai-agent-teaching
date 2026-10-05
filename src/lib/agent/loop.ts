@@ -463,6 +463,29 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
       await handle.prompt(userMessage);
 
       const { text: answer, toolCalls, tokens } = translator.summary();
+
+      // 守卫：session.prompt() 正常完成但模型零产出（空文本 + 零工具调用）。
+      // 模型有时陷入无限思考后静默结束（实测 69 条 thinking → 无任何输出），
+      // 此时发 done 会让前端留一条空泡，学生什么也看不到。改成明确报错告知
+      // 「模型未产出内容，请重试」，状态标可恢复。
+      if (answer.trim() === "" && toolCalls === 0) {
+        stream.send({
+          type: "error",
+          data: {
+            code: "LLM_ERROR",
+            message: "模型未产出内容，请重试。",
+            recoverable: true,
+          },
+        });
+        return {
+          ok: false,
+          text: "",
+          toolCalls: 0,
+          tokens,
+          error: "模型未产出内容",
+        };
+      }
+
       stream.send({
         type: "done",
         data: { messageId: translator.currentMessageId(), tokens },
