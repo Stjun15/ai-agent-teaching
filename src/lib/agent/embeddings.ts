@@ -1,14 +1,15 @@
 /**
  * 文本向量（embedding）客户端
  *
- * 为什么走 DashScope 而不是方舟
- * ---------------------------
- * 方舟账号当前未开通任何 embedding 端点（2026-09-30 逐个 curl 验证六个候选
- * 名称均 NotFound，事故纪律：先验证再写代码）。DashScope 的
- * `text-embedding-v4` 端点 curl 实测 200（1024 维），且仓库已有该 provider
- * 的配置模式（`dashscope-config.ts`），密钥同源（`DASHSCOPE_API_KEY`）。
- * 作者在方舟控制台开通 embedding 模型后，改本文件的 baseUrl/model 两行即可
- * 切回 —— 调用方只依赖 `embedTexts`，不感知平台。
+ * 为什么走百炼（DashScope）而不是方舟
+ * --------------------------------
+ * 2026-10-05 实测裁定：方舟侧 4 个文本 embedding 型号全部 Retiring 且调用
+ * NotFound（不接受新开通），唯一可访问的 `doubao-embedding-vision-251215`
+ * 走多模态端点、无批量、且服务端 InternalServiceError 高频（13 发 9 挂），
+ * 不适合做索引底座。百炼的 `text-embedding-v4` 则因免费额度耗尽
+ * （AllocationQuota.FreeTierOnly）不可用——换 **`qwen3.7-text-embedding`**
+ * （同端点同形状，1024 维，额度独立）。curl 实测三连：中文 9 字 = 21 tokens。
+ * 端点与调用方完全没动，只换模型名 —— `embedTexts` 的调用方不感知平台。
  *
  * 请求形态：OpenAI 兼容 `/embeddings`，`input` 为字符串数组，批量发送
  * （每批 10 条，DashScope 的单请求上限内）。密钥只读不存、任何日志不回显。
@@ -19,7 +20,7 @@ import {
   readDashScopeSettings,
 } from "./dashscope-config";
 
-export const DEFAULT_EMBEDDING_MODEL = "text-embedding-v4";
+export const DEFAULT_EMBEDDING_MODEL = "qwen3.7-text-embedding";
 
 /** 单请求最大条数。DashScope embedding 接口的批量上限内，留了余量。 */
 const BATCH_SIZE = 10;
