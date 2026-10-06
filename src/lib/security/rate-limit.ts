@@ -47,6 +47,7 @@ export const RATE_LIMIT_RULES = {
   validate: { limit: 20, windowMs: 60_000 },
   answer: { limit: 20, windowMs: 60_000 },
   "answer-grade": { limit: 40, windowMs: 60_000 },
+  audit: { limit: 10, windowMs: 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof RATE_LIMIT_RULES;
