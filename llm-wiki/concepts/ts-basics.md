@@ -13,25 +13,70 @@ tags: [language, typescript, beginner, reading]
 
 ---
 
-## 为什么需要这一站
+## 定义：TypeScript 是什么
 
-你正在用的这个网页，每一个按钮、每一次打字效果，背后都是 TypeScript。后面所有模块的前端代码都是这个味道。这一讲不是要你学会它——**认识最基本的几个词、能看懂一段代码在干嘛，就够了。** 看完开场白就可以进 LLM API，后面遇到看不懂的，随时回来看偷懒版的三招。
+你跟一个人说话，用中文。你跟一台电脑说话，用什么？
+
+用**编程语言**。TypeScript 就是其中一种。
+
+想象你在遥控一台只会听口令的机器人：
+
+```
+你说中文 → 机器人听不懂
+你说 TypeScript → 机器人照做
+```
+
+TypeScript 做的事就是把你的想法翻译成电脑能执行的指令。你说"把这行字显示在屏幕上"，它帮你传过去。你说"点这个按钮就跳转到那一页"，它帮你搭桥。
+
+**那"Type"又是什么意思？**
+
+Type = 类型。你在超市货架上看到标签——"牛奶"、"面包"、"洗发水"——你不会把洗发水当牛奶喝，因为有标签告诉你它是什么。
+
+TypeScript 给你的每一个数据也贴上了标签：
+
+```typescript
+const name = "小明"; // 标签：字符串（文字）
+let score = 95; // 标签：数字
+const passed = true; // 标签：布尔（是 / 否）
+```
+
+Python 没有这些标签——你拿到一瓶东西，得打开闻一下才知道是什么。TypeScript 不一样：标签在瓶子上，还没打开就知道。
+
+**所以 TypeScript = "带标签的 JavaScript"。** 后面所有模块的前端代码都是这个味道。这一讲不是要你学会它——认识最基本的几个词、能看懂一段代码在干嘛，就够了。
 
 ---
 
-## 定义：编程这件事
+## 为什么用 TypeScript 做 Agent
 
-TypeScript 是 JavaScript 的"加护栏版"——比 Python 多打几个字，换来的是：一眼就知道每个变量是什么类型。
+说到「写 Agent」，很多人第一反应是 Python。Python 确实简单，但 Agent 开发有一个 Python 天然解决不了的问题：
+
+**AI 的输出是人话，不是代码。**
+
+你让 AI 返回 `{ "score": 95, "passed": true }`，它可能返回 `{ "score": "九十五", "pass": "yes" }`。字段名变了、值的类型变了——而 Python 只有在你跑到那行代码时才会炸。
+
+TypeScript 不一样：**你还没跑，编辑器就标红了。**
 
 ```typescript
-const name = "小明";
-let score = 95;
-if (score >= 90) {
-  console.log(`${name}，优秀！`);
+// 你期望 AI 返回这个格式
+interface GradingResult {
+  score: number; // 必须是数字
+  passed: boolean; // 必须是 true/false
 }
+
+// 如果 AI 返回了错误的格式——
+// TypeScript 在你运行之前就会告诉你："这不对"
 ```
 
-↑ 和 Python 长得不一样，但做的事一样：存数据、做判断、输出结果。
+Agent 开发的本质是**和不确定性打交道**。AI 会犯错、会漏字段、会换说法。你能做的就是在"人写的代码"这一侧尽可能设护栏。TypeScript 的类型系统就是最好的护栏——它不保证 AI 不出错，但保证 AI 出的错不会悄悄漏过去。
+
+> **Python 让你写得快。TypeScript 让你写得稳。**
+> Agent 开发不需要快——需要稳。因为一个漏过去的格式错误，会像多米诺骨牌一样炸掉后面所有步骤。
+
+---
+
+## 为什么需要这一站
+
+你正在用的这个网页，每一个按钮、每一次打字效果，背后都是 TypeScript。看完开场白就可以进 LLM API，后面遇到看不懂的，随时回来看偷懒版的三招。
 
 ---
 
@@ -107,47 +152,38 @@ return (
 
 ### 招三：读一段真的代码
 
-下面是你打开这个平台时，浏览器真实在跑的代码。用招一和招二的方法逐行看：
+下面这段代码做的事很简单：给你三个温度，判断哪个超过 35 度算"高温"。用招一和招二的方法逐行看：
 
 ```typescript
-"use client";          // 这行组件在浏览器里跑
+// 三个温度值，每个后面都有类型标签 number
+const temp1: number = 36;
+const temp2: number = 28;
+const temp3: number = 42;
 
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-
-function ModuleCard({ id, name, difficulty }: {
-  id: string;
-  name: string;
-  difficulty: number;
-}) {
-  const router = useRouter();
-
-  return (
-    <div
-      className="rounded-lg border p-4 hover:bg-accent cursor-pointer"
-      onClick={() => router.push(`/learn/${id}`)}
-    >
-      <h3 className="font-semibold">{name}</h3>
-      <p className="text-sm text-muted-foreground">
-        难度：{"⭐".repeat(difficulty)}
-      </p>
-    </div>
-  );
+// 判断函数：超过 35 就算高温
+function isHot(temp: number): boolean {
+  if (temp > 35) {
+    return true; // 比 35 大 → 是高温
+  }
+  return false; // 不超过 35 → 不是高温
 }
 
-export default ModuleCard;
+// 逐个检查
+isHot(temp1); // true  —— 36 > 35，高温
+isHot(temp2); // false —— 28 ≤ 35，不是
+isHot(temp3); // true  —— 42 > 35，高温
 ```
 
 ```
 不要求你解释每一行。只要你能说出：
 
-✅ "use client" 是什么
-✅ import 了哪几个东西
-✅ function 定义了什么组件
-✅ return 里写了什么 HTML
-✅ onClick 点击后会发生什么
+✅ const temp1: number 里的 number 是什么意思
+✅ function isHot 做了什么
+✅ return temp > 35 在判断什么
+✅ isHot(temp2) 为什么返回 false
+✅ 这段代码总共做了几件事
 
-如果能说出这五条 → 你已经有能力看懂这个平台的大多数页面代码了。
+如果能说出这五条 → 你已经有能力看懂纯 TypeScript 代码了。
 ```
 
 ---
@@ -468,7 +504,7 @@ async function* streamChat(prompt: string): AsyncGenerator<string> {
 }
 
 // 使用：
-// for await (const token of streamChat("什么是 Agent？")) {
+// for await (const token of streamChat("你好")) {
 //   appendToChat(token);  // 每收到一个字就追加到界面
 // }
 ```
@@ -483,169 +519,67 @@ async function* streamChat(prompt: string): AsyncGenerator<string> {
 
 ## 示范代码
 
-下面是你打开这个平台时浏览器真实在跑的代码 —— 一个模块卡片组件。用招一和招二的方法逐行看。
+下面这段代码只用了本讲教过的三个东西：类型标签、函数、条件判断。从上往下逐段读，每段只做一件事。
 
-> 👉 **先读这段：** 下面代码里有一半是 React/Next.js 框架的写法——`"use client"`、`useRouter()`、`className`。**你不需要现在理解它们**，它们的角色类似于你去饭馆时桌子上的"调料瓶"——不是主菜，但整桌饭离不了它们。这一讲你只需要看懂 TS 语法：`import` 借了什么、`function` 定义了什么、`{ }` 里是什么。
+> 👉 **读法：** 不用一次看懂全部。看到 `// ①` 就只看①，看到 `// ②` 就只看②。每段都是独立的小例子。
 
 ```typescript
-// ① "use client" 声明：这个组件只在浏览器里跑，不在服务器上渲染
-"use client";
+// ① 类型标签：冒号后面告诉电脑「这个盒子只能装什么」
+const name: string = "小明"; // string  → 只能装文字
+let score: number = 85; // number  → 只能装数字
+const passed: boolean = true; // boolean → 只能装 true（是）或 false（否）
 
-// ② 导入 UI 原子组件和路由工具 —— 从已经写好的零件库里拿
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-
-// ③ 定义组件，Props 用内联类型声明：id、name、difficulty 三个字段
-function ModuleCard({ id, name, difficulty }: {
-  id: string;                  // 模块的唯一标识，路由跳转时用
-  name: string;                // 模块标题
-  difficulty: number;          // 难度等级 1–5
-}) {
-  // ④ useRouter 是 Next.js 的导航 hook，拿来做页面跳转
-  const router = useRouter();
-
-  // ⑤ 返回 JSX：一个可以点击的卡片
-  return (
-    <div
-      className="rounded-lg border p-4 hover:bg-accent cursor-pointer"
-      onClick={() => router.push(`/learn/${id}`)}   // 点击跳转到学习页面
-    >
-      <h3 className="font-semibold">{name}</h3>
-      <p className="text-sm text-muted-foreground">
-        难度：{"⭐".repeat(difficulty)}               {/* 用星星数量表示难度 */}
-      </p>
-    </div>
-  );
+// ② 函数：输入 → 判断 → 输出
+//    格式：function 函数名(输入: 类型): 输出类型 { return 答案; }
+function isPass(score: number): boolean {
+  if (score >= 60) {
+    return true; // 达到 60 分 → 通过
+  }
+  return false; // 没达到 → 不通过
 }
 
-// ⑥ 导出组件，让其他文件可以 import 使用
-export default ModuleCard;
+// ③ 调用函数：把值塞进括号，看结果
+isPass(85); // true  —— 85 ≥ 60，及格
+isPass(58); // false —— 58 < 60，不及格
+isPass(92); // true  —— 92 ≥ 60，及格
 ```
 
 ## 实践任务
 
-读下面这段代码。这是这个平台真实的 Agent 运行时核心——包含重试、错误恢复、JSON 解析、Zod 校验。
+读下面这段代码。它在平台里真实存在——你打开任何页面时，背后都是这个逻辑在从服务器加载数据。
 
 ```typescript
-import { AGENT_OUTPUT_SCHEMAS } from "@/lib/agent/schemas";
-import type { AgentOutputMap, RunAgentOptions } from "@/lib/agent/types";
-import { collectCompletion } from "@/lib/agent/llm";
-import { composeAgentPrompt } from "@/lib/agent/prompts";
-import { extractJson } from "@/lib/agent/json";
+// 缓存结构：存下数据 + 记录加载时间
+interface CachedResult<T> {
+  data: T; // 加载到的数据
+  loadedAt: number; // 加载时间戳（毫秒）
+}
 
-type AgentLoopResult<T> = {
-  ok: boolean;
-  data?: T;
-  rawText: string;
-  attempts: number;
-  usedFallback: boolean;
-  tokens: { input: number; output: number };
-  durationMs: number;
-  error?: string;
-};
+// 缓存仓库：按 key 存储，Map 是 JS 内置的字典
+const cache = new Map<string, CachedResult<unknown>>();
+const ONE_MINUTE = 60_000; // 1 分钟 = 60000 毫秒
 
-async function executeAgent<Id extends keyof AgentOutputMap>(
-  options: RunAgentOptions<Id> & { maxRetries?: number },
-): Promise<AgentLoopResult<AgentOutputMap[Id]>> {
-  const {
-    agent,
-    skill,
-    input,
-    maxRetries = 1,
-    signal,
-    env,
-    fallback,
-  } = options;
-  const schema = AGENT_OUTPUT_SCHEMAS[agent];
-
-  const startedAt = Date.now();
-  let attempts = 0;
-  let rawText = "";
-  let tokens = { input: 0, output: 0 };
-  let lastError = "";
-
-  for (let i = 0; i <= maxRetries; i++) {
-    attempts += 1;
-
-    const { systemPrompt, userMessage } = composeAgentPrompt({
-      systemPrompt: agent.systemPrompt,
-      skillContent: skill.content,
-      input,
-      ...(lastError
-        ? { previousError: lastError, previousRawText: rawText }
-        : {}),
-    });
-
-    const turn = await collectCompletion({
-      systemPrompt,
-      userMessage,
-      env,
-      signal,
-    });
-
-    rawText = turn.text;
-    tokens = {
-      input: tokens.input + turn.tokens.input,
-      output: tokens.output + turn.tokens.output,
-    };
-
-    const json = extractJson(turn.text);
-    if (json === null) {
-      lastError = "输出里找不到 JSON 对象。";
-      continue;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(json);
-    } catch (error) {
-      lastError = `JSON 解析失败：${error instanceof Error ? error.message : String(error)}`;
-      continue;
-    }
-
-    const result = schema.safeParse(parsed);
-    if (result.success) {
-      return {
-        ok: true,
-        data: result.data,
-        rawText,
-        attempts,
-        usedFallback: false,
-        tokens,
-        durationMs: Date.now() - startedAt,
-      };
-    }
-
-    lastError = `Zod 校验失败：${result.error.issues
-      .slice(0, 5)
-      .map((issue) => `${issue.path.join(".") || "(根)"} ${issue.message}`)
-      .join("；")}`;
+// <T> 是泛型：「不管你要什么类型的数据，我都能处理」
+async function loadWithCache<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  // ① 先看缓存里有没有——有的话直接返回，省一次网络请求
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.loadedAt < ONE_MINUTE) {
+    return cached.data as T;
   }
 
-  const durationMs = Date.now() - startedAt;
-
-  if (fallback) {
-    return {
-      ok: true,
-      data: fallback(),
-      rawText,
-      attempts,
-      usedFallback: true,
-      tokens,
-      durationMs,
-      error: lastError,
-    };
+  // ② 没有缓存（或已过期），重新加载
+  try {
+    const data = await fetcher();
+    cache.set(key, { data, loadedAt: Date.now() });
+    return data;
+  } catch (error) {
+    // ③ 加载失败，给一个统一的错误提示
+    console.error(`加载失败：${key}`, error);
+    throw new Error(`无法加载 ${key}，请检查网络后重试`);
   }
-
-  return {
-    ok: false,
-    rawText,
-    attempts,
-    usedFallback: false,
-    tokens,
-    durationMs,
-    error: lastError,
-  };
 }
 ```
 
@@ -653,15 +587,15 @@ async function executeAgent<Id extends keyof AgentOutputMap>(
 
 不要求你写代码。只标注以下要点：
 
-| 检查项                                 | 回答 |
-| -------------------------------------- | ---- |
-| `import` 从哪里借了东西？              |      |
-| `async function` 定义了什么？          |      |
-| `for` 循环在做什么？（重试几次？）     |      |
-| `try / catch` 在做什么？               |      |
-| `if (result.success)` 之后发生了什么？ |      |
-| `fallback` 是什么？（兜底函数）        |      |
-| 这段代码大致在做什么？（一句话）       |      |
+| 检查项                                      | 回答 |
+| ------------------------------------------- | ---- |
+| `interface CachedResult` 定义了哪两个字段？ |      |
+| `<T>` 在这个函数里是什么作用？              |      |
+| `Map<string, CachedResult>` 里存了什么？    |      |
+| `async function` 表示这个函数会做什么？     |      |
+| `try / catch` 什么时候会走到 `catch`？      |      |
+| `const cached = cache.get(key)` 在做什么？  |      |
+| 这段代码大致在做什么？（一句话）            |      |
 
 ---
 
@@ -747,16 +681,16 @@ async function executeAgent<Id extends keyof AgentOutputMap>(
 
 <br>
 
-| 检查项                                 | 自己回答 |
-| -------------------------------------- | -------- |
-| `let` 和 `const` 有什么区别？          |          |
-| `function` 在做什么？                  |          |
-| `interface` 在做什么？                 |          |
-| `async / await` 在处理什么场景？       |          |
-| `try / catch` 在做什么？               |          |
-| 花括号 `{ }` 在 JSX 里有什么含义？     |          |
-| `useState` 在做什么？                  |          |
-| 能看懂上面那段 Agent 执行器的 50% 吗？ |          |
+| 检查项                                     | 自己回答 |
+| ------------------------------------------ | -------- |
+| `let` 和 `const` 有什么区别？              |          |
+| `function` 在做什么？                      |          |
+| `interface` 在做什么？                     |          |
+| `async / await` 在处理什么场景？           |          |
+| `try / catch` 在做什么？                   |          |
+| 花括号 `{ }` 在 JSX 里有什么含义？         |          |
+| `useState` 在做什么？                      |          |
+| 能看懂上面那段 `loadWithCache` 的 80% 吗？ |          |
 
 ---
 
