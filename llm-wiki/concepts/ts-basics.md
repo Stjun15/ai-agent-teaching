@@ -485,6 +485,8 @@ async function* streamChat(prompt: string): AsyncGenerator<string> {
 
 下面是你打开这个平台时浏览器真实在跑的代码 —— 一个模块卡片组件。用招一和招二的方法逐行看。
 
+> 👉 **先读这段：** 下面代码里有一半是 React/Next.js 框架的写法——`"use client"`、`useRouter()`、`className`。**你不需要现在理解它们**，它们的角色类似于你去饭馆时桌子上的"调料瓶"——不是主菜，但整桌饭离不了它们。这一讲你只需要看懂 TS 语法：`import` 借了什么、`function` 定义了什么、`{ }` 里是什么。
+
 ```typescript
 // ① "use client" 声明：这个组件只在浏览器里跑，不在服务器上渲染
 "use client";

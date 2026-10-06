@@ -39,6 +39,8 @@ tags: [core, multi-agent, orchestration]
 
 流水线模式：需求 → 写代码 → 评审。三个 Agent 各司其职，协作完成。
 
+> 👉 `createAgent()` 是一个封装函数——**把它想象成"招聘"**：你告诉它这个 Agent 的身份（systemPrompt），它就给你一个"员工"。你叫 `agent.run()`，这个员工就开始干活。内部就是你在「Agent 循环」那讲见过的 Think→Act→Observe 循环，只是现在你一次招了三个员工。
+
 ```typescript
 // ① 需求分析师：把用户的模糊想法拆成可执行的功能点
 const requirementAgent = createAgent({
@@ -80,6 +82,14 @@ const result = await buildProject(
   "做一个天气查询网页，输入城市名显示温度和天气图标",
 );
 ```
+
+## 自己动手：你来说
+
+> 用"流水线工厂"的例子，解释多 Agent 协作的三种角色各做什么。
+>
+> 然后：**设计一个"写周报"的多 Agent 协作流程。** 需要哪几个 Agent？各自职责是什么？它们之间的输入输出怎么衔接？像示范代码那样画出流程。
+
+---
 
 ## 相关概念
 

@@ -39,6 +39,8 @@ MCP（Model Context Protocol）是连接 AI 和外部工具的开放协议。
 
 接入 MCP Server → 看有哪些工具 → 调用工具 → 拿到结果。一次配置，到处可用。
 
+> 👉 `connectMCP()` 在背后做的事：打开一个到工具服务器的连接（类似打开浏览器访问一个网站），握手确认双方用同一种协议，然后维持这条通道。**你不需要知道里面是 WebSocket 还是 HTTP——你只需要知道连上之后，Agent 就能"看到"远程的工具列表。**
+
 ```typescript
 // ① 连接到 MCP Server：建立与工具服务器的通道
 const mcpClient = await connectMCP({
@@ -66,6 +68,14 @@ const result = await mcpClient.callTool("webSearch", {
 console.log(result);
 // → { results: ["新闻1: ...", "新闻2: ..."], total: 42 }
 ```
+
+## 自己动手：你来说
+
+> 用"插座和插头"的例子，解释 MCP 协议为什么能"一次连接，到处可用"。
+>
+> 然后：**设计一个"本地文件管理"的 MCP Server。** 列出至少 3 个工具——写清每个工具的 `name`、`description`、`parameters`（参照示范代码里的 `webSearch` 格式）。
+
+---
 
 ## 相关概念
 

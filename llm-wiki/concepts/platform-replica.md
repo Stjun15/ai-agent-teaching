@@ -177,9 +177,19 @@ curl -X POST http://localhost:3000/api/validate \
 
 ## 示范代码
 
-第一斧「对话骨架」的完整可抄版 —— 用原始 `fetch` 调模型 + 自己写 SSE 流解析。**不依赖任何 LLM SDK**，每一行都是你亲手控制的管线。
+> 📖 **阅读指南：** 下面三段代码对应刚才讲的三板斧。**你不用全看懂**——先扫一眼每段的标题，知道它在对应哪一斧，然后只关注每段里标注了 ①②③ 的关键行。其余的都是"抄过去就能跑"的固定写法。
 
-### 后端：`src/app/api/chat/route.ts`
+| 刚才讲的概念 | 对应下面哪段代码 | 你只需要看清 |
+|-------------|-----------------|------------|
+| 第一斧：对话骨架 | 后端 route.ts + 前端打字机 | `fetch()` 调用 + `reader.read()` 循环 |
+| 第二斧：多步 Agent | agent-loop.ts | `for (let step = 0; ...)` 这行 + `tool_calls` 判断 |
+| 第三斧：知识+数据库 | （代码里有 SQLite 示例，篇幅关系不重复贴） | Schema 约束 + 落库逻辑 |
+
+---
+
+### 第一斧实抄：后端 `src/app/api/chat/route.ts`
+
+> 🎯 这是 "LLM API 入门" 那讲的真实落地版。你不需要重新理解——你已经见过 `messages`、`system prompt`、`stream: true`。
 
 ```typescript
 // ① API Route：收到学生消息，用原始 fetch 调大模型，把 SSE 流桥接到前端
@@ -225,7 +235,9 @@ export async function POST(req: Request) {
 }
 ```
 
-### 前端：打字机渲染
+### 第一斧实抄：前端打字机渲染
+
+> 🎯 这一段就是让文字"一个个蹦出来"的代码。核心就两行：`reader.read()` 拿数据 + `JSON.parse` 取文字。
 
 ```typescript
 // ⑤ 前端用 fetch POST 到你的 /api/chat，然后用 reader 逐块读 SSE 响应
@@ -275,9 +287,9 @@ async function sendMessage(content: string) {
 }
 ```
 
-### Agent 循环（第二斧可抄版）`src/lib/agent-loop.ts`
+### 第二斧实抄：Agent 循环 `src/lib/agent-loop.ts`
 
-第一斧的管线是「调用一次就结束」。第二斧在它外面**套一层循环**：模型如果要工具，你执行工具、把结果喂回去，再问一次——直到模型不再要工具。照抄即可，注释里 ①②③ 是新增的关键步：
+> 🎯 第一斧的管线是"调用一次就结束"。第二斧在它外面**套一层循环**：模型如果要工具，你执行工具、把结果喂回去，再问一次——直到模型不再要工具。**只看 `for (let step = 0; ...)` 和 `if (!choice.message.tool_calls)` 这两处就行。**
 
 ```typescript
 // ① 工具定义：出题 Agent 的「手」。参数用 JSON Schema 钉死——
