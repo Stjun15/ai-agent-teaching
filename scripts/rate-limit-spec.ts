@@ -218,6 +218,8 @@ test("规则表覆盖全部受限端点，且额度与窗口为正", () => {
     "validate",
     "answer",
     "answer-grade",
+    // 课程审计评估代理（/api/audit/evaluate，本地审计工具用）。
+    "audit",
   ];
   assert.deepEqual(
     Object.keys(RATE_LIMIT_RULES).sort(),
