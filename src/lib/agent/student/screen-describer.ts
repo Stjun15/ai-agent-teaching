@@ -50,7 +50,6 @@ const VLM_TIMEOUT_MS = 90000;
 async function describeRegionWithVLM(
   regionLabel: string,
   screenshotBase64: string,
-  cropBounds: Bounds,
   options: ScreenDescriberOptions,
 ): Promise<string> {
   try {
@@ -281,7 +280,6 @@ async function extractCodeRegion(
       content = await describeRegionWithVLM(
         "代码编辑器",
         screenshotBase64,
-        editorBounds,
         options,
       );
     }

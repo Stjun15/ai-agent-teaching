@@ -178,11 +178,7 @@ async function doSend(page: Page): Promise<boolean> {
 }
 
 /** 提问：type 文本 → 发送 → 等回复。 */
-async function doAsk(
-  page: Page,
-  question: string,
-  baseUrl: string,
-): Promise<boolean> {
+async function doAsk(page: Page, question: string): Promise<boolean> {
   if (!question) return false;
 
   const typed = await doType(page, "输入框", question);
@@ -317,7 +313,7 @@ export async function executeAction(
     }
 
     case "ask": {
-      const ok = await doAsk(page, action.question ?? "", baseUrl);
+      const ok = await doAsk(page, action.question ?? "");
       return {
         ok,
         description: ok

@@ -114,7 +114,6 @@ export interface ComprehensionProbe {
  * - 是否关注到关键 UI 区域
  */
 function analyzeBehaviorSignals(
-  state: ScreenState,
   action: StudentAction,
   previousActions: StudentAction[],
 ): ComprehensionClue {
@@ -553,7 +552,7 @@ export async function verifyComprehension(
   const clues: ComprehensionClue[] = [];
 
   // 线索 1：行为信号（纯规则，不调模型）
-  clues.push(analyzeBehaviorSignals(state, action, previousActions));
+  clues.push(analyzeBehaviorSignals(action, previousActions));
 
   // 线索 2：提问相关性（调 VLM）
   if (action.type === "ask" && action.question) {
