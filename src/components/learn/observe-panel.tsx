@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { MarkdownView } from "@/components/chat/markdown-view";
-import { parseMarkdown } from "@/lib/markdown";
+import { segmentByCode } from "@/lib/markdown";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,11 +24,15 @@ import { cn } from "@/lib/utils";
  * 由服务端页面组件在构建期读入、序列化为 `demoCode` prop 传入。
  * 零模型调用，零等待，点开即有。
  *
- * 代码块提取规则
- * -------------
- * 1. 先找围栏代码块（```language ... ```）。
- * 2. 如果 wiki 里没写围栏代码（纯文本描述），回退为整段渲染
- *    （MarkdownView 原样展示）。
+ * 渲染规则（2026-10-07 改）
+ * -----------------------
+ * 原先只取代码块、把其余内容丢掉。实测概念页这一节里夹着大量面向学生
+ * 的说明与类比（multi-agent 的「把它想象成招聘」、llm-wiki 的「就像用
+ * 微波炉不用懂磁控管」、rag 的「你不用懂它们怎么算」），丢掉它们等于把
+ * 这一讲最该给零基础学生的部分藏起来 —— 扇出审计 8/10 讲命中此问题。
+ *
+ * 现在按 `segmentByCode` 切分：散文原样渲染，代码块仍走带序号与全屏
+ * 按钮的卡片。没有代码块时整体回退为 MarkdownView。
  *
  * 无示范代码时的表现
  * -----------------
@@ -66,10 +70,27 @@ export function ObservePanel({
     return () => document.removeEventListener("keydown", onKey);
   }, [isFullscreen]);
 
-  const codeBlocks = useMemo(() => {
+  /**
+   * 散文与代码交替的段落序列，散文保留原文。
+   *
+   * 为什么不用 `parseMarkdown`（见 markdown.ts 的 segmentByCode 注释）：
+   * 结构化 token 还原成 Markdown 是有损的，这里的散文必须原样渲染。
+   */
+  const segments = useMemo(() => {
     if (!demoCode) return [];
-    return parseMarkdown(demoCode).filter((block) => block.type === "code");
+    return segmentByCode(demoCode);
   }, [demoCode]);
+
+  const codeCount = useMemo(
+    () => segments.filter((s) => s.kind === "code").length,
+    [segments],
+  );
+
+  /** 全屏视图只列代码段 —— 那里是「看代码」，不是读散文。 */
+  const codeSegments = useMemo(
+    () => segments.filter((s) => s.kind === "code"),
+    [segments],
+  );
 
   if (!demoCode) {
     return (
@@ -91,23 +112,24 @@ export function ObservePanel({
           的对话框问导师。
         </p>
 
-        {codeBlocks.length === 0 ? (
+        {codeCount === 0 ? (
           <MarkdownView source={demoCode} />
         ) : (
-          <ol className="flex flex-col gap-3">
-            {codeBlocks.map((block, index) => {
-              if (block.type !== "code") return null;
-              const fenced =
-                "```" + (block.language ?? "") + "\n" + block.value + "\n```";
-              return (
-                <li key={index} className="rounded-lg border bg-card">
+          <div className="flex flex-col gap-3">
+            {segments.map((segment, index) =>
+              segment.kind === "code" ? (
+                <li
+                  key={index}
+                  className="rounded-lg border bg-card"
+                  style={{ listStyle: "none" }}
+                >
                   <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
                     <span className="text-xs font-medium">
-                      示范 {index + 1}
+                      示范 {segment.ordinal}
                     </span>
-                    {block.language ? (
+                    {segment.language ? (
                       <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                        {block.language}
+                        {segment.language}
                       </span>
                     ) : null}
                     <button
@@ -120,11 +142,22 @@ export function ObservePanel({
                       全屏
                     </button>
                   </div>
-                  <MarkdownView source={fenced} />
+                  <MarkdownView
+                    source={
+                      "```" +
+                      (segment.language ?? "") +
+                      "\n" +
+                      segment.value +
+                      "\n```"
+                    }
+                  />
                 </li>
-              );
-            })}
-          </ol>
+              ) : (
+                // 代码块之间的说明与类比：原样渲染，不丢。
+                <MarkdownView key={index} source={segment.source} />
+              ),
+            )}
+          </div>
         )}
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border bg-muted/30 px-3 py-2.5">
@@ -183,32 +216,35 @@ export function ObservePanel({
 
             {/* 代码内容 */}
             <div className="flex-1 overflow-auto">
-              {codeBlocks.map((block, index) => {
-                if (block.type !== "code") return null;
-                const fenced =
-                  "```" + (block.language ?? "") + "\n" + block.value + "\n```";
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "mb-4 overflow-hidden rounded-lg border bg-card",
-                      index === codeBlocks.length - 1 ? "mb-0" : "",
-                    )}
-                  >
-                    <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
-                      <span className="text-sm font-medium">
-                        示范 {index + 1}
+              {codeSegments.map((segment, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "mb-4 overflow-hidden rounded-lg border bg-card",
+                    index === codeSegments.length - 1 ? "mb-0" : "",
+                  )}
+                >
+                  <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
+                    <span className="text-sm font-medium">
+                      示范 {segment.ordinal}
+                    </span>
+                    {segment.language ? (
+                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                        {segment.language}
                       </span>
-                      {block.language ? (
-                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                          {block.language}
-                        </span>
-                      ) : null}
-                    </div>
-                    <MarkdownView source={fenced} />
+                    ) : null}
                   </div>
-                );
-              })}
+                  <MarkdownView
+                    source={
+                      "```" +
+                      (segment.language ?? "") +
+                      "\n" +
+                      segment.value +
+                      "\n```"
+                    }
+                  />
+                </div>
+              ))}
             </div>
           </motion.div>
         ) : null}

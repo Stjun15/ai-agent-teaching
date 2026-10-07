@@ -127,6 +127,16 @@ const SUITES = [
     model: false,
   },
   {
+    name: "思维链封口",
+    file: "scripts/thinking-seal-spec.ts",
+    model: false,
+  },
+  {
+    name: "观察面板分段",
+    file: "scripts/observe-segments-spec.ts",
+    model: false,
+  },
+  {
     name: "冷启动 + 模块内容",
     file: "scripts/explain-cold-start-spec.ts",
     model: false,
