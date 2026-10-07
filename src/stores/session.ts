@@ -468,6 +468,36 @@ function drainTokenBuffer(messages: ChatMessage[]): ChatMessage[] {
   return result;
 }
 
+/**
+ * 把「刷新前一刻仍在流式」的助手消息收敛成 `done`。
+ *
+ * 为什么需要（2026-10-07 扇出审计在 system-prompt 讲抓到）
+ * -----------------------------------------------------
+ * persist 的 partialize 不落 status、只落 messages —— 于是刷新后 store 的
+ * status 回到 idle，而消息数组里那条 `streaming` 的助手消息原样回来。已经
+ * 没有任何在途请求会去推进它，它就永远停在「输出中」，正文停在
+ * 「导师输出中正在思考…」。学生看到的是一个转圈不结束的回复。
+ *
+ * 注意这与「error 消息」是两件事：那种是服务端真的失败过、正文缺失有因；
+ * 这里只是刷新打断了流，本地无从判断内容是否完整 —— 所以**只改 status**
+ * （不再假装在输出），不动 content，既不假装成功也不篡改。
+ *
+ * 导出供回归测试直接调用：这是纯函数，不必真的刷新浏览器。
+ */
+export function settleStreamingMessages(
+  messages: readonly ChatMessage[],
+): ChatMessage[] {
+  let changed = false;
+  const next = messages.map((message) => {
+    if (message.role === "assistant" && message.status === "streaming") {
+      changed = true;
+      return { ...message, status: "done" as const };
+    }
+    return message;
+  });
+  return changed ? next : (messages as ChatMessage[]);
+}
+
 export const useSessionStore = create<SessionState>()(
   persist(
     (set) => ({
@@ -638,15 +668,17 @@ export const useSessionStore = create<SessionState>()(
           const messages = drainTokenBuffer(state.messages);
           const streaming = findStreamingAssistant(messages);
           const targetId = streaming?.id ?? messageId;
+          const sealedAt = Date.now();
           return {
-            messages: replaceMessage(messages, targetId, (message) => ({
-              ...message,
-              status: "done",
-              tokens,
-            })),
+            messages: replaceMessage(messages, targetId, (message) =>
+              closeMessageThinking(
+                { ...message, status: "done", tokens },
+                sealedAt,
+              ),
+            ),
             status: "done",
             tokens,
-            thinking: closeThinking(state.thinking),
+            thinking: closeThinking(state.thinking, sealedAt),
           };
         }),
 
@@ -654,17 +686,20 @@ export const useSessionStore = create<SessionState>()(
         set((state) => {
           const messages = drainTokenBuffer(state.messages);
           const streaming = findStreamingAssistant(messages);
+          const sealedAt = Date.now();
           return {
             messages:
               streaming === undefined
                 ? messages
-                : replaceMessage(messages, streaming.id, (message) => ({
-                    ...message,
-                    status: "error",
-                  })),
+                : replaceMessage(messages, streaming.id, (message) =>
+                    closeMessageThinking(
+                      { ...message, status: "error" },
+                      sealedAt,
+                    ),
+                  ),
             status: "error",
             error,
-            thinking: closeThinking(state.thinking),
+            thinking: closeThinking(state.thinking, sealedAt),
           };
         }),
 
@@ -672,18 +707,21 @@ export const useSessionStore = create<SessionState>()(
         set((state) => {
           const messages = drainTokenBuffer(state.messages);
           const streaming = findStreamingAssistant(messages);
+          const sealedAt = Date.now();
           return {
             // 中断不是错误：已收到的内容保留下来，标成 done 让它可以被复制。
             // 用户自己按的「停止」，不该看到一条红色报错。
             messages:
               streaming === undefined
                 ? messages
-                : replaceMessage(messages, streaming.id, (message) => ({
-                    ...message,
-                    status: "done",
-                  })),
+                : replaceMessage(messages, streaming.id, (message) =>
+                    closeMessageThinking(
+                      { ...message, status: "done" },
+                      sealedAt,
+                    ),
+                  ),
             status: "aborted",
-            thinking: closeThinking(state.thinking),
+            thinking: closeThinking(state.thinking, sealedAt),
           };
         }),
 
@@ -774,6 +812,20 @@ export const useSessionStore = create<SessionState>()(
         activeModuleId: state.activeModuleId,
         byModule: state.byModule,
       }),
+      /**
+       * 重新打开页面时收敛残留的流式消息。语义见
+       * `settleStreamingMessages` 的注释。
+       */
+      onRehydrateStorage: () => (state) => {
+        if (state === undefined) return;
+        state.messages = settleStreamingMessages(state.messages);
+        state.byModule = Object.fromEntries(
+          Object.entries(state.byModule).map(([key, bucket]) => [
+            key,
+            { ...bucket, messages: settleStreamingMessages(bucket.messages) },
+          ]),
+        );
+      },
     },
   ),
 );
@@ -796,13 +848,48 @@ function upsertThinkingStep(
   return [...steps, step];
 }
 
-/** 封口最后一条思考记录（若它还开着）。 */
-function closeThinking(thinking: ThinkingStep[]): ThinkingStep[] {
+/**
+ * 封口最后一条思考记录（若它还开着）。
+ *
+ * `at` 由调用方传入，好让全局数组与消息快照封口到同一毫秒
+ * —— 见 closeMessageThinking 的注释。
+ */
+function closeThinking(
+  thinking: ThinkingStep[],
+  at: number = Date.now(),
+): ThinkingStep[] {
   const last = thinking[thinking.length - 1];
   if (last === undefined || last.endedAt !== undefined) return thinking;
   const next = thinking.slice();
-  next[next.length - 1] = { ...last, endedAt: Date.now() };
+  next[next.length - 1] = { ...last, endedAt: at };
   return next;
+}
+
+/**
+ * 封口消息气泡里 thinkingSteps 的最后一段（若它还开着）。
+ *
+ * 为什么全局封口不够（2026-10-07 扇出审计 10/10 讲复现）
+ * ------------------------------------------------------
+ * 消息的 thinkingSteps 是**建消息那一刻**从全局 thinking[] 拷进去的
+ * 快照（见 inFlightThinking 的三个调用点），而 closeThinking 封口的
+ * 是全局数组 —— 两者不是同一份对象。于是 completeTurn / failTurn /
+ * abortTurn 跑完，全局段有了 endedAt，消息快照里的那段仍然没有。
+ *
+ * 后果：`message-item.tsx` 的 `isStreaming = steps.some((s) =>
+ * s.endedAt === undefined)` 永远为真，折叠区标题在流结束、甚至消息
+ * 已 `done` 之后，仍显示「进行中」徽标。
+ *
+ * 传 `at` 是为了让同一次收尾里全局数组与消息快照封口到同一毫秒 ——
+ * 时间线面板按 endedAt 算耗时，两处不一致会显示成一段 0ms 的耗时。
+ */
+function closeMessageThinking(message: ChatMessage, at: number): ChatMessage {
+  const steps = message.thinkingSteps;
+  if (steps === undefined || steps.length === 0) return message;
+  const last = steps[steps.length - 1];
+  if (last === undefined || last.endedAt !== undefined) return message;
+  const next = steps.slice();
+  next[next.length - 1] = { ...last, endedAt: at };
+  return { ...message, thinkingSteps: next };
 }
 
 // ---------------------------------------------------------------------------
