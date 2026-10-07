@@ -314,13 +314,25 @@ export interface ModuleAuditRecord {
   moduleId: string;
   moduleName: string;
   /**
-   * 四维得分 0-1。**null = 该维度本轮未检测**，不用 0 冒充 ——
-   * 「没检测过」与「检测过但很差」在报告里必须能分开看见。
+   * 四维得分 0-1，与 `deterministic.ts` 的 `scores` 逐一同名。
+   *
+   * **null = 该维度本轮未检测**，不用 0 冒充 ——「没检测过」与「检测过但很差」
+   * 在报告里必须能分开看见（与报告页「尚未测评 ≠ 0 分」同一条规矩）。
    */
-  explainReadability: number | null;
-  cognitiveLoad: number | null;
+  /** 讲稿有没有任务节。缺失 → 任务卡整卡不渲染（可达性断死）。 */
+  reachability: number | null;
+  /** 示范代码是否配了面向学生的说明（无小节 = 0，只有代码 = 0.4，有说明 = 1）。 */
+  demoReadability: number | null;
+  /** 术语断层扣分后的得分；null = 无讲稿缓存，未检测。 */
   terminologyGap: number | null;
+  /** 概念页与讲稿的机制承诺是否对齐。 */
   consistency: number | null;
+  /**
+   * 认知负荷。**当前恒为 null**：它要模型判「这一讲读起来累不累」，
+   * 而确定性检查判不了。列留着是为了让「这一维度存在但本轮没测」在表里
+   * 看得见 —— 真要显示 0 分就是编数据。
+   */
+  cognitiveLoad: number | null;
   /** 是否跑通了真实模型；false = 只跑了确定性检查，结论覆盖面更窄。 */
   usedModel: boolean;
   findingsCount: number;

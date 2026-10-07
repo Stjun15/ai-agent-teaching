@@ -117,20 +117,22 @@ test("NULL 维度映射成 null 而非 0（未检测 ≠ 检测过但很差）",
   auditDb.upsertModuleAudit({
     moduleId: "rag",
     moduleName: "测试讲",
-    explainReadability: null,
-    cognitiveLoad: 0.25,
+    reachability: null,
+    demoReadability: null,
     terminologyGap: null,
     consistency: 0.9,
+    cognitiveLoad: null,
     usedModel: false,
     findingsCount: 2,
   });
 
   const [record] = auditDb.listModuleAudits();
   assert.ok(record);
-  assert.equal(record.explainReadability, null, "未检测的维度不能变成 0");
-  assert.equal(record.cognitiveLoad, 0.25);
+  assert.equal(record.reachability, null, "未检测的维度不能变成 0");
+  assert.equal(record.demoReadability, null);
   assert.equal(record.terminologyGap, null);
   assert.equal(record.consistency, 0.9);
+  assert.equal(record.cognitiveLoad, null);
   assert.equal(record.usedModel, false);
 });
 
@@ -138,20 +140,22 @@ test("upsertModuleAudit 同讲二次写入是覆盖而非新增行", () => {
   auditDb.upsertModuleAudit({
     moduleId: "rag",
     moduleName: "第一次",
-    explainReadability: 0.5,
-    cognitiveLoad: null,
+    reachability: 0.5,
+    demoReadability: null,
     terminologyGap: null,
     consistency: null,
+    cognitiveLoad: null,
     usedModel: false,
     findingsCount: 1,
   });
   auditDb.upsertModuleAudit({
     moduleId: "rag",
     moduleName: "第二次",
-    explainReadability: 0.8,
-    cognitiveLoad: null,
+    reachability: 0.8,
+    demoReadability: null,
     terminologyGap: null,
     consistency: null,
+    cognitiveLoad: null,
     usedModel: true,
     findingsCount: 3,
   });
@@ -159,7 +163,7 @@ test("upsertModuleAudit 同讲二次写入是覆盖而非新增行", () => {
   const all = auditDb.listModuleAudits();
   assert.equal(all.length, 1, "一讲只应有一行汇总");
   assert.equal(all[0].moduleName, "第二次");
-  assert.equal(all[0].explainReadability, 0.8);
+  assert.equal(all[0].reachability, 0.8);
   assert.equal(all[0].usedModel, true);
   assert.equal(all[0].findingsCount, 3);
 });

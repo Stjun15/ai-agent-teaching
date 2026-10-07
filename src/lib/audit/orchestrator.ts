@@ -139,7 +139,8 @@ export async function auditAllModules(options?: {
     auditDb.upsertModuleAudit({
       moduleId,
       moduleName: result.moduleName,
-      explainReadability: result.scores.demoReadability,
+      reachability: result.scores.reachability,
+      demoReadability: result.scores.demoReadability,
       // 认知负荷要模型判「这一讲读起来累不累」，确定性检查判不了。
       // 写 null 而不是编一个数 —— 报告页会显示「未检测」而不是假分数。
       cognitiveLoad: null,

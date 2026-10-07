@@ -67,10 +67,13 @@ function mapModuleAudit(row: Row): ModuleAuditRecord {
     moduleName: asString(row.module_name),
     // NULL 一律映射成 null 而不是 0 —— 「没检测过」与「检测过但很差」
     // 是两件事，前端要分开显示。
-    explainReadability: asNullableNumber(row.explain_readability),
-    cognitiveLoad: asNullableNumber(row.cognitive_load),
+    reachability: asNullableNumber(row.reachability),
+    demoReadability: asNullableNumber(row.demo_readability),
     terminologyGap: asNullableNumber(row.terminology_gap),
     consistency: asNullableNumber(row.consistency),
+    // 认知负荷本轮不判（要模型），恒为 null。列留着是为了让「这一维度存在
+    // 但本轮没测」这个边界在表里看得见，删掉列反而看不出。
+    cognitiveLoad: asNullableNumber(row.cognitive_load),
     usedModel: asBool(row.used_model),
     findingsCount: asNumber(row.findings_count),
     updatedAt: asString(row.updated_at),
@@ -161,12 +164,14 @@ export const auditDb = {
     getDb()
       .prepare(
         `INSERT INTO module_audits (
-           module_id, module_name, explain_readability, cognitive_load,
-           terminology_gap, consistency, used_model, findings_count
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           module_id, module_name, reachability, demo_readability,
+           cognitive_load, terminology_gap, consistency, used_model,
+           findings_count
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(module_id) DO UPDATE SET
            module_name = excluded.module_name,
-           explain_readability = excluded.explain_readability,
+           reachability = excluded.reachability,
+           demo_readability = excluded.demo_readability,
            cognitive_load = excluded.cognitive_load,
            terminology_gap = excluded.terminology_gap,
            consistency = excluded.consistency,
@@ -177,7 +182,8 @@ export const auditDb = {
       .run(
         record.moduleId,
         record.moduleName,
-        record.explainReadability,
+        record.reachability,
+        record.demoReadability,
         record.cognitiveLoad,
         record.terminologyGap,
         record.consistency,
