@@ -277,3 +277,52 @@ export interface AgentTrace {
   success: boolean;
   error?: string;
 }
+
+// 课程审计（2026-10-07 产品内审计员）
+// ---------------------------------------------------------------------------
+
+/**
+ * 严重度。取值与 `curriculum-audit.ts` 的 AuditFinding.severity 同源 ——
+ * 开发期子智能体走查与产品内审计员用同一套刻度，两边结论才能直接比。
+ */
+export type AuditSeverity = "critical" | "high" | "medium" | "low" | "info";
+
+/** 一条审计发现：课程内容的一个缺陷。 */
+export interface AuditFindingRecord {
+  id: string;
+  moduleId: string;
+  moduleName: string;
+  severity: AuditSeverity;
+  /**
+   * 缺陷维度。中文短语，直接用于显示（可读性 / 认知负荷 / 可达性 /
+   * 术语断层 / 内容一致性），不做内部英文枚举 —— 少一处映射就少一处
+   * 可能漂移的地方。
+   */
+  dimension: string;
+  title: string;
+  /** 证据：文件路径 / 行号 / 原文摘录。必须能独立复核。 */
+  evidence: string;
+  recommendation: string;
+  /** 幂等键：(module_id, dimension, title) 的哈希。 */
+  fingerprint: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 一讲的审计总分。 */
+export interface ModuleAuditRecord {
+  moduleId: string;
+  moduleName: string;
+  /**
+   * 四维得分 0-1。**null = 该维度本轮未检测**，不用 0 冒充 ——
+   * 「没检测过」与「检测过但很差」在报告里必须能分开看见。
+   */
+  explainReadability: number | null;
+  cognitiveLoad: number | null;
+  terminologyGap: number | null;
+  consistency: number | null;
+  /** 是否跑通了真实模型；false = 只跑了确定性检查，结论覆盖面更窄。 */
+  usedModel: boolean;
+  findingsCount: number;
+  updatedAt: string;
+}
