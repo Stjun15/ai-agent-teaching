@@ -177,6 +177,21 @@ export const MessageItem = memo(
  * 流式进行中的思考段显示「进行中」徽标，已完成的显示耗时。
  *
  * 用原生 `<details>`：零 JS 状态、键盘可达、屏幕阅读器友好。
+ *
+ * 为什么默认折叠（2026-10-07 扇出审计 10/10 讲）
+ * -------------------------------------------
+ * 原先 `open` 写死默认展开。实测每一讲都是思维链压倒正文 ——
+ * 链:正文 从 3.0:1 到 **1148:1**（system-prompt），思维链占全文
+ * 75%~99.9%，且 9/10 是英文。学生首屏看到的是大段英文自我对话，
+ * 中文答案被挤到折叠区以下。
+ *
+ * 这一改动**不动 2026-09-21「思维链先于首 token 可见」的初衷**：
+ * 那条决策要的是「学生知道 AI 正在想」，摘要行仍然常驻、徽标与耗时
+ * 仍然可见，被收起来的只是推理正文。学生想看仍可点开。
+ *
+ * 另一条已知问题不在此处修：思维链正文会泄漏内部口径（铁律 / 掌握度 /
+ * 门禁 / 编排层），那是提示词层的输出问题，收起只是降低暴露面，
+ * 彻底修要改教学提示词的输出约束并 `--force` 重跑讲稿缓存。
  */
 function ThinkingChain({ steps }: { steps: readonly ThinkingStep[] }) {
   if (steps.length === 0) return null;
@@ -191,7 +206,7 @@ function ThinkingChain({ steps }: { steps: readonly ThinkingStep[] }) {
   const isStreaming = steps.some((s) => s.endedAt === undefined);
 
   return (
-    <details className="group" open>
+    <details className="group">
       <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent/60">
         <ChevronRight className="size-3 shrink-0 transition-transform group-open:rotate-90" />
         <Brain className="size-3.5 shrink-0" />
