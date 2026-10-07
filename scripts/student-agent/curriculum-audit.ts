@@ -41,7 +41,6 @@ import {
   verifyComprehension,
 } from "@/lib/agent/student/comprehension-verifier";
 import type {
-  ScreenState,
   StudentAction,
   CognitiveState,
   ScreenDescriberOptions,
