@@ -147,6 +147,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "审计编排",
+    file: "scripts/audit-orchestrator-spec.ts",
+    model: false,
+  },
+  {
     name: "冷启动 + 模块内容",
     file: "scripts/explain-cold-start-spec.ts",
     model: false,
