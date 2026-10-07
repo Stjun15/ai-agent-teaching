@@ -183,7 +183,7 @@ export async function loadModules(): Promise<TeachingModule[]> {
   let regularNo = 0;
   return sortByPrerequisites(concepts).map((page, order) => {
     const id = asString(page.frontmatter.id);
-    const isLanguageModule = id === "python-basics" || id === "ts-basics";
+    const isLanguageModule = id === "ts-basics";
     if (!isLanguageModule) regularNo++;
     return {
       id,

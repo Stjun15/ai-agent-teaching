@@ -18,7 +18,7 @@
  * 模块适配
  * -------
  * - platform-replica：三板斧解析（parseAxes），可折叠卡片
- * - python-basics / ts-basics：仅渲染 intro 预览；路径选择与教学由 AI 在对话里驱动
+ * - ts-basics：仅渲染 intro 预览；路径选择与教学由 AI 在对话里驱动
  * - 其余模块：渲染全量 markdown 正文（纯阅读）
  */
 
@@ -68,7 +68,7 @@ export function ExplainColdStart({
 
   const status = useSessionStore((state) => state.status);
 
-  // 路径选择数据（python-basics / ts-basics）
+  // 路径选择数据（ts-basics）
   const pathData = useMemo(() => {
     if (content === null) return null;
     return parsePathSelect(content);
@@ -221,7 +221,7 @@ export function ExplainColdStart({
     }
   }
 
-  // ---- 路径选择：python-basics / ts-basics ----
+  // ---- 路径选择：ts-basics ----
   // 概念页是给 AI 的教学脚本，不是 dump 给学生看的。
   // 前端只渲染 intro（到「你想怎么学？」表格为止）作为预览，
   // 路径选择与教学由 AI 在对话里驱动。

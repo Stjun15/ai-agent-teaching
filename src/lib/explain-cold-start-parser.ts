@@ -60,7 +60,7 @@ export function parseAxes(markdown: string): AxeSection[] {
 }
 
 // ---------------------------------------------------------------------------
-// 路径选择解析（python-basics / ts-basics）
+// 路径选择解析（ts-basics）
 // ---------------------------------------------------------------------------
 
 export interface PathSelectContent {

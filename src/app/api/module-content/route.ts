@@ -3,7 +3,7 @@
  *
  * 为什么需要
  * ---------
- * platform-replica / python-basics / ts-basics 的 explain 步不走
+ * platform-replica / ts-basics 的 explain 步不走
  * AI 讲课 —— 它们的讲稿是给人读的（路径选择 / 三板斧 / 结算），
  * 不走 TEACHING_EXPLAIN_PROMPT 的通关模式。本端点让前端能直接拿
  * 到概念页正文渲染交互卡片，再由学生决定要不要启动 AI 对聊。

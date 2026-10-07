@@ -195,58 +195,6 @@ export default function WelcomePage() {
 
       <hr className="my-10" />
 
-      {/* ---------- 语言选择 ---------- */}
-      <section>
-        <h2 className="text-xl font-semibold tracking-tight">
-          那你用什么语言来造？
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          两个选项。效果一样——最后造出来的东西没有区别。你只需要：
-        </p>
-
-        <pre className="mt-3 overflow-x-auto rounded-lg border bg-muted/50 px-4 py-3 text-sm">
-          {`读得懂代码 → 能把报错信息贴给 AI → 能改个参数 → 能跑起来`}
-        </pre>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Link
-            href="/learn/python-basics"
-            className="group rounded-xl border bg-background px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-sm"
-          >
-            <span className="text-2xl">🐍</span>
-            <h3 className="mt-2 text-base font-semibold">Python</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              处理数据、调 AI、写后端逻辑，简单直接。
-            </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium group-hover:underline">
-              选这个
-              <ArrowRight className="size-3.5" />
-            </span>
-          </Link>
-
-          <Link
-            href="/learn/ts-basics"
-            className="group rounded-xl border bg-background px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-sm"
-          >
-            <span className="text-2xl">💙</span>
-            <h3 className="mt-2 text-base font-semibold">TypeScript</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              写界面、做网页、管状态，浏览器里跑。
-            </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium group-hover:underline">
-              选这个
-              <ArrowRight className="size-3.5" />
-            </span>
-          </Link>
-        </div>
-
-        <blockquote className="mt-4 border-l-2 pl-4 text-sm text-muted-foreground">
-          选不出来的话——抛硬币。硬币飞起来的那一刻你心里想的是哪个，就选哪个。
-        </blockquote>
-      </section>
-
-      <hr className="my-10" />
-
       {/* ---------- 建造路线 ---------- */}
       <section>
         <h2 className="text-xl font-semibold tracking-tight">建造顺序</h2>
@@ -305,14 +253,8 @@ export default function WelcomePage() {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/learn/python-basics">
-              🐍 Python 起步
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
             <Link href="/learn/ts-basics">
-              💙 TypeScript 起步
+              💙 开始学习
               <ArrowRight className="size-4" />
             </Link>
           </Button>
