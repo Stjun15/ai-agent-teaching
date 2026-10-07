@@ -38,6 +38,7 @@ import {
   lectureOpenerPrompt,
   type AutoLectureStep,
 } from "@/lib/lecture-openers";
+import { splitLecture } from "@/lib/lecture-split";
 import { loadModules } from "@/lib/modules";
 
 // --- 参数解析 ---------------------------------------------------------------
@@ -128,6 +129,18 @@ async function main(): Promise<void> {
       failed += 1;
       console.error(
         `${label} 疑似截断（output ${summary.tokens.output} tok / ${summary.text.length} 字），不写入缓存。重跑：--only=${job.moduleId}:${job.step} --force`,
+      );
+      continue;
+    }
+
+    // 结构守卫（2026-10-07 审计 C2）：讲稿必须含「五、现在轮到你」任务节
+    // —— 动手模仿页任务卡从这一节抽题面，缺节 = 任务卡全站消失。缺节多半
+    // 不是模型偷懒，是提示词的结构声明被「停在这里」类互动约束压过（实测
+    // 11/11 模块缓存截断在测验），修提示词而不是重试。
+    if (splitLecture(summary.text).assignment === null) {
+      failed += 1;
+      console.error(
+        `${label} 缺少「五、现在轮到你」任务节，不写入缓存。检查 teaching-chat.ts 的结构声明后重跑：--only=${job.moduleId}:${job.step} --force`,
       );
       continue;
     }

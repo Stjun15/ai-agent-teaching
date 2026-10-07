@@ -91,13 +91,26 @@ test("教学提示词要求讲透 + 实例", () => {
     !/🚪|门禁通过|编排层提示|编排层没有提示/.test(TEACHING_EXPLAIN_PROMPT),
     "讲解提示词的结构节不得指挥模型输出系统内部术语（铁律 5 枚举的禁用词本身除外）",
   );
-  assert.ok(
-    !/现在轮到你/.test(TEACHING_EXPLAIN_PROMPT),
-    "概念讲解版提示词不得包含动手环节（第四节必须是'概念测验'）",
+  // 2026-10-07 审计 C2：任务卡（assignment-card）从 explain 讲稿抽
+  // 「五、现在轮到你」整节，10-01 门禁化时把它从 explain 提示词删掉，
+  // 11/11 模块缓存缺任务节、模仿页任务卡全站消失。新不变量双向钉住：
+  // 任务节必须在（缓存里要有），但配「输出节奏」声明压住「停在这里」
+  // 的互动语义（不许停在测验），且概念讲解页渲染时 truncate 会把本节
+  // 截掉——学生看不见，守卫只管提示词与缓存的口径。
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /现在轮到你/,
+    "explain 提示词必须包含任务节（模仿页任务卡的唯一来源）",
   );
-  assert.ok(
-    !/做完发给我/.test(TEACHING_EXPLAIN_PROMPT),
-    "概念讲解版提示词不得包含模仿任务（'做完发给我'是 observe/imitate 的收尾）",
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /做完发给我/,
+    "explain 提示词的任务节必须有可验证的收尾口径",
+  );
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /开场讲稿是一次性输出/,
+    "必须有输出节奏声明压住「停在这里」，否则讲稿截断在测验（C2 根因）",
   );
 });
 
