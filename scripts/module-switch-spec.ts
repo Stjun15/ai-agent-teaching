@@ -4,7 +4,7 @@
  * 钉什么
  * -----
  * 切换模块时 `ensureModule` 必须清空上一模块的对话消息。
- * 跨模块的讲稿/问答不允许串台：从 python-basics 切到 ts-basics
+ * 跨模块的讲稿/问答不允许串台：从 rag 切到 ts-basics
  * 时，学生不该看到上一模块的讲稿。
  *
  * 全组不调模型。
@@ -66,20 +66,20 @@ test("ensureModule：首次进入模块，清空消息", () => {
     ],
   });
 
-  useSessionStore.getState().ensureModule("python-basics");
+  useSessionStore.getState().ensureModule("ts-basics");
 
   const state = useSessionStore.getState();
-  assert.equal(state.activeModuleId, "python-basics");
+  assert.equal(state.activeModuleId, "ts-basics");
   assert.equal(state.messages.length, 0, "进入新模块应清空消息");
 });
 
 test("ensureModule：切换到不同模块，清空旧模块消息", () => {
   useSessionStore.setState({
     messages: [
-      msg({ role: "student", content: "Python 是什么？", step: "explain" }),
-      msg({ role: "assistant", content: "Python 是一门语言", step: "explain" }),
+      msg({ role: "student", content: "RAG 是什么？", step: "explain" }),
+      msg({ role: "assistant", content: "RAG 是检索增强生成", step: "explain" }),
     ],
-    activeModuleId: "python-basics",
+    activeModuleId: "rag",
   });
 
   useSessionStore.getState().ensureModule("ts-basics");
@@ -97,13 +97,13 @@ test("ensureModule：重复进入同一模块，不清空消息", () => {
 
   useSessionStore.setState({
     messages: msgs,
-    activeModuleId: "python-basics",
+    activeModuleId: "ts-basics",
   });
 
-  useSessionStore.getState().ensureModule("python-basics");
+  useSessionStore.getState().ensureModule("ts-basics");
 
   const state = useSessionStore.getState();
-  assert.equal(state.activeModuleId, "python-basics");
+  assert.equal(state.activeModuleId, "ts-basics");
   assert.equal(state.messages.length, 2, "重复进入同一模块应保留消息");
 });
 
@@ -113,7 +113,7 @@ test("ensureModule：无 moduleId 时清空隔离态（演练场）", () => {
       msg({ role: "student", content: "你好", step: "explain" }),
       msg({ role: "assistant", content: "你好！", step: "explain" }),
     ],
-    activeModuleId: "python-basics",
+    activeModuleId: "ts-basics",
   });
 
   // null = 退出模块，进入演练场
