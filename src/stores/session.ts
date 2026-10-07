@@ -301,6 +301,22 @@ function replaceMessage(
 }
 
 /**
+ * 只取「尚未封口」的思维段。
+ *
+ * 全局 thinking[] 跨轮累积（Agent 时间线要展示历史），但消息的
+ * thinkingSteps 只属于当前这一轮：此前三个建消息点都把整个全局数组
+ * 复制进去，学生会在第 2 轮回复里重读第 1 轮的全部内心戏（2026-10-07
+ * 审计实测：第 2 条回复逐字重复第 1 轮 6079 字符英文思维链）。历史轮次
+ * 的思维段在 completeTurn / failTurn / abortTurn 里都已封口，用
+ * endedAt 即可区分；本轮内已封口的早期思维段仍会在时间线面板展示，
+ * 只是不进消息体。
+ */
+function inFlightThinking(steps: ThinkingStep[]): ThinkingStep[] | undefined {
+  const open = steps.filter((step) => step.endedAt === undefined);
+  return open.length > 0 ? open : undefined;
+}
+
+/**
  * Token 批量合并：避免每个 SSE token 事件单独触发一次 React 渲染。
  *
  * 模型每秒可产 30~80 个 token，如果每个 token 都走一次 `set()` →
@@ -335,9 +351,8 @@ function flushTokenBufferImpl(set: StoreApi<SessionState>["setState"]): void {
             createdAt: new Date().toISOString(),
             ...(state.turnStep !== null ? { step: state.turnStep } : {}),
             // 首个 token 到达时才创建助手消息，此前可能已有若干思考段
-            // 落在全局 thinking[] 里 —— 把它们关联到新消息上。
-            thinkingSteps:
-              state.thinking.length > 0 ? [...state.thinking] : undefined,
+            // 落在全局 thinking[] 里 —— 只关联本轮尚未封口的段落。
+            thinkingSteps: inFlightThinking(state.thinking),
           },
         ];
         changed = true;
@@ -370,8 +385,7 @@ function flushTokenBufferImpl(set: StoreApi<SessionState>["setState"]): void {
               citations: [],
               createdAt: new Date().toISOString(),
               ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-              thinkingSteps:
-                state.thinking.length > 0 ? [...state.thinking] : undefined,
+              thinkingSteps: inFlightThinking(state.thinking),
             },
           ];
         }
@@ -564,7 +578,7 @@ export const useSessionStore = create<SessionState>()(
                   citations: [],
                   createdAt: new Date().toISOString(),
                   ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-                  thinkingSteps: [...next],
+                  thinkingSteps: inFlightThinking(next),
                 },
               ],
             };
