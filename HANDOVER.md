@@ -213,8 +213,8 @@
 | #   | 断点                         | 证据                                                                                                                                                 | 影响                                                                                             |
 | --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | 1   | **产品运行时零引用**         | `grep -rn 'agent/student' src/` 空；调用方只有 `scripts/student-agent/curriculum-audit.ts`（1645 行）与实验目录                                      | 评审若问「学生怎么用上模拟学生」答不上来。**需作者定方向**（见第七节）                           |
-| 2   | **630 行主脚本从未入库**     | `git ls-files \| grep autonomous` **返回空**；只在未跟踪的 `_untracked-demos/`                                                                       | 克隆仓库的人拿不到。且其运行指令写 `--module=ts-basics`，而 `python-basics` 已退役、现只剩 11 讲 |
-| 3   | **两个实验脚本首字符被写坏** | `student-autonomous-run.ts` 首字符是 `x`（应为 `/`）、`comprehension-verify-demo.ts` 是 `ia`；`tsc --ignoreConfig` 报 `TS2304: Cannot find name 'x'` | 这两个脚本现在跑不起来                                                                           |
+| 2   | ~~630 行主脚本从未入库~~ ✅ 已入库（10-07）     | `git ls-files \| grep autonomous` **返回空**；只在未跟踪的 `_untracked-demos/`                                                                       | 克隆仓库的人现在能拿到——已迁入 `scripts/student-agent/student-autonomous-run.ts` 并提交。注：`ts-basics` 实为合法模块（有概念页 `ts-basics.md` 且 `modules.ts:186` 作语言模块特判），并非退役；原「过时」判断有误 |
+| 3   | ~~两个实验脚本首字符被写坏~~ ✅ 已修（10-07） | `student-autonomous-run.ts` 首字符是 `x`（应为 `/`）、`comprehension-verify-demo.ts` 是 `ia`；`tsc --ignoreConfig` 报 `TS2304: Cannot find name 'x'` | 这两个脚本已修复并迁入 `scripts/student-agent/`（去首字符 `x`/`ia`、修导入路径 `./types`→`@/lib/agent/student/types` 等、`pnpm check` 0 error）                                                                           |
 
 ⚠️ **断点 3 与今天挖出的裸 NUL 字节同源** —— 都是「写文件」这个动作本身会污染内容。**新写或改的 `.ts` 脚本入库前必须单跑一次**：
 
@@ -378,8 +378,8 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 | ~~P0~~ | ~~核验并推送远端~~ —— **19:55 已完成**，远端 `dev` 已推进到 `c0a6619` 并独立核验    | 原为 P0，因证书问题误判为「网络不通」，见第六节                                                      |
 | P0     | system-prompt observe 回复 `error`                                                  | 扇出唯一 critical，学习路径断死                                                                      |
 | P0     | 思维链泄漏内部口径 —— **铁律 5 已修（c6686f3），`--force` 重跑缓存待 Ark API 恢复** | 10/10 讲，直接违反「零基础」产品承诺；机制性根因已定位（见 4.2）；B核验+重跑因模型端点返回空内容受阻 |
-| P1     | **修 2 个损坏的实验脚本**（首字符 `x` / `ia`，见 4.3）                              | 纯修复、零风险；`tsc` 报 `TS2304: Cannot find name 'x'`                                              |
-| P1     | **`student-autonomous-run.ts` 入库**（630 行，见 4.3）                              | 最完整的自主学习脚本从未进仓库，克隆的人拿不到；顺带改掉过时的 `--module=ts-basics`                  |
+| P1     | ~~修 2 个损坏的实验脚本~~ ✅ 已修（首字符 `x`/`ia`，见 4.3）                              | 纯修复、零风险；`tsc` 报 `TS2304: Cannot find name 'x'`                                              |
+| P1     | ~~`student-autonomous-run.ts` 入库~~ ✅ 已入库（630 行，见 4.3）                              | 已迁入 `scripts/student-agent/` 并提交（10-07）。`ts-basics` 实为合法模块（见 4.3 断点 2 更正），默认参数保留无需改                  |
 | P1     | 讲稿与概念页的**内容**对齐（渲染层已修，内容层未修）                                | 8/10 命中；审计员仍报 3 条                                                                           |
 | P1     | 术语断层 3 条改讲稿                                                                 | 审计员已定位到具体词（`llm-api` 上下文 / `tool-calling` Agent / 另一条待复核）                       |
 | P1     | `ExplainColdStart` 死代码                                                           | 主交付讲，`explainReadability` 3.5 全场最低                                                          |
