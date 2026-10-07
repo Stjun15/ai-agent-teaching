@@ -28,13 +28,13 @@ tags: [core, rag, retrieval]
 
 审计报告说 80% 的学生搞混这两个。一张表说清楚：
 
-| | RAG 📚 | LLM Wiki 📖 |
-|---|---------|------------|
-| **比喻** | 每次去图书馆现查现翻 | 把精华做成一本**百科词典**随身带 |
-| **每次提问** | 重新检索原文 | 直接读已编译好的 Wiki 页面 |
-| **适合什么** | 资料经常变（新闻、实时数据） | 资料稳定（课程知识、公司规章） |
-| **成本** | 每次都要检索，成本随提问涨 | 一次编译，反复用 |
-| **像什么** | 每次做菜现去买菜 | 提前备好菜，要炒直接拿 |
+|              | RAG 📚                       | LLM Wiki 📖                      |
+| ------------ | ---------------------------- | -------------------------------- |
+| **比喻**     | 每次去图书馆现查现翻         | 把精华做成一本**百科词典**随身带 |
+| **每次提问** | 重新检索原文                 | 直接读已编译好的 Wiki 页面       |
+| **适合什么** | 资料经常变（新闻、实时数据） | 资料稳定（课程知识、公司规章）   |
+| **成本**     | 每次都要检索，成本随提问涨   | 一次编译，反复用                 |
+| **像什么**   | 每次做菜现去买菜             | 提前备好菜，要炒直接拿           |
 
 💡 **一句话：RAG 是"现查现用"，LLM Wiki 是"先整理后用"。资料经常变用 RAG，资料稳定用 Wiki。**
 
@@ -65,21 +65,27 @@ RAG 三步 —— 检索 → 增强 → 生成。给 AI 它本来不知道的知
 ```typescript
 // ① 私有知识库：你的资料
 const knowledgeBase = [
-  { doc: "退款政策：购买后7天内无条件退款，需保留订单号。", source: "refund.md" },
-  { doc: "发票政策：电子发票付款后24小时内发到注册邮箱。", source: "invoice.md" },
+  {
+    doc: "退款政策：购买后7天内无条件退款，需保留订单号。",
+    source: "refund.md",
+  },
+  {
+    doc: "发票政策：电子发票付款后24小时内发到注册邮箱。",
+    source: "invoice.md",
+  },
   { doc: "会员规则：年费会员只退未使用月份的费用。", source: "member.md" },
 ];
 
 // ② 检索：用户问"能退款吗？"→ 在所有文档里找到最相关的 top-3
 function retrieve(question: string) {
-  const qVector = embed(question);        // 把问题转成向量（数字数组）
+  const qVector = embed(question); // 把问题转成向量（数字数组）
   const hits = knowledgeBase
     .map((entry) => ({
       ...entry,
       score: cosineSimilarity(qVector, embed(entry.doc)), // 算相似度
     }))
-    .sort((a, b) => b.score - a.score)   // 最相关的排前面
-    .slice(0, 3);                         // 只取 top-3
+    .sort((a, b) => b.score - a.score) // 最相关的排前面
+    .slice(0, 3); // 只取 top-3
   return hits;
 }
 
@@ -97,13 +103,16 @@ async function ask(question: string) {
   const context = buildContext(hits);
   const response = await callLLM({
     model: "deepseek-chat",
-    messages: [{
-      role: "system",
-      content: "你是一个客服。只根据提供的资料回答，资料里没有的就说不知道。",
-    }, {
-      role: "user",
-      content: `参考资料：\n${context}\n\n用户问题：${question}`,
-    }],
+    messages: [
+      {
+        role: "system",
+        content: "你是一个客服。只根据提供的资料回答，资料里没有的就说不知道。",
+      },
+      {
+        role: "user",
+        content: `参考资料：\n${context}\n\n用户问题：${question}`,
+      },
+    ],
   });
   return response;
 }

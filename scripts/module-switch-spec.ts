@@ -77,7 +77,11 @@ test("ensureModule：切换到不同模块，清空旧模块消息", () => {
   useSessionStore.setState({
     messages: [
       msg({ role: "student", content: "RAG 是什么？", step: "explain" }),
-      msg({ role: "assistant", content: "RAG 是检索增强生成", step: "explain" }),
+      msg({
+        role: "assistant",
+        content: "RAG 是检索增强生成",
+        step: "explain",
+      }),
     ],
     activeModuleId: "rag",
   });
