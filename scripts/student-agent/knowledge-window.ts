@@ -188,6 +188,28 @@ const MODULE_VOCABULARY: Record<string, Record<string, string>> = {
   },
 };
 
+// ---- 泛词白名单 ----
+//
+// 这些词既是「未来模块才正式定义」的术语，又是日常代码/注释里的高频泛词
+// （变量名、标识符、英文单词）。把它们当「概念泄漏」会大量误报（pilot 实测
+// agent/tool/multi-agent 误报 5 处），淹没真正的断层信号。
+//
+// 判定规则：术语本身或其任一拆分片段（连字符 / 驼峰）命中白名单 → 跳过，
+// 不作为泄漏上报。真实断层仍由具体模块术语（如 `mcp server`、`rag 检索`）
+// 捕获，不受影响。
+const GENERIC_WHITELIST = new Set<string>([
+  "agent", // 误报源：agent-loop 才定义，但 agent 是泛词
+  "tool", // 误报源：tool-calling 才定义，tool 是泛词
+  "multi-agent", // 误报源：multi-agent 模块才定义，拆出的 agent 也是泛词
+]);
+
+/** 术语（或其拆分片段）是否命中泛词白名单。 */
+function isGenericTerm(termName: string): boolean {
+  if (GENERIC_WHITELIST.has(termName)) return true;
+  const parts = [...termName.split("-"), ...splitCamelCase(termName)];
+  return parts.some((p) => GENERIC_WHITELIST.has(p));
+}
+
 // ---- 模块顺序 ----
 
 export const MODULE_ORDER = [
@@ -320,6 +342,9 @@ export class KnowledgeWindow {
     for (const [termName, definedIn] of futureTerms) {
       // 跳过太短的词（容易误匹配）
       if (termName.length < 3) continue;
+
+      // 跳过泛词（agent/tool/multi-agent 等）—— 见 GENERIC_WHITELIST 注释
+      if (isGenericTerm(termName)) continue;
 
       // 尝试多种匹配方式
       const patterns = [

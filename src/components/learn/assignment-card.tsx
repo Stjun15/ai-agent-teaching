@@ -59,6 +59,10 @@ export function AssignmentCard({ moduleId }: { moduleId: string }) {
       <div className="px-3 py-2 text-sm leading-relaxed">
         <MarkdownView source={assignment} />
       </div>
+      <div className="border-t bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
+        提交前，请在上方编辑器选择与本作业相符的「交付类型」（Prompt / 工具描述
+        / 代码）—— 点评按所选类型取评分标准，选错会得到不相关的建议。
+      </div>
     </div>
   );
 }
