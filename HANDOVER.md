@@ -1,28 +1,42 @@
-# 接手文档 — 2026-10-07（当日 19:20 更新：三步全部完成）
+# 接手文档 — 2026-10-07（当日 19:40 更新：三步完成 + 理念核验 + 三处新断点）
 
 > 上一份（2026-10-06）的「课程审计员」命题已经走完一个完整闭环：**学生 Agent 试点审计 → 抓出 2 个 critical → 根因定位 → 修复 → 缓存重生成 → 浏览器验证**。本文件记录这个闭环，以及扇出与产品内审计员的落地结果。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
 
 ---
 
-## 〇、当前状态速查（2026-10-07 19:20）
+## 〇、当前状态速查（2026-10-07 19:40）
 
 | 项           | 事实                                                                            |
 | ------------ | ------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `2605173`                                                               |
-| 与远端       | **完全同步**（`git ls-remote` 直连核对）                                        |
-| 工作区       | 只剩 `HANDOVER.md` 未提交（作者笔记）                                           |
-| 仓库完整性   | `write-tree` == `HEAD^{tree}` 逐字符相等；`git fsck` missing 0                  |
+| 分支 / HEAD  | `dev` @ `12c7546`（提交总数 **503**）                                           |
+| 与远端       | **⚠️ 未核实** —— 裸连 GitHub 超时、代理 502，两种方式都核不上去。见下方说明     |
+| 工作区       | **完全干净**（`git status --short` = 0 行），本文件已入库                       |
+| 仓库完整性   | `write-tree` == `HEAD^{tree}` 逐字符相等（`333de924…`）；`git fsck` 无 missing  |
 | 门禁         | `pnpm check` **0 error**、prettier 全过、`tsc` 0 错                             |
-| 当日提交     | **27 个**（11 fix / 6 feat / 5 test / 2 chore / 1 style / 1 refactor / 1 docs） |
+| 当日提交     | **30 个**（12 fix / 6 feat / 3 docs / 4 test / 1 refactor / 1 style / 2 chore） |
+| 标签         | `v0.1.0` ~ `v0.4.0` + 一个 `dev-phase5-backup`                                  |
 | 产品内审计员 | **可用**：`/audit` 页 + `/api/audit`，DB 里 11 讲已审、3 缺陷                   |
 | 三步进度     | 第 0/1/2 步 ✅ 全部完成（见下）                                                 |
+| 测试套件     | 44 组，每次全跑无跳过；3 组真模型。**当前 1 组失败**（测试自身竞态，见 4.3）    |
 
-**仍未闭合的三项（等作者裁定，本轮未动）**：
+### ⚠️ 关于「与远端」为什么写「未核实」
+
+本机 `.git/refs/remotes/origin/` 今天已**整个消失 3 次**。此时 `git rev-list origin/dev..HEAD` 会**静默返回空**，看着像「已同步」—— 实则是本地没有远端引用可比。
+
+两种核验方式本次都失败：
+
+- 裸连（`env -u HTTP_PROXY … git ls-remote`）→ `Failed to connect to github.com:443 after 21081 ms`
+- 经代理（`git ls-remote`）→ `CONNECT tunnel failed, response 502`
+
+**接手后第一件事**：网络通时重跑 `git ls-remote origin dev`，与本地 `12c7546` 对比。若不一致，`git push origin dev`。
+
+### 仍未闭合的两项（等作者裁定，本轮未动）
 
 1. `ark-config.ts` 视觉模型 `pro-260915` vs `turbo-260628` —— 与 `AGENTS.md` 第五节、`ark.ts:9`、`schemas/api.ts:213`、`.env.example:27` **四处记载矛盾**，已 `git checkout --` 还原保持工作区干净
-2. 5 个实验脚本去留 —— 已移到 `student-agent-output/_untracked-demos/`（改名代替删除，可逆）
-3. `HANDOVER.md` 是否入库（本文件，唯一未提交文件）
+2. 5 个实验脚本去留 —— 在 `student-agent-output/_untracked-demos/`（改名代替删除，可逆）。**注意其中 2 个已损坏，见 4.3**
+
+> ~~3. `HANDOVER.md` 是否入库~~ —— **已裁定并完成**（提交 `7c2895b`），本文件现为入库状态。
 
 ---
 
@@ -178,6 +192,75 @@
 
 **修法方向**：铁律 5 要显式延伸到 thinking，并给出**替换口径**（该说什么，而不只是禁止说什么）。⚠️ 改结构节后**必须 `--force` 重跑 `generate-lecture-cache.ts`**，否则缓存讲稿与现场口径脱节。
 
+**硬证据（19:26 核验）**：
+
+- `teaching-chat.ts:63-64` 铁律 4 原文「学生可以看到你的推理（thinking）」；`:65-69` 铁律 5 **通篇不提thinking** → 模型在 thinking 里复述禁令是**被现有提示词允许的**。
+- `002_lecture_cache.sql` 的 `lecture_cache` 表**只有** `content` / `model` / `input_tokens` / `output_tokens` / `created_at`，**没有任何思维链字段** → 思维链只在 SSE 流里实时产生，**不进缓存**。
+
+### 4.3 本轮新发现：模拟真实学生 Agent 的三处断点（19:31核验，未修）
+
+先纠正一处可能的误读：`src/lib/agent/student/` 不是「产品里的子智能体」，而是**离线课程审计工具**。`grep -rn 'agent/student' src/` **返回空** —— 产品运行时零引用。
+
+**已实现的部分（1598 行，是真的）**：
+
+| 文件                        | 行数 | 职责                                          |
+| --------------------------- | ---- | --------------------------------------------- |
+| `screen-describer.ts`       | 547  | See「眼睛」：DOM 语义区域 + VLM 兜底          |
+| `action-executor.ts`        | 335  | Act「手」：Playwright 真实操作 + 真人时间噪声 |
+| `comprehension-verifier.ts` | 593  | Verify：三条线索判断「真懂了」                |
+| `types.ts`                  | 123  | 6 种认知状态 + 遗忘曲线 `MemoryEntry`         |
+
+**已跑出真实数据**：`student-agent-output/autonomous-run-log.json`（10-05 21:24）—— 理解度 0.79 起步，学生自主提问「任务分解和写代码有什么关系啊？能不能举个例子？」，认知状态 `normal` 保持 3 轮。
+
+**三处断点**：
+
+| #   | 断点                         | 证据                                                                                                                                                 | 影响                                                                                             |
+| --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1   | **产品运行时零引用**         | `grep -rn 'agent/student' src/` 空；调用方只有 `scripts/student-agent/curriculum-audit.ts`（1645 行）与实验目录                                      | 评审若问「学生怎么用上模拟学生」答不上来。**需作者定方向**（见第七节）                           |
+| 2   | **630 行主脚本从未入库**     | `git ls-files \| grep autonomous` **返回空**；只在未跟踪的 `_untracked-demos/`                                                                       | 克隆仓库的人拿不到。且其运行指令写 `--module=ts-basics`，而 `python-basics` 已退役、现只剩 11 讲 |
+| 3   | **两个实验脚本首字符被写坏** | `student-autonomous-run.ts` 首字符是 `x`（应为 `/`）、`comprehension-verify-demo.ts` 是 `ia`；`tsc --ignoreConfig` 报 `TS2304: Cannot find name 'x'` | 这两个脚本现在跑不起来                                                                           |
+
+⚠️ **断点 3 与今天挖出的裸 NUL 字节同源** —— 都是「写文件」这个动作本身会污染内容。**新写或改的 `.ts` 脚本入库前必须单跑一次**：
+
+```bash
+npx tsc --noEmit --ignoreConfig --skipLibCheck \
+  --target es2022 --module esnext --moduleResolution bundler <file>
+```
+
+`prettier` / `eslint` **抓不到**（该目录在 `tsconfig.json` 的 `exclude` 与 `eslint.config.mjs` 的 `globalIgnores` 里，两处都跳过）。
+
+### 4.4 测试套件的既存偶发失败（19:26 实测，非本轮改动）
+
+`pnpm test` 44 组跑完，**1 组失败**：`thinking-seal-spec.ts:176` 差 1 毫秒（`…698` vs `…699`）。
+
+**根因在测试，不在产品**：
+
+- 生产代码是对的 —— `session.ts:671/689/718` 三处都先取 `const sealedAt = Date.now()`，再同时传给 `closeThinking` 与 `closeMessageThinking`，**保证同毫秒**。
+- 测试写坏了 —— 它在 `done` 事件前 `await flush()`（`setTimeout 0`），把两处封口拆到两次事件循环里，于是各自调 `Date.now()` 就跨了毫秒。
+
+该spec 最后一次改动是 `6cdf6a8`（10-07 16:54），**不是本轮改动**。修法：让测试在**同一个同步块**内驱动两个封口，别用 `flush()` 制造时序。
+
+### 4.5 三组真模型测试：确认存在且每轮都跑（19:26 实测）
+
+| 核验点       | 事实                                                                              |
+| ------------ | --------------------------------------------------------------------------------- |
+| 有无跳过机制 | **无** —— `run-tests.mjs` 的 `SUITES` 无 argv 过滤、无 `skip` 分支，44 组每次全跑 |
+| 真模型组     | 3 组（`run-tests.mjs:204/209/214`）：点评 / 讲解 / 出题 Agent                     |
+| 实际调用     | 每组各 1 次 `runAgent()` → `src/lib/agent/runtime.ts` → Ark 真实模型 + Zod 校验   |
+| 本轮实跑     | 3 分 21 秒                                                                        |
+
+⚠️ **但这 3 组测的是 Agent 输出契约合法性，与思维链泄漏无关**。查泄漏别指望它们。
+
+### 4.6 设计文档与实现的两处不符（未改，等作者裁定）
+
+| 位置                         | 文档写的                                                | 实际                                                                                                |
+| ---------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `00-MASTER.md:60` Agent 底座 | `piagentSDK`                                            | `@earendil-works/pi-coding-agent@0.85.1`（已跑通）                                                  |
+| `00-MASTER.md:162` 预设工具  | 5 个（计算器/天气/文件读写/网络搜索/数据库查询）        | **只1 个**：`src/lib/agent/tools/calculator.ts`；`loop.ts:455` 白名单就一行 `[calculatorTool.name]` |
+| `00-MASTER.md:51-75` 技术栈  | Next.js 14 / Recharts / Dexie / Vitest / TanStack Query | Next.js **16.3.5**；后四者 `package.json` **查无此包**                                              |
+
+5 个工具只做 1 个，按`00-MASTER.md:20`「不训练这些能力的功能，不做」的标准**是符合自己理念的** —— 但设计文档没同步改，评审会被问「说好的 5 个呢」。**需作者裁定**。
+
 ---
 
 ## 五、关键文件速查
@@ -193,34 +276,58 @@
 ├── scripts/thinking-attribution-spec.ts ← 思维链归属回归 2 例
 ├── scripts/run-tests.mjs               ← 新组：分屏消息过滤 / 思维链归属
 ├── src/app/api/audit/evaluate/route.ts ← 审计评估代理（rate-limit audit 桶）
-├── src/lib/agent/student/              ← screen-describer（支持 proxyUrl）/ action-executor / comprehension-verifier
-└── scripts/student-agent/              ← curriculum-audit.ts（Playwright 独立栈，已被子智能体路线部分替代）
+├── src/lib/agent/student/              ← 模拟真实学生 Agent（1598 行）：
+│                                          screen-describer（See）/ action-executor（Act）
+│                                          comprehension-verifier（Verify）/ types
+│                                          ⚠️ 产品运行时零引用，是离线审计工具，见 4.3
+└── scripts/student-agent/              ← curriculum-audit.ts（1645 行，扇出审计的编排器）
                                            knowledge-window.ts（12 模块词汇表 + detectLeaks，纯函数）
-                                           student-autonomous-run.ts 等 5 个 demo（未提交）
+                                           run.ts / run-chain.ts / persona.ts / grounding-analysis.ts
+                                           ⚠️ 5 个 demo 在 _untracked-demos/ 且未入库，其中 2 个已损坏
+
+产品内审计员（已入库，19:40 复核）
+├── src/lib/audit/deterministic.ts       ← 五项确定性检查（471 行）
+├── src/lib/audit/orchestrator.ts        ← 审计编排
+├── src/app/api/audit/route.ts           ← GET 读结果 / POST 触发（两桶限流）
+├── src/app/audit/page.tsx+ src/components/report/audit-*.tsx ← 报告页（拆成 5 个文件）
+├── scripts/audit-page-acceptance.mjs   ← CDP 浏览器验收 12 条断言
+└── src/lib/db/migrations/005_audit_score_columns.sql ← 列名语义修正
+```
 
 试点产出（gitignored，student-agent-output/pilot/）
-├── curriculum-audit-pilot-report.md    ← 主报告 + 修复附录（本轮最完整的记录）
-├── ts-basics/                          ← 截图 ×5、证据链 ×4、裁判裁决 ×2
+├── curriculum-audit-pilot-report.md ← 主报告 + 修复附录（本轮最完整的记录）
+├── ts-basics/ ← 截图 ×5、证据链 ×4、裁判裁决 ×2
 └── leak-scan.ts / leak-scan-result.json ← 确定性泄漏扫描（可重跑，跑全部模块缓存）
-```
+
+````
 
 **产品内审计员的设计修正（下一轮核心）**：HANDOVER 10-06 第 2 步方案继续有效（Skill + 编排循环 + audit_findings 落库 + 前端报告页），但**不需要浏览器**——可读性/可及性/泄漏直接读 wiki 源文件 + `lecture_cache` 表即可算；「页面可达性」审计才需要浏览器，那项交给子智能体在开发期做。审计发现分类法直接复用 `curriculum-audit.ts` 的 AuditFinding（severity × dimension）。
 
 ---
 
-## 六、Git 状态（2026-10-07 19:20 实测）
+## 六、Git 状态（2026-10-07 19:40 实测）
 
 ```bash
-# 分支：dev；HEAD = 2605173 "style: prettier 格式化（7 个 wiki 概念页 + AGENTS.md + 一个 spec）"
-# 与远端：完全同步（git ls-remote origin dev 直连核对 = 2605173）
-# 工作区判定：git write-tree == HEAD^{tree} 为真（93390102…）；git fsck missing 0
-# 未提交：仅 HANDOVER.md（本文件，作者笔记）
+# 分支：dev；HEAD = 12c7546 "fix(audit): 去掉 deterministic.ts 里的两个裸 NUL 字节"
+# 提交总数：503；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
+# 与远端：⚠️ 未核实（裸连超时 21081ms、代理 502）—— 接手后第一件事重核，见第〇节
+# 工作区判定：git write-tree == HEAD^{tree} 为真（333de924…）；git fsck 无 missing
+# 未提交：无（工作区完全干净）
 
 # 移交时（10-07 上午）的三类 WIP 已全部消化为提交：
 #   ① 语言断层修复 → 23b2882（wiki）+ 8f67b34（代码）
 #   ② ExplainNextButton → 931cd53
 #   ③ 5 个实验脚本 → 移出仓库到 student-agent-output/_untracked-demos/（可逆）
-```
+#      ⚠️ 其中 2 个首字符被写坏，跑不起来，见 4.3 断点 3
+
+# 当日 30 个提交里，与本轮接手相关的 6 个：
+#   4e4deb5 fix(audit): 修正 module_audits 列名语义并追加迁移
+#   921645b / 6af67e8 / 5fa8bf4 / f5d7df4  审计员四层
+#   c04c059 / a18d0e1  /audit 页 + 12 条 CDP 验收
+#   2605173 style: prettier 格式化
+#   6d41cc5 / 7c2895b  AGENTS.md 与本文件
+#   12c7546 fix(audit): 去掉 deterministic.ts 里的两个裸 NUL 字节
+````
 
 **⚠️ 本机 git 地雷（`AGENTS.md` 第四节有完整版）**：
 
@@ -251,19 +358,31 @@
 
 ### 第 4 步建议（按优先级，均为**未闭合**项）
 
-| 优先级 | 事项                                                     | 依据                                                                           |
-| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| P0     | system-prompt observe 回复 `error`                       | 扇出唯一 critical，学习路径断死                                                |
-| P0     | 思维链泄漏内部口径 —— **修铁律 5 并 `--force` 重跑缓存** | 10/10 讲，直接违反「零基础」产品承诺；机制性根因已定位（见 4.2）               |
-| P1     | 讲稿与概念页的**内容**对齐（渲染层已修，内容层未修）     | 8/10 命中；审计员仍报 3 条                                                     |
-| P1     | 术语断层 3 条改讲稿                                      | 审计员已定位到具体词（`llm-api` 上下文 / `tool-calling` Agent / 另一条待复核） |
-| P1     | `ExplainColdStart` 死代码                                | 主交付讲，`explainReadability` 3.5 全场最低                                    |
-| P2     | 双任务冲突加仲裁文案                                     | 3/10 命中                                                                      |
-| P2     | 4 讲未过示范代码验收线                                   | ai-safety 4.5 最低                                                             |
-| P3     | 编辑器标签页与任务错配                                   | 4/10 命中                                                                      |
-| P3     | 登录表单提交后不跳转                                     | 10/10 采集者遇到，零确认                                                       |
-| P3     | 生成器自动重试（带字段级错误反馈）                       | 现为「拒写 + 重跑提示」                                                        |
-| P3     | 知识窗泛词白名单（`agent`/`tool`/`multi-agent` 误报）    | 影响确定性检查可用性                                                           |
+| 优先级 | 事项                                                     | 依据                                                                                |
+| ------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **P0** | **核验并推送远端**（本轮核不上，见第〇节）               | 本地 503提交是否真在远端未知，接手第一件事                                          |
+| P0     | system-prompt observe 回复 `error`                       | 扇出唯一 critical，学习路径断死                                                     |
+| P0     | 思维链泄漏内部口径 —— **修铁律 5 并 `--force` 重跑缓存** | 10/10 讲，直接违反「零基础」产品承诺；机制性根因已定位（见 4.2）                    |
+| P1     | **修 2 个损坏的实验脚本**（首字符 `x` / `ia`，见 4.3）   | 纯修复、零风险；`tsc` 报 `TS2304: Cannot find name 'x'`                             |
+| P1     | **`student-autonomous-run.ts` 入库**（630 行，见 4.3）   | 最完整的自主学习脚本从未进仓库，克隆的人拿不到；顺带改掉过时的 `--module=ts-basics` |
+| P1     | 讲稿与概念页的**内容**对齐（渲染层已修，内容层未修）     | 8/10 命中；审计员仍报 3 条                                                          |
+| P1     | 术语断层 3 条改讲稿                                      | 审计员已定位到具体词（`llm-api` 上下文 / `tool-calling` Agent / 另一条待复核）      |
+| P1     | `ExplainColdStart` 死代码                                | 主交付讲，`explainReadability` 3.5 全场最低                                         |
+| P2     | 双任务冲突加仲裁文案                                     | 3/10 命中                                                                           |
+| P2     | 4 讲未过示范代码验收线                                   | ai-safety 4.5 最低                                                                  |
+| P2     | 修 `thinking-seal-spec` 的毫秒竞态（见 4.4）             | 测试自身问题，非产品缺陷；`pnpm test` 当前 1 组失败                                 |
+| P3     | 编辑器标签页与任务错配                                   | 4/10 命中                                                                           |
+| P3     | 登录表单提交后不跳转                                     | 10/10 采集者遇到，零确认                                                            |
+| P3     | 生成器自动重试（带字段级错误反馈）                       | 现为「拒写 + 重跑提示」                                                             |
+| P3     | 知识窗泛词白名单（`agent`/`tool`/`multi-agent` 误报）    | 影响确定性检查可用性                                                                |
+
+### 需要作者裁定的三件事（19:40 汇总，均**未动**）
+
+| #   | 问题                                                | 选项                                                                                                                                                                                            |
+| --- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **模拟学生 Agent 的定位**（见 4.3 断点 1）          | **A** 诚实定位成「课程质量审计工具」，改`00-MASTER.md` 写明，评审讲「用 Agent 审计 Agent 教学内容」<br>**B** 真接进产品做「AI 学生陪练」，让真人学生和模拟学生一起学—— 差异化最强，工作量也最大 |
+| 2   | **5 个预设工具只做 1 个**是有意还是没做完（见 4.6） | 按`00-MASTER.md:20`「不训练这些能力的功能，不做」的标准，砍掉 4 个**符合自己理念**，但设计文档要同步改，否则评审会问「说好的 5 个呢」                                                           |
+| 3   | **思维链泄漏的验证方案** A / B / 改做 P0            | **A** 给 `deterministic.ts` 加内部词表检查（可回归，但**查不了 thinking**）<br>**B** `--force` 重跑时抽 2-3 讲人眼看思维链（**唯一**能验证 thinking 的路径，不可自动化）<br>建议 A + B 组合     |
 
 ### 做判定类缺陷时的两条纪律（本轮学费）
 
@@ -274,7 +393,10 @@
 
 ## 八、注意事项
 
-1. ~~**不要用 Playwright 版 `curriculum-audit.ts` 跑全量审计**~~ —— **已作废**。产品化后的判据在 `src/lib/audit/deterministic.ts`，编排入口 `src/lib/audit/orchestrator.ts`。旧文件（`scripts/student-agent/curriculum-audit.ts`）认知状态机是硬编码的，只当历史参考。子智能体路线（浏览器 + 人格提示词）仍是验证「页面可达性」的正路。
+1. **两套审计栈并存，用途不同，别混**：
+   - `src/lib/audit/deterministic.ts` + `orchestrator.ts`（已入库，`/audit` 页调用）—— **产品内的确定性检查**，读 wiki + `lecture_cache`，五项维度，**不需要浏览器**。这是**日常回归门禁**。
+   - `scripts/student-agent/curriculum-audit.ts`（1645 行，gitignored 产物）—— **带视觉学生的深度审计**，Playwright 独立栈，认知状态机驱动，能问出「这讲我没懂」这种真实反馈。10-07 扇出 10 讲 + 抓出 11 项缺陷**用的是这套**。10-06 曾写它「已作废」，**那是误判** —— 作废的只是它的**硬编码认知状态机**，不是整条线。
+   - 换句话说：**要快速回归用前者，要发现深层次教学缺陷用后者**。后者是理念的载体（见 4.3）。
 2. **改讲解提示词的结构节必须重跑缓存生成器**（`--force`），否则「缓存讲稿」与「现场口径」脱节；生成器拒写缺任务节的讲稿时，先怀疑提示词结构声明，不是模型。
 3. **视觉评估必须用视觉模型**（代理端点 vision 类型已自动选）；`proxyUrl` 模型选择逻辑在端点内。
 4. **知识窗词汇表是手工维护的**（`knowledge-window.ts`）——加模块/改术语必须同步。⚠️ 它是**泛词**（`agent`/`tool`/`multi-agent`），泄漏扫描误报 4 处全来自这里，产品化时需加白名单。
@@ -286,3 +408,14 @@
 10. **鉴权头是 `x-auth-token`**（`src/lib/student-id.ts`），不是 `Authorization: Bearer`；`x-student-id` 路径要求身份已存在否则 404。最省事是打 `/api/auth/register` 换真令牌。
 11. **`eslint.config.mjs` 的 `globalIgnores` 与 `tsconfig.json` 的 `exclude` 是同一份清单**，改一份就要想另一份 —— 只改 tsconfig 会让门禁扫进 gitignored 产物目录（10-07 因此报 23 个 error）。
 12. **`npx tsx -e "..."` 在本机静默无输出**，临时查库要写成 `.ts` 文件再 `npx tsx <file>`。
+13. ⚠️ **「写文件」这个动作本身会污染内容** —— 今日两次踩坑同源：`deterministic.ts` 混入 2 个**裸 NUL 字节**（当字段分隔符），`_untracked-demos/` 两个脚本**首字符被写成 `x` / `ia`。共同特征是**门禁全绿但内容已坏**：
+    - 裸 NUL 让 `grep` 报 `binary file matches`，`tsc`/`prettier`/`eslint` **整个跳过该文件**；
+    - 首字符污染的文件在 `exclude` 目录里，`prettier`/`eslint` 也跳过。
+    - **防御手段**：新写/改的 `.ts` 脚本入库前单跑一次 `npx tsc --noEmit --ignoreConfig --skipLibCheck --target es2022 --module esnext --moduleResolution bundler <file>`。`--ignoreConfig` 不可省（否则报 TS5112）。
+14. ⚠️ **判断「泄漏」前先分清是哪一种泄漏**，两者工具完全不同：
+    - **跨模块知识泄漏** = 后续模块的词汇提前出现在本讲**代码块**里 → 用 `student-agent-output/pilot/leak-scan.ts` / `knowledge-window.ts` 的 `detectLeaks` 能测；
+    - **内部口径泄漏** = 思维链复述系统内部词（铁律/掌握度/门禁/编排层）→ **现有工具一个都测不到**，因为思维链不进缓存（见 4.2）。
+    - 说错了会导致「修完用错工具验收 → 假绿灯」。
+15. ⚠️ **核验远端同步不能只看 `git rev-list origin/dev..HEAD`** —— `.git/refs/remotes/origin/` 消失时它**静默返回空**，看着像「已同步」。必须 `git ls-remote`。且本机网络两种方式都可能失败（裸连超时 / 代理 502），**核不上就写「未核实」，不要猜**。
+16. **改一份未提交的文件前，先 `git show HEAD:<path>` 确认基线** —— 本机「工作区状态与 HEAD 不一致」是常态，否则会把入库的有效内容误判成「我删了东西」。
+17. **`pnpm test` 全绿 ≠ 门禁全绿** —— 测试不跑 `tsc`。今日 `AGENTS.md` 第二节曾写「`npm run check` 全绿」，实际当时有 3 条 `tsc` error + build 失败，被测试全绿掩盖了。三者独立：`pnpm check` = eslint + prettier --check + tsc。
