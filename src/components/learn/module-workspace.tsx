@@ -19,6 +19,7 @@ import { CitationPanel } from "@/components/chat/citation-panel";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
 import { ExplainColdStart } from "@/components/learn/explain-cold-start";
+import { ExplainNextButton } from "@/components/learn/explain-next-button";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
 import { lectureOpenerPrompt } from "@/lib/lecture-openers";
 import { TokenCounter } from "@/components/chat/token-counter";
@@ -48,7 +49,7 @@ function sceneLabel(sceneId: string): string {
  */
 /**
  * 冷启动交互卡的适用集合。2026-10-01 收窄到只剩 platform-replica：
- * python-basics / ts-basics 的讲稿缓存早已生成（lecture_cache 表 model 列
+ * ts-basics 的讲稿缓存早已生成（lecture_cache 表 model 列
  * 可查），却因在此集合内永远用不上；「开始对聊」点下去反而是一次现场等
  * 模型的调用。统一为与其余九讲相同——LectureLauncher 自动种入缓存讲稿，
  * 点开即有（学生 Agent 全链路模拟也是按这个口径验证的）。
@@ -267,6 +268,7 @@ export function ModuleWorkspace({
                           )}
                         />
                       )}
+                      <ExplainNextButton moduleId={teachingModule.id} />
                       <Composer
                         step={currentStepId}
                         moduleId={teachingModule.id}
