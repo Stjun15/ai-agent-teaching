@@ -9,6 +9,7 @@ import {
   FlaskConical,
   LineChart,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -42,6 +43,8 @@ const NAV_ITEMS: readonly NavItem[] = [
     status: "ready",
   },
   { href: "/report", label: "学习报告", icon: LineChart, status: "ready" },
+  // 课程审计：对我们自己内容的检查，区别于 /report 的学生成绩单。
+  { href: "/audit", label: "课程审计", icon: ShieldCheck, status: "ready" },
   { href: "/settings", label: "设置", icon: Settings, status: "ready" },
 ];
 
