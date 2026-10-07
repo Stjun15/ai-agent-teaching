@@ -220,6 +220,9 @@ test("规则表覆盖全部受限端点，且额度与窗口为正", () => {
     "answer-grade",
     // 课程审计评估代理（/api/audit/evaluate，本地审计工具用）。
     "audit",
+    // 触发课程审计（/api/audit 的 POST）。额度刻意压得比 audit 低：
+    // 一次审计要扫全 wiki + 全部讲稿缓存，是重活，不是轻量查询。
+    "curriculum-audit",
   ];
   assert.deepEqual(
     Object.keys(RATE_LIMIT_RULES).sort(),
