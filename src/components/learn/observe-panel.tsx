@@ -118,11 +118,10 @@ export function ObservePanel({
           <div className="flex flex-col gap-3">
             {segments.map((segment, index) =>
               segment.kind === "code" ? (
-                <li
-                  key={index}
-                  className="rounded-lg border bg-card"
-                  style={{ listStyle: "none" }}
-                >
+                // 用 div 而不是 li —— 这里的父容器是 div，li 在 div 里
+                // 是非法嵌套，HTML 解析器会把它整条丢掉（表现为代码卡片
+                // 在浏览器里消失，而 SSR 的 HTML 里也搜不到「示范 1」）。
+                <div key={index} className="rounded-lg border bg-card">
                   <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-1.5">
                     <span className="text-xs font-medium">
                       示范 {segment.ordinal}
@@ -151,7 +150,7 @@ export function ObservePanel({
                       "\n```"
                     }
                   />
-                </li>
+                </div>
               ) : (
                 // 代码块之间的说明与类比：原样渲染，不丢。
                 <MarkdownView key={index} source={segment.source} />
