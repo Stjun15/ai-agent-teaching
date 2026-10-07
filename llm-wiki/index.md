@@ -26,7 +26,6 @@ last_updated: 2026-10-05
 | [multi-agent](./concepts/multi-agent.md)           | 多 Agent 协作      | 5    | 已建 |
 | [mcp](./concepts/mcp.md)                           | MCP 工具集成       | 4    | 已建 |
 | [ai-safety](./concepts/ai-safety.md)               | AI 安全与可控性    | 4    | 已建 |
-| [python-basics](./concepts/python-basics.md)       | Python 基础        | 1    | 已建 |
 | [ts-basics](./concepts/ts-basics.md)               | TypeScript 基础    | 1    | 已建 |
 | [platform-replica](./concepts/platform-replica.md) | 平台复刻           | 5    | 已建 |
 
@@ -78,15 +77,15 @@ last_updated: 2026-10-05
 
 | 页面                                                       | 名称          | 状态 |
 | ---------------------------------------------------------- | ------------- | ---- |
-| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 已建 |
-| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 已建 |
-| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 已建 |
-| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 已建 |
-| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 已建 |
-| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 已建 |
-| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 已建 |
-| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 已建 |
-| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 已建 |
+| [01-chatbot](./projects/01-chatbot/)                       | 聊天机器人    | 待建 |
+| [02-persona-bot](./projects/02-persona-bot/)               | 人格机器人    | 待建 |
+| [03-weather-agent](./projects/03-weather-agent/)           | 天气 Agent    | 待建 |
+| [04-multi-tool-agent](./projects/04-multi-tool-agent/)     | 多工具 Agent  | 待建 |
+| [05-rag-agent](./projects/05-rag-agent/)                   | RAG Agent     | 待建 |
+| [06-wiki-agent](./projects/06-wiki-agent/)                 | Wiki Agent    | 待建 |
+| [07-multi-agent-system](./projects/07-multi-agent-system/) | 多 Agent 系统 | 待建 |
+| [08-mcp-agent](./projects/08-mcp-agent/)                   | MCP Agent     | 待建 |
+| [09-safe-agent](./projects/09-safe-agent/)                 | 安全 Agent    | 待建 |
 
 ## 测验（assessments/）
 

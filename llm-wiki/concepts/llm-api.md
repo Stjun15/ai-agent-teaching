@@ -3,7 +3,7 @@ type: concept
 last_updated: 2026-10-06
 id: llm-api
 name: LLM API 入门
-prerequisites: [python-basics, ts-basics]
+prerequisites: [ts-basics]
 difficulty: 1
 estimated_time: 30min
 tags: [core, api, prompt, token]
@@ -30,11 +30,11 @@ tags: [core, api, prompt, token]
 
 每次"传话"，你要告诉服务员三件事——但每件事的**说话人**不同：
 
-| 角色 | 干什么 | 举个栗子 |
-|------|--------|----------|
-| **system** 🎬 | 给 AI"定人设"：你是谁、怎么说话 | "你是一个耐心的编程助教" |
-| **user** 🙋 | 你真正想问的 | "Python 里的变量是什么？" |
-| **assistant** 🤖 | AI 的回答（上次对话） | "变量就像一个贴了标签的盒子…" |
+| 角色             | 干什么                          | 举个栗子                      |
+| ---------------- | ------------------------------- | ----------------------------- |
+| **system** 🎬    | 给 AI"定人设"：你是谁、怎么说话 | "你是一个耐心的编程助教"      |
+| **user** 🙋      | 你真正想问的                    | "Python 里的变量是什么？"     |
+| **assistant** 🤖 | AI 的回答（上次对话）           | "变量就像一个贴了标签的盒子…" |
 
 > 🛑 **停一下！** 你能用自己的话说出这三个角色的区别吗？system / user / assistant 各是干什么的？想三秒再看下面。
 
@@ -61,16 +61,16 @@ tags: [core, api, prompt, token]
 ```typescript
 // ① 准备一份"对话记录"——就像点菜单
 const messages = [
-  { role: "system", content: "你是一个友好的编程学习助手。" },  // ③ 定人设
-  { role: "user", content: "你好，请介绍一下自己。" },            // ④ 提需求
+  { role: "system", content: "你是一个友好的编程学习助手。" }, // ③ 定人设
+  { role: "user", content: "你好，请介绍一下自己。" }, // ④ 提需求
 ];
 
 // ② 把"点菜单"交给服务员（API）
 // ⑤ stream: true = 服务员一边炒菜一边往外端（打字机效果），不用等整碗面炒完
 const response = await callLLM({
-  model: "deepseek-chat",  // ⑥ 进哪个后厨
-  messages: messages,       // ⑦ 点菜单内容
-  stream: true,             // ⑧ 边做边上菜
+  model: "deepseek-chat", // ⑥ 进哪个后厨
+  messages: messages, // ⑦ 点菜单内容
+  stream: true, // ⑧ 边做边上菜
 });
 ```
 
