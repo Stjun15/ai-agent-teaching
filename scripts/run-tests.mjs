@@ -117,6 +117,16 @@ const SUITES = [
     model: false,
   },
   {
+    name: "分屏消息过滤",
+    file: "scripts/lecture-split-spec.ts",
+    model: false,
+  },
+  {
+    name: "思维链归属",
+    file: "scripts/thinking-attribution-spec.ts",
+    model: false,
+  },
+  {
     name: "冷启动 + 模块内容",
     file: "scripts/explain-cold-start-spec.ts",
     model: false,
