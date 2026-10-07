@@ -142,6 +142,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "确定性审计",
+    file: "scripts/audit-deterministic-spec.ts",
+    model: false,
+  },
+  {
     name: "冷启动 + 模块内容",
     file: "scripts/explain-cold-start-spec.ts",
     model: false,
