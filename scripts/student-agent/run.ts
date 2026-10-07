@@ -58,7 +58,7 @@ const getArg = (name: string): string | undefined =>
     .slice(1)
     .join("=");
 
-const moduleId = getArg("module") ?? "python-basics"; // 默认从教学链起点开始
+const moduleId = getArg("module") ?? "ts-basics"; // 默认从教学链起点开始
 const mode = (getArg("mode") ?? "diligent") as "diligent" | "sloppy";
 const BASE = "http://localhost:3000";
 const STUDENT_ID =

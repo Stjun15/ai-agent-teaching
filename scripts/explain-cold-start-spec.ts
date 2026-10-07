@@ -236,7 +236,7 @@ test("parsePathSelect：有标记但无完整版标题时返回 null", () => {
 test("parsePathSelect：intro 不含 YAML frontmatter", () => {
   const md = `---
 type: concept
-id: python-basics
+id: ts-basics
 ---
 # Python 基础
 
@@ -269,7 +269,7 @@ const MODULE_ID_RE = /^[a-z0-9-]+$/;
 
 test("MODULE_ID_RE：放行合法模块 ID", () => {
   assert.ok(MODULE_ID_RE.test("platform-replica"));
-  assert.ok(MODULE_ID_RE.test("python-basics"));
+  assert.ok(MODULE_ID_RE.test("ts-basics"));
   assert.ok(MODULE_ID_RE.test("ts-basics"));
   assert.ok(MODULE_ID_RE.test("a"));
   assert.ok(MODULE_ID_RE.test("abc-123-def"));
@@ -320,8 +320,8 @@ test("/api/module-content：ts-basics 返回 200", async () => {
   assert.ok(body.content.length > 100);
 });
 
-test("/api/module-content：python-basics 返回 200", async () => {
-  const res = await fetch(`${BASE}/api/module-content?moduleId=python-basics`);
+test("/api/module-content：ts-basics 返回 200", async () => {
+  const res = await fetch(`${BASE}/api/module-content?moduleId=ts-basics`);
   assert.equal(res.status, 200);
   const body = (await res.json()) as { content: string };
   assert.ok(body.content.length > 100);

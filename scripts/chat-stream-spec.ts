@@ -48,7 +48,7 @@ beforeEach(() => {
   useSessionStore.setState({
     messages: [],
     status: "idle",
-    activeModuleId: "python-basics",
+    activeModuleId: "ts-basics",
   });
 });
 
@@ -96,8 +96,8 @@ test("silent:true 的消息不插入学生消息", async () => {
 
   await act(async () => {
     await capturedSend!(
-      { content: "我已阅读完概念内容", moduleId: "python-basics" },
-      { silent: true, moduleId: "python-basics" },
+      { content: "我已阅读完概念内容", moduleId: "ts-basics" },
+      { silent: true, moduleId: "ts-basics" },
     );
   });
 
@@ -123,8 +123,8 @@ test("普通消息（非 silent）正常插入学生消息", async () => {
 
   await act(async () => {
     await capturedSend!(
-      { content: "偷懒版", step: "explain", moduleId: "python-basics" },
-      { moduleId: "python-basics" },
+      { content: "偷懒版", step: "explain", moduleId: "ts-basics" },
+      { moduleId: "ts-basics" },
     );
   });
 
@@ -153,8 +153,8 @@ test("silent:true 不构建历史 / 不发送 history 字段", async () => {
   // 第一条：普通消息
   await act(async () => {
     await capturedSend!(
-      { content: "你好", moduleId: "python-basics" },
-      { moduleId: "python-basics" },
+      { content: "你好", moduleId: "ts-basics" },
+      { moduleId: "ts-basics" },
     );
   });
 
@@ -163,8 +163,8 @@ test("silent:true 不构建历史 / 不发送 history 字段", async () => {
   // 第二条：silent
   await act(async () => {
     await capturedSend!(
-      { content: "我已阅读完", moduleId: "python-basics" },
-      { silent: true, moduleId: "python-basics" },
+      { content: "我已阅读完", moduleId: "ts-basics" },
+      { silent: true, moduleId: "ts-basics" },
     );
   });
 
@@ -193,8 +193,8 @@ test("非 silent 消息构建并发送历史", async () => {
   // 第一条消息（带 step 以便历史过滤匹配）
   await act(async () => {
     await capturedSend!(
-      { content: "你好", step: "explain", moduleId: "python-basics" },
-      { moduleId: "python-basics" },
+      { content: "你好", step: "explain", moduleId: "ts-basics" },
+      { moduleId: "ts-basics" },
     );
   });
 
@@ -203,8 +203,8 @@ test("非 silent 消息构建并发送历史", async () => {
   // 第二条：非 silent，应带历史（包含上一条 step="explain" 的消息）
   await act(async () => {
     await capturedSend!(
-      { content: "什么是变量？", step: "explain", moduleId: "python-basics" },
-      { moduleId: "python-basics" },
+      { content: "什么是变量？", step: "explain", moduleId: "ts-basics" },
+      { moduleId: "ts-basics" },
     );
   });
 

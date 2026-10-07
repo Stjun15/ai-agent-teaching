@@ -66,7 +66,7 @@ test("shouldHide：status=idle 且无旧消息时渲染", async () => {
   await act(async () => {
     render(
       createElement(ExplainColdStart, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         moduleName: "Python 基础速通",
       }),
     );
@@ -84,7 +84,7 @@ test("shouldHide：status=streaming 时不渲染", async () => {
   await act(async () => {
     const result = render(
       createElement(ExplainColdStart, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         moduleName: "Python 基础速通",
       }),
     );
@@ -137,7 +137,7 @@ test("shouldHide：status=done 时不渲染（讲稿已出现，不再需要冷�
   await act(async () => {
     const result = render(
       createElement(ExplainColdStart, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         moduleName: "Python 基础速通",
       }),
     );
@@ -152,7 +152,7 @@ test("shouldHide：status=aborted 时不渲染", async () => {
   await act(async () => {
     const result = render(
       createElement(ExplainColdStart, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         moduleName: "Python 基础速通",
       }),
     );

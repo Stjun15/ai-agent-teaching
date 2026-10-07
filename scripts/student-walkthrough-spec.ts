@@ -472,16 +472,6 @@ async function adminQuiz(
 
   // 统计提到几个模块关键词
   const moduleKeywords: Record<string, string[]> = {
-    "python-basics": [
-      "python",
-      "变量",
-      "函数",
-      "循环",
-      "dict",
-      "list",
-      "类型标注",
-      "for",
-    ],
     "ts-basics": [
       "typescript",
       "interface",
@@ -596,27 +586,10 @@ interface ModuleDef {
 
 const MODULES: ModuleDef[] = [
   {
-    id: "python-basics",
-    name: "Python 基础速通",
-    coldStartInstruction:
-      "你刚看到「Python 基础速通」这个标题。你心里想：我 Python 会一点点，" +
-      "但从来没用它写过和 AI 有关的东西。这个速通到底是干嘛的——是重学一遍 Python 还是学 AI 专用写法？",
-    outputKind: "code",
-    outputTask:
-      "写一段 Python 代码热身。要求：\n" +
-      "1) 定义一个函数 greet(name: str) -> str，返回问候语\n" +
-      "2) 用 if/else 判断一个分数是否及格（>= 60）\n" +
-      "3) 用 for 循环打印列表里的每一项\n" +
-      "4) 用一个 dict 存一个学生的信息（name, score, passed）\n" +
-      "5) 代码能直接 python 运行，单文件，不打任何包。",
-    outputFilename: "00-python-basics.py",
-  },
-  {
     id: "ts-basics",
     name: "TypeScript 基础速通",
     coldStartInstruction:
-      "你刚看到「TypeScript 基础速通」这个标题。你心里咯噔一下：TypeScript 是 JavaScript 的那个什么「加类型版」是吧？" +
-      "Python 好歹写过，这个完全没碰过——后面那些模块是不是都要用 TS 写？那我得先搞清楚最基本的。",
+      "你刚看到「TypeScript 基础速通」这个标题。你有点紧张：以前没碰过编程，TypeScript 听起来就很吓人。后面那些模块是不是都要用代码写？那我得先搞清楚最基本的。",
     outputKind: "code",
     outputTask:
       "写一段 TypeScript 代码热身。要求：\n" +
@@ -1230,11 +1203,11 @@ const REPLICA_STEPS: ReplicaStep[] = [
     context:
       "写 src/app/page.tsx（首页）。\n" +
       "要求：1) 标题「AI 教学平台」\n" +
-      "2) 列出 11 个模块作为导航——但模块名不准自己编！必须用下面这 11 个真实模块名：\n" +
-      "   Python 基础速通、TypeScript 基础速通、LLM API 基础、System Prompt 设计、\n" +
+      "2) 列出 10 个模块作为导航——但模块名不准自己编！必须用下面这 10 个真实模块名：\n" +
+      "   TypeScript 基础速通、LLM API 基础、System Prompt 设计、\n" +
       "   Agent Loop、工具调用、检索增强生成、LLM Wiki、多 Agent 协作、MCP 协议、AI 安全\n" +
       "3) 每个模块是 Next.js <Link href={`/modules/${module.id}`}> 指向对应页面\n" +
-      "   moduleId 用英文：python-basics, ts-basics, llm-api, system-prompt, agent-loop, tool-calling, rag, llm-wiki, multi-agent, mcp, ai-safety",
+      "   moduleId 用英文：ts-basics, llm-api, system-prompt, agent-loop, tool-calling, rag, llm-wiki, multi-agent, mcp, ai-safety",
     expectedFile: "src/app/page.tsx",
     kind: "code",
   },

@@ -58,7 +58,7 @@ beforeEach(() => {
   useSessionStore.setState({
     messages: [],
     status: "idle",
-    activeModuleId: "python-basics",
+    activeModuleId: "ts-basics",
   });
 });
 
@@ -75,7 +75,7 @@ test("发送消息时请求体携带 moduleId 与 step", async () => {
   await act(async () => {
     render(
       createElement(Composer, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         step: "explain",
       }),
     );
@@ -104,11 +104,7 @@ test("发送消息时请求体携带 moduleId 与 step", async () => {
   });
 
   assert.equal(fetchCalls.length, 1, "应发送一次请求");
-  assert.equal(
-    fetchCalls[0].body.moduleId,
-    "python-basics",
-    "请求体应含 moduleId",
-  );
+  assert.equal(fetchCalls[0].body.moduleId, "ts-basics", "请求体应含 moduleId");
   assert.equal(fetchCalls[0].body.step, "explain", "请求体应含 step");
   assert.equal(fetchCalls[0].body.content, "偷懒版", "请求体应含用户输入");
 });
@@ -152,7 +148,7 @@ test("按 Enter 键（不含 Shift）发送消息，请求体携带 moduleId 与
   await act(async () => {
     render(
       createElement(Composer, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         step: "explain",
       }),
     );
@@ -176,7 +172,7 @@ test("按 Enter 键（不含 Shift）发送消息，请求体携带 moduleId 与
   });
 
   assert.equal(fetchCalls.length, 1, "Enter 应触发一次发送");
-  assert.equal(fetchCalls[0].body.moduleId, "python-basics");
+  assert.equal(fetchCalls[0].body.moduleId, "ts-basics");
   assert.equal(fetchCalls[0].body.step, "explain");
   assert.equal(fetchCalls[0].body.content, "偷懒版");
 });
@@ -218,7 +214,7 @@ test("流控：发送中重复点击不会发出第二次请求", async () => {
   await act(async () => {
     render(
       createElement(Composer, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         step: "explain",
       }),
     );
@@ -290,7 +286,7 @@ test("点击停止后可再次发送消息", async () => {
   await act(async () => {
     render(
       createElement(Composer, {
-        moduleId: "python-basics",
+        moduleId: "ts-basics",
         step: "explain",
       }),
     );
@@ -360,5 +356,5 @@ test("点击停止后可再次发送消息", async () => {
 
   assert.equal(fetchCalls.length, 1, "停止后第二次发送应成功");
   assert.equal(fetchCalls[0].body.content, "第二条");
-  assert.equal(fetchCalls[0].body.moduleId, "python-basics");
+  assert.equal(fetchCalls[0].body.moduleId, "ts-basics");
 });

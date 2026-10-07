@@ -22,7 +22,7 @@ import { ChatRequestSchema } from "@/schemas/api";
 
 test("ChatRequestSchema：放行合法 moduleId", () => {
   for (const id of [
-    "python-basics",
+    "ts-basics",
     "ts-basics",
     "platform-replica",
     "a",

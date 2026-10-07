@@ -3,7 +3,7 @@
  *
  * 钉什么
  * -----
- * 1. python-basics / ts-basics 概念页开场白含定位段落「这是哪一站」，
+ * 1. ts-basics 概念页开场白含定位段落「这是哪一站」，
  *    确保学生看到的冷启动卡片讲清了这一讲的定位。
  * 2. resolveStepAgent('explain') 返回讲解导师，系统提示词不为空。
  * 3. 概念页 body（去 frontmatter）能被 parsePathSelect 正确拆出 intro 与
@@ -47,19 +47,6 @@ function readConceptBody(moduleId: string): string {
 // ① 概念页开场白 ——「这是哪一站」
 // ---------------------------------------------------------------------------
 
-test("python-basics：开场白含定位段落「为什么需要这一站」与引导句式", () => {
-  const body = readConceptBody("python-basics");
-  assert.ok(
-    body.includes("为什么需要这一站"),
-    "python-basics 应包含「为什么需要这一站」章节",
-  );
-  assert.ok(
-    body.includes("看完开场白就可以进 LLM API"),
-    "应包含「看完开场白就可以进 LLM API」引导句",
-  );
-  assert.ok(body.includes("不是要你学会"), "应包含「不是要你学会」安抚句");
-});
-
 test("ts-basics：开场白含定位段落「为什么需要这一站」与引导句式", () => {
   const body = readConceptBody("ts-basics");
   assert.ok(
@@ -75,18 +62,6 @@ test("ts-basics：开场白含定位段落「为什么需要这一站」与引�
 // ---------------------------------------------------------------------------
 // ② 概念页路径标记完整 —— PATH:LAZY 与「完整版」标记都在
 // ---------------------------------------------------------------------------
-
-test("python-basics：PATH:LAZY 与完整版标记均在", () => {
-  const body = readConceptBody("python-basics");
-  assert.ok(
-    body.includes("<!-- PATH:LAZY START -->"),
-    "python-basics 应包含偷懒版起始标记",
-  );
-  assert.ok(
-    body.includes("## \u{1F4DA} 完整版"),
-    "python-basics 应包含完整版章节标题",
-  );
-});
 
 test("ts-basics：PATH:LAZY 与完整版标记均在", () => {
   const body = readConceptBody("ts-basics");
