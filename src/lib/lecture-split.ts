@@ -73,9 +73,13 @@ export function selectStepMessages<T extends SplitableMessage>(
   const stepMessages = messages.filter((message) => message.step === step);
   if (lectureMode === "full") return stepMessages;
 
-  const lectureIndex = stepMessages.findIndex(
-    (message) => message.role === "assistant",
-  );
+  // 「该步的讲稿」= 这一步对话的**第一条**消息（播种或静默流式生成，
+  // 先于任何学生输入）。若学生先开口，第一条助手消息是对学生的回复，
+  // 绝不能当讲稿吃掉 —— observe / imitate 页从不播种开场（2026-09-25
+  // 起 observe 示范改为 wiki 直读，不走 LLM），旧逻辑却把「该步第一条
+  // 助手消息」一律当讲稿：skip 模式因此把导师对提问的回复整条吞掉，
+  // 学生看到「已读不回」且无任何报错（2026-10-07 审计 C1）。
+  const lectureIndex = stepMessages[0]?.role === "assistant" ? 0 : -1;
   if (lectureIndex === -1) return stepMessages;
 
   return stepMessages
