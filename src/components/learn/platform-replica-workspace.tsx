@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ChevronRight,
   Circle,
   Clock,
+  FileText,
+  FolderOpen,
+  List,
   MessageSquare,
   Terminal,
 } from "lucide-react";
@@ -17,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { Composer } from "@/components/chat/composer";
+import { MarkdownView } from "@/components/chat/markdown-view";
+
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
@@ -34,11 +40,73 @@ export function PlatformReplicaWorkspace({
   teachingModule: TeachingModule;
   allModules: readonly TeachingModule[];
 }) {
-  // 阶段位置持久化在 localStorage（use-replica-phase.ts 文件头写了为什么）：
-  // 180 分钟的项目模块必然跨刷新，此前一次整页刷新就把学生打回启动台。
   const { phaseIndex: activePhaseIndex, setPhaseIndex: setActivePhaseIndex } =
     useReplicaPhase(REPLICA_PHASES.length);
   const [chatOpen, setChatOpen] = useState(false);
+
+  const [wikiContent, setWikiContent] = useState<string | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(true);
+  const [wikiError, setWikiError] = useState<string | null>(null);
+  const [showToc, setShowToc] = useState(false);
+
+  /** 从 wiki markdown 中提取 h2/h3 标题，生成目录项。 */
+  interface TocItem {
+    level: number;
+    text: string;
+    slug: string;
+  }
+  const tocItems = useMemo<TocItem[]>(() => {
+    if (!wikiContent) return [];
+    const headings: TocItem[] = [];
+    const lines = wikiContent.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^(#{2,3})\s+(.+)$/);
+      if (!match) continue;
+      const level = match[1].length;
+      const text = match[2].trim();
+      const slug = text
+        .toLowerCase()
+        .replace(/[^\w\u4e00-\u9fff]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80);
+      headings.push({ level, text, slug });
+    }
+    return headings;
+  }, [wikiContent]);
+
+  const scrollToHeading = useCallback((slug: string) => {
+    const el = document.getElementById(slug);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  const fetchWikiContent = useCallback(async () => {
+    setWikiLoading(true);
+    setWikiError(null);
+    try {
+      const res = await fetch(
+        "/api/module-content?moduleId=" + encodeURIComponent(teachingModule.id),
+      );
+      if (!res.ok) {
+        const body = await res
+          .json()
+          .catch(() => ({ message: String(res.status) }));
+        throw new Error(body.message ?? String(res.status));
+      }
+      const data = (await res.json()) as { content: string };
+      setWikiContent(data.content);
+    } catch (err: unknown) {
+      setWikiError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setWikiLoading(false);
+    }
+  }, [teachingModule.id]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 页面挂载时加载 wiki 内容是标准模式
+    fetchWikiContent();
+  }, [fetchWikiContent]);
 
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
@@ -47,7 +115,6 @@ export function PlatformReplicaWorkspace({
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
-      {/* ---------- 面包屑 ---------- */}
       <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
         <ol className="flex items-center gap-1">
           <li>
@@ -60,7 +127,6 @@ export function PlatformReplicaWorkspace({
         </ol>
       </nav>
 
-      {/* ---------- 头部 ---------- */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h1 className="text-xl font-semibold tracking-tight">
           {teachingModule.name}
@@ -87,20 +153,91 @@ export function PlatformReplicaWorkspace({
         </p>
       ) : null}
 
-      {/*
-        定位说明（2026-10-04 学生走查）：其余 11 讲都在本页内学，唯独这一讲
-        的「作业」是学生自己电脑上的一个真项目。零基础走查实测学生分不清
-        「命令敲在哪里」——一句话把边界钉在视线主轴上。
-      */}
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
         这一讲在浏览器外完成：命令敲在<b>你自己电脑的终端</b>里，代码写在
         <b>你自己的项目</b>
         里。这个页面是你的任务卡、验收速查和导师——卡住了随时问。
       </p>
 
-      {/* ---------- 双栏：阶段导航 + 阶段详情 ---------- */}
+      {/* ---- 教案 ---- */}
+      {wikiLoading ? (
+        <Card className="mt-3">
+          <CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+            <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            正在加载教案…
+          </CardContent>
+        </Card>
+      ) : wikiError ? (
+        <Card className="mt-3">
+          <CardContent className="flex items-center gap-2 py-4 text-sm text-red-600">
+            <AlertTriangle className="size-4" />
+            加载失败：{wikiError}
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-2"
+              onClick={fetchWikiContent}
+            >
+              重试
+            </Button>
+          </CardContent>
+        </Card>
+      ) : wikiContent ? (
+        <Card className="mt-3">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">完整教案</CardTitle>
+              {tocItems.length > 0 ? (
+                <Button
+                  variant={showToc ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowToc((v) => !v)}
+                >
+                  <List className="mr-1 size-3.5" />
+                  {showToc ? "隐藏目录" : "目录"}
+                </Button>
+              ) : null}
+            </div>
+          </CardHeader>
+          <CardContent className="flex min-h-0 gap-0 p-0">
+            {showToc && tocItems.length > 0 ? (
+              <nav className="hidden w-52 shrink-0 overflow-y-auto border-r bg-muted/20 py-3 lg:block">
+                <div className="mb-2 px-3 text-[11px] font-semibold text-muted-foreground">
+                  目录
+                </div>
+                <ul className="space-y-0.5">
+                  {tocItems.map((item, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onClick={() => scrollToHeading(item.slug)}
+                        className={
+                          "block w-full truncate px-3 py-1 text-left text-xs transition-colors hover:bg-muted hover:text-foreground " +
+                          (item.level === 2
+                            ? "font-medium text-foreground/80"
+                            : "pl-6 text-muted-foreground")
+                        }
+                        title={item.text}
+                      >
+                        {item.text}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none min-w-0 flex-1 overflow-y-auto px-6 py-4 [&_li]:text-[clamp(12px,1.8vw,16px)] [&_p]:text-[clamp(12px,1.8vw,16px)] [&_pre]:text-[clamp(11px,1.6vw,14px)] [&_table]:text-[clamp(11px,1.6vw,14px)]"
+              style={{ maxHeight: "60vh" }}
+            >
+              <MarkdownView source={wikiContent} />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        {/* 左栏：阶段进度 */}
         <nav aria-label="搭建阶段" className="flex flex-col gap-1">
           {REPLICA_PHASES.map((p, i) => {
             const isActive = i === activePhaseIndex;
@@ -109,7 +246,6 @@ export function PlatformReplicaWorkspace({
 
             return (
               <div key={p.index} className="flex gap-3">
-                {/* 竖线 + 圆点 */}
                 <div className="flex flex-col items-center">
                   {isDone ? (
                     <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
@@ -131,7 +267,6 @@ export function PlatformReplicaWorkspace({
                   ) : null}
                 </div>
 
-                {/* 文字 */}
                 <button
                   type="button"
                   onClick={() => setActivePhaseIndex(i)}
@@ -149,7 +284,7 @@ export function PlatformReplicaWorkspace({
                     {isDone
                       ? "已完成"
                       : p.goal.length > 28
-                        ? p.goal.slice(0, 28) + "…"
+                        ? p.goal.slice(0, 28) + "..."
                         : p.goal}
                   </div>
                 </button>
@@ -158,7 +293,6 @@ export function PlatformReplicaWorkspace({
           })}
         </nav>
 
-        {/* 右栏：当前阶段详情 */}
         <div className="flex flex-col gap-4">
           {phase ? (
             <PhaseDetailCard phase={phase} />
@@ -166,14 +300,6 @@ export function PlatformReplicaWorkspace({
             <p className="text-sm text-muted-foreground">阶段数据缺失</p>
           )}
 
-          {/*
-            结算阶段的正式交付口（2026-10-04 学生走查补上）：wiki 让学生
-            「把 agent-loop.ts 交给点评导师出检验单」，此前界面没有任何点评
-            入口，对话里贴作业只会得到答疑口径的即兴点评（不落库、不更新
-            掌握度）。复用通用 validate 步的接线层（建会话 → /api/agent/
-            validate → 落库 validation_results/prompt_history），仅在结算
-            阶段出现、不跳转步骤页。
-          */}
           {phase !== undefined && phase.index === REPLICA_PHASES.length - 1 ? (
             <Card>
               <CardHeader>
@@ -192,7 +318,6 @@ export function PlatformReplicaWorkspace({
             </Card>
           ) : null}
 
-          {/* 阶段切换按钮 */}
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
@@ -222,7 +347,6 @@ export function PlatformReplicaWorkspace({
             </Button>
           </div>
 
-          {/* 对话区 */}
           <Card className="flex min-h-0 flex-1 flex-col">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -246,14 +370,6 @@ export function PlatformReplicaWorkspace({
             {chatOpen ? (
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} />
-                {/*
-                  step 是 /api/chat 上身份层与概念页注入的总开关
-                  （resolveStepAgent + buildTeachingScript 都要求 step 存在）。
-                  此前没传 → 复刻导师跌回答疑口径、看不到复刻材料，答错过
-                  「启动台 Node ≥ 22.5」这种平台自己的硬要求（2026-10-04
-                  学生走查实测）。explain 的注入映射恰好命中「定义 + 关键
-                  步骤（启动台/三板斧/验收）+ 为什么需要」。
-                */}
                 <Composer moduleId={teachingModule.id} step="explain" />
               </CardContent>
             ) : null}
@@ -264,8 +380,12 @@ export function PlatformReplicaWorkspace({
   );
 }
 
-/** 当前阶段的任务卡片 + 验收脚本。 */
+/** 当前阶段的任务卡片（含详细指导和常见坑）+ 验收脚本。 */
 function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
+  const hasDetailTasks = phase.tasks.some(
+    (t) => t.detail || (t.pitfalls && t.pitfalls.length > 0),
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -277,55 +397,109 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
         <CardTitle className="text-lg">{phase.title}</CardTitle>
         <p className="text-sm text-muted-foreground">{phase.goal}</p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {/* 任务表格 */}
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                  做什么
-                </th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                  用到的模块
-                </th>
-                <th className="hidden px-3 py-2 text-left font-medium text-muted-foreground sm:table-cell">
-                  关键文件
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {phase.tasks.map((task, i) => (
-                <tr
-                  key={i}
-                  className={
-                    "border-b last:border-0 " +
-                    (i % 2 === 0 ? "bg-background" : "bg-muted/20")
-                  }
-                >
-                  <td className="px-3 py-2">{task.label}</td>
-                  <td className="px-3 py-2">
-                    {task.moduleRef ? (
-                      <Link
-                        href={`/learn/${task.moduleRef}`}
-                        className="text-primary underline-offset-4 hover:underline"
-                      >
-                        {task.moduleRef}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="hidden px-3 py-2 font-mono text-[11px] text-muted-foreground sm:table-cell">
-                    {task.file ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
 
-        {/* 验收 */}
+      <CardContent className="flex flex-col gap-4">
+        {hasDetailTasks ? (
+          <div className="space-y-3">
+            {phase.tasks.map((task, i) => (
+              <div key={i} className="rounded-lg border bg-background p-3">
+                <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium">{task.label}</span>
+                  {task.file ? (
+                    <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                      <FileText className="size-3" />
+                      {task.file}
+                    </span>
+                  ) : null}
+                  {task.moduleRef ? (
+                    <Link
+                      href={"/learn/" + task.moduleRef}
+                      className="inline-flex items-center gap-1 text-[11px] text-primary underline-offset-4 hover:underline"
+                    >
+                      <FolderOpen className="size-3" />
+                      {task.moduleRef}
+                    </Link>
+                  ) : null}
+                </div>
+
+                {task.detail ? (
+                  <p className="mb-2 text-[13px] leading-relaxed whitespace-pre-line text-muted-foreground">
+                    {task.detail}
+                  </p>
+                ) : null}
+
+                {task.pitfalls && task.pitfalls.length > 0 ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="size-3" />
+                      常见坑
+                    </div>
+                    <ul className="space-y-0.5">
+                      {task.pitfalls.map((p, j) => (
+                        <li
+                          key={j}
+                          className="text-[12px] leading-relaxed text-amber-800 dark:text-amber-300"
+                        >
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    做什么
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                    用到的模块
+                  </th>
+                  <th className="hidden px-3 py-2 text-left font-medium text-muted-foreground sm:table-cell">
+                    关键文件
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {phase.tasks.map((task, i) => (
+                  <tr
+                    key={i}
+                    className={
+                      "border-b last:border-0 " +
+                      (i % 2 === 0 ? "bg-background" : "bg-muted/20")
+                    }
+                  >
+                    <td className="px-3 py-2">{task.label}</td>
+                    <td className="px-3 py-2">
+                      {task.moduleRef ? (
+                        <Link
+                          href={"/learn/" + task.moduleRef}
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          {task.moduleRef}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="hidden px-3 py-2 font-mono text-[11px] text-muted-foreground sm:table-cell">
+                      {task.file ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {phase.acceptanceScript || phase.acceptanceDesc ? (
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
