@@ -221,6 +221,8 @@
 
 **实测结论（10-08）**：raw fetch 与 SDK 路径（`runAgentLoop`）**均 200 OK**，`{"ok":true}` 可解析，`pnpm check` 0 error。
 
+**⚠️ 限流对测试的影响（10-08 实测，报告失败时必须带上这句）**：`pnpm test` 跑出 **2 / 44 失败**（讲解、出题两个真模型组，报「输出里找不到 JSON 对象」）。**这不是配置错、也不是产品回归** —— 单独重跑讲解组得到 `ok=true`、`usedFallback=false`、**`attempts=2`**、`durationMs=45256`，内容质量正常（正确用了类比 + visualize 场景）。即**首次尝试撞 429、`extractJson` 重试救回**；测试里那次是重试也没过。**结论：疑似限流，须在限流窗口过后复跑才能定性，勿当回归。**
+
 > 📌 **诊断脚本读 SSE 的帧类型是 `token`**（不是 `text`/`delta`）。漏了这个分支会误判成「SDK 路径返回空」—— 我犯过，白排查一轮。
 
 解除阻塞后的顺序：① 探端点确认 200 → ② 跑 `verify-thinking-leak.ts`（thinking 无内部词）→ ③ `--force` 重跑 `generate-lecture-cache.ts`。**注意第③ 步会 `upsert` 覆盖 `explain` 讲稿，冲掉已做的 3 处缓存级内容修复**（术语断层 2 条 + ai-safety 一致性 1 条），需重跑后重新注入 —— 备份见 `.workbuddy/backup/explain-cache-before-force.json`。
