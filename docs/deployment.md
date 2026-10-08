@@ -40,7 +40,7 @@ CLI 命令仍是 `edgeone pages`。**
 2. 控制台 → 创建项目 → Connect to Git → 授权并选中仓库。
 3. 构建设置：框架预设 `Next`；构建命令 `pnpm build`；输出目录 `.next`；
    Node.js 版本选 `22.11.0`。
-4. 环境变量（项目设置 → 环境变量）：至少填 `SENSENOVA_API_KEY`。
+4. 环境变量（项目设置 → 环境变量）：至少填 `ARK_API_KEY`。
    变量对所有环境生效；**改完只影响新的部署**，不会追溯已有部署。
 5. 点部署，等待构建完成，得到 `xxx.edgeone.dev` 域名。
 6. 打 `/api/health` 核验 —— 见第四节。
@@ -103,7 +103,7 @@ GitHub Actions 方式：在仓库 Secrets 里加 `EDGEONE_API_TOKEN`，
 pnpm install
 pnpm db:migrate                  # 建表：这一步没有自动化，必须显式跑
 pnpm build
-PORT=3000 DATABASE_URL=file:/data/app.db SENSENOVA_API_KEY=... pnpm start
+PORT=3000 DATABASE_URL=file:/data/app.db ARK_API_KEY=... pnpm start
 ```
 
 要点：

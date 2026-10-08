@@ -27,7 +27,7 @@ import type { ArkSettings } from "@/lib/agent/ark-config";
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface SettingsState {
-  /** 模型选择。`null` 表示用服务端默认（`SENSENOVA_TEXT_MODEL`）。 */
+  /** 模型选择。`null` 表示用服务端默认（`ARK_TEXT_MODEL`）。 */
   textModel: string | null;
   /** 服务端实际使用的方舟配置。由 `/api/health` 或配置接口填充，只读展示用。 */
   arkSettings: ArkSettings | null;

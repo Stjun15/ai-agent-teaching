@@ -68,7 +68,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const apiKey = process.env[ARK_API_KEY_ENV];
-  const baseUrl = process.env.SENSENOVA_BASE_URL ?? ARK_DEFAULT_BASE_URL;
+  const baseUrl = process.env.ARK_BASE_URL ?? ARK_DEFAULT_BASE_URL;
   const model =
     body.model ??
     (body.type === "vision"

@@ -1,8 +1,8 @@
 /**
  * LLM 平台配置（纯逻辑，**不 import SDK**）
  *
- * 平台：商汤日日新（SenseNova）— OpenAI 兼容端点
- * 模型：DeepSeek V4.1 Flash（文本 + 视觉同模，原生多模态）
+ * 平台：火山方舟（Volcengine Ark）— OpenAI 兼容端点
+ * 模型：DeepSeek V4 Flash（文本）/豆包视觉模型
  *
  * 为什么与 `ark.ts` 分开
  * ---------------------
@@ -15,29 +15,22 @@
  * 本文件只做三件事：默认值、读环境变量、校验密钥存在。**不碰 SDK，也不碰网络。**
  *
  * 密钥处理：本文件只读不存，任何函数与日志都不回显密钥内容。
- *
- * ⚠️ 关于 reasoning_effort
- * ------------------------
- * SenseNova 的 DeepSeek 模型**默认开启思考模式**。走 SDK 时由
- * `samplingParams` 注入 `reasoning_effort: "none"` 关掉思考
- *（SDK 在所有 thinking 逻辑后 Object.assign，无覆盖风险）。
- * 走 raw fetch 时需手动传该参数，否则 content 为空。
  */
 
 /** provider id。SDK 由它推导环境变量名（`ark` → `ARK_API_KEY`）。内部标识不变。 */
 export const ARK_PROVIDER_ID = "ark";
 
-/** 保存密钥的环境变量名。请在 `.env.local` 中设置 `SENSENOVA_API_KEY`。 */
-export const ARK_API_KEY_ENV = "SENSENOVA_API_KEY";
+/** 保存密钥的环境变量名。请在 `.env.local` 中设置 `ARK_API_KEY`。 */
+export const ARK_API_KEY_ENV = "ARK_API_KEY";
 
-/** SenseNova OpenAI 兼容端点；可被 `SENSENOVA_BASE_URL` 覆盖。 */
-export const ARK_DEFAULT_BASE_URL = "https://token.sensenova.cn/v1";
+/** 方舟 OpenAI 兼容端点；可被 `ARK_BASE_URL` 覆盖。 */
+export const ARK_DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
 
-/** 主模型（文本推理）— DeepSeek V4 Flash；可被 `SENSENOVA_TEXT_MODEL` 覆盖。 */
-export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash";
+/** 主模型（文本推理）— DeepSeek V4 Flash；可被 `ARK_TEXT_MODEL` 覆盖。 */
+export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash-ga-260731";
 
-/** 多模态模型（视觉理解）— DeepSeek V4 Flash 原生多模态；可被 `SENSENOVA_VISION_MODEL` 覆盖。 */
-export const ARK_DEFAULT_VISION_MODEL = "deepseek-v4-flash";
+/** 多模态模型（视觉理解）— 可被 `ARK_VISION_MODEL` 覆盖。 */
+export const ARK_DEFAULT_VISION_MODEL = "doubao-seed-2-1-pro-260915";
 
 /**
  * 本模块用到的环境变量。
@@ -47,15 +40,15 @@ export const ARK_DEFAULT_VISION_MODEL = "deepseek-v4-flash";
  */
 export interface ArkEnv {
   [key: string]: string | undefined;
-  SENSENOVA_API_KEY?: string | undefined;
-  SENSENOVA_BASE_URL?: string | undefined;
-  SENSENOVA_TEXT_MODEL?: string | undefined;
-  SENSENOVA_VISION_MODEL?: string | undefined;
+  ARK_API_KEY?: string | undefined;
+  ARK_BASE_URL?: string | undefined;
+  ARK_TEXT_MODEL?: string | undefined;
+  ARK_VISION_MODEL?: string | undefined;
 }
 
 /** 从环境变量解析出的平台连接参数（不含密钥）。 */
 export interface ArkSettings {
-  /** OpenAI 兼容端点，例如 `https://token.sensenova.cn/v1` */
+  /** OpenAI 兼容端点，例如 `https://ark.cn-beijing.volces.com/api/v3` */
   baseUrl: string;
   /** 主模型 id */
   textModel: string;
@@ -74,10 +67,9 @@ function trimmed(value: string | undefined): string | undefined {
  */
 export function readArkSettings(env: ArkEnv = process.env): ArkSettings {
   return {
-    baseUrl: trimmed(env.SENSENOVA_BASE_URL) ?? ARK_DEFAULT_BASE_URL,
-    textModel: trimmed(env.SENSENOVA_TEXT_MODEL) ?? ARK_DEFAULT_TEXT_MODEL,
-    visionModel:
-      trimmed(env.SENSENOVA_VISION_MODEL) ?? ARK_DEFAULT_VISION_MODEL,
+    baseUrl: trimmed(env.ARK_BASE_URL) ?? ARK_DEFAULT_BASE_URL,
+    textModel: trimmed(env.ARK_TEXT_MODEL) ?? ARK_DEFAULT_TEXT_MODEL,
+    visionModel: trimmed(env.ARK_VISION_MODEL) ?? ARK_DEFAULT_VISION_MODEL,
   };
 }
 

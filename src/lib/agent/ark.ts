@@ -1,16 +1,14 @@
 /**
- * LLM 模型 Provider — 商汤日日新（SenseNova）
+ * LLM 模型 Provider — 火山方舟（Volcengine Ark）
  *
  * 设计依据
  * --------
- * SenseNova 提供 OpenAI 兼容端点，承载 DeepSeek V4 Flash：
- *   - 平台 = 商汤日日新 SenseNova（OpenAI 兼容端点 `/v1`）
- *   - 主模型（文本推理）`deepseek-v4-flash`，读环境变量 `SENSENOVA_TEXT_MODEL`
- *   - 多模态模型（视觉理解）`deepseek-v4-flash`（同模），读环境变量 `SENSENOVA_VISION_MODEL`
+ * 方舟提供 OpenAI 兼容端点：
+ *   - 平台 = 火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`）
+ *   - 主模型（文本推理）`deepseek-v4-flash-ga-260731`，读环境变量 `ARK_TEXT_MODEL`
+ *   - 多模态模型（视觉理解）`doubao-seed-2-1-pro-260915`，读环境变量 `ARK_VISION_MODEL`
  *
- * ⚠️ 模型名与端点均以 `ark-config.ts` 的默认值为准（10-07 实测 200 OK）：
- *   `https://token.sensenova.cn/v1` + `deepseek-v4-flash` + `reasoning_effort: "none"`。
- *   注意模型名**没有 `.1`**（不是 `deepseek-v4.1-flash`），端点也**不是** `api.sensenova.cn`。
+ * ⚠️ 模型名与端点均以 `ark-config.ts` 的默认值为准。
  * 约束：「API 密钥绝不进仓库，走环境变量」。
  *
  * 为什么不用 `models.json`
@@ -22,7 +20,7 @@
  *
  * 密钥如何做到「不落盘」
  * ---------------------
- * 1. `apiKey` 传的是**引用** `"$SENSENOVA_API_KEY"` 而非密钥值本身；SDK 在每次请求时从
+ * 1. `apiKey` 传的是**引用** `"$ARK_API_KEY"` 而非密钥值本身；SDK 在每次请求时从
  *    `process.env` 解析。因此这个配置对象里不存在密钥，日志/序列化都不会泄漏。
  * 2. 注入一个**空实现**的凭据存储，使 `ModelRuntime.create()` 不去建 `~/.pi/agent/auth.json`。
  *    实测默认实现即使不做任何登录也会创建该文件（内容为空对象），在只读文件系统上会直接失败。
@@ -33,7 +31,7 @@
  * -------------------------
  * 内部标识保持 `ark` 不变——改名会导致大面积重构且无功能收益。SDK 用 provider id 推导
  * 环境变量名（`ark` → `ARK_API_KEY`），但我们**不依赖这个推导**：`apiKey` 显式传
- * `$SENSENOVA_API_KEY`，SDK 优先使用它。
+ * `$ARK_API_KEY`，SDK 优先使用它。
  *
  * ⚠️ 仅服务端可用
  * -------------
@@ -97,7 +95,7 @@ const VISION_MAX_TOKENS = 8_192;
 /**
  * 计费单价（美元 / 百万 token）。
  *
- * 暂全部取 0：本项目不依赖 pi 的成本统计。SenseNova 的 DeepSeek V4.1 Flash
+ * 暂全部取 0：本项目不依赖 pi 的成本统计。方舟模型
  * 目前免费（500 次 / 5 小时），具体额度见平台控制台。
  */
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } as const;
@@ -125,26 +123,10 @@ export function buildArkProviderConfig(
 ): ProviderConfig {
   const { baseUrl, textModel, visionModel } = readArkSettings(env);
 
-  // SenseNova 的 DeepSeek V4 Flash 默认开启思考模式，思考内容会走reasoning_content
-  // 而非 content，pi 会判定「模型零产出」。SDK 的正规开关是 `reasoning: false` +
-  // `compat.thinkingFormat: "deepseek"` + `thinkingLevelMap` 全部映射为 null
-  //（类型注释原文：null marks a level unsupported），由 SDK 自己把思考关掉。
-  // ⚠️ 不要用 `samplingParams: { reasoning_effort: "none" }`：运行时虽被
-  // `Object.assign` 进请求体，但**不在 ProviderModelConfig 类型里** → tsc 报TS2353。
-  const SENSE_COMPAT = {
-    // deepseek 形态 = thinking: { type } + reasoning_effort，SenseNova 认这个格式
-    thinkingFormat: "deepseek" as const,
-    supportsReasoningEffort: true,
-  };
-  /** 关闭思考：所有 level 映射为 null（SDK 视作不支持 → 不下发思考参数）。 */
-  const NO_THINKING = { off: null };
-
   const text: ProviderModelConfig = {
     id: textModel,
-    name: "DeepSeek V4 Flash（SenseNova）",
+    name: "DeepSeek V4 Flash（火山方舟）",
     reasoning: false,
-    thinkingLevelMap: NO_THINKING,
-    compat: SENSE_COMPAT,
     input: ["text"],
     cost: { ...ZERO_COST },
     contextWindow: TEXT_CONTEXT_WINDOW,
@@ -153,10 +135,8 @@ export function buildArkProviderConfig(
 
   const vision: ProviderModelConfig = {
     id: visionModel,
-    name: "DeepSeek V4 Flash Vision（SenseNova）",
+    name: "Doubao Seed 2.1 Pro（火山方舟）",
     reasoning: false,
-    thinkingLevelMap: NO_THINKING,
-    compat: SENSE_COMPAT,
     input: ["text", "image"],
     cost: { ...ZERO_COST },
     contextWindow: VISION_CONTEXT_WINDOW,
@@ -164,9 +144,9 @@ export function buildArkProviderConfig(
   };
 
   return {
-    name: "SenseNova",
+    name: "Ark",
     baseUrl,
-    // SenseNova 走 OpenAI 兼容协议，用 openai-completions 即可
+    // 方舟走 OpenAI 兼容协议，用 openai-completions 即可
     api: "openai-completions",
     // 传引用不传值：请求时由 SDK 从 process.env 解析，密钥不会出现在本对象中
     apiKey: `$${ARK_API_KEY_ENV}`,
@@ -221,14 +201,14 @@ export async function createArkModels(
   const text = modelRuntime.getModel(ARK_PROVIDER_ID, textModel);
   if (!text) {
     throw new Error(
-      `SenseNova 主模型 ${textModel} 注册后无法解析，请检查 SENSENOVA_TEXT_MODEL 的值。`,
+      `方舟主模型 ${textModel} 注册后无法解析，请检查 ARK_TEXT_MODEL 的值。`,
     );
   }
 
   const vision = modelRuntime.getModel(ARK_PROVIDER_ID, visionModel);
   if (!vision) {
     throw new Error(
-      `SenseNova 视觉模型 ${visionModel} 注册后无法解析，请检查 SENSENOVA_VISION_MODEL 的值。`,
+      `方舟视觉模型 ${visionModel} 注册后无法解析，请检查 ARK_VISION_MODEL 的值。`,
     );
   }
 

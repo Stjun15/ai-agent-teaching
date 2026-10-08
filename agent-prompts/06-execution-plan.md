@@ -83,7 +83,7 @@ chore: create dev branch and initial structure
 - 搭建开发期数据库：SQLite + repository 抽象层（15 张表）
 - 集成 piagentSDK
 - 跑通一个 Agent + 一个工具
-- 对接商汤日日新 SenseNova（OpenAI 兼容端点 `/v1`），模型走环境变量
+- 对接火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`），模型走环境变量
 - 验证 SSE 流式返回
 - 提交可运行的最小闭环
 
@@ -106,7 +106,7 @@ feat(api): add health check endpoint
 - Agent 能调用计算器工具
 - SSE 流式返回正常
 - `/api/health` 返回 200
-- API 密钥全部走环境变量（`SENSENOVA_API_KEY` 不落盘）
+- API 密钥全部走环境变量（`ARK_API_KEY` 不落盘）
 
 ---
 

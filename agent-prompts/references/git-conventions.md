@@ -308,8 +308,8 @@ coverage
 
 ```bash
 # .env.example
-SENSENOVA_API_KEY=your-sensenova-api-key
-SENSENOVA_BASE_URL=https://token.sensenova.cn/v1
+ARK_API_KEY=your-ark-api-key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 CLOUDBASE_ENV_ID=your-env-id
 CLOUDBASE_SECRET_ID=your-secret-id
 CLOUDBASE_SECRET_KEY=your-secret-key
