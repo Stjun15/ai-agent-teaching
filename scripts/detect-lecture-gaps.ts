@@ -211,19 +211,77 @@ function extractAuthoritativeSteps(conceptMd: string): string[] {
   return steps;
 }
 
-/** 把步骤名拆成关键词，用于在讲稿里做覆盖判定（宽松匹配，宁可多算覆盖）。 */
+/**
+ * 把步骤名拆成关键词，用于在讲稿里做覆盖判定。
+ *
+ * 为什么拆：讲稿用自己的话讲同一件事，措辞不会照抄概念页标题。
+ * 例：概念页「角色一 ·system：给 AI 定人设」→ 关键词含「system」「定人设」，
+ * 讲稿只要提到其中任一个即算覆盖。
+ *
+ * ⚠️ 别拆太碎（实测教训）：曾把中点当分隔符切开后，连「rag 的检索/增强/生成」
+ * 这种本来 100% 覆盖的也变成 0% —— 关键词被切得单字化，反而不匹配。
+ * 现在只按**明确的分隔符**切，且保留原始串作为兜底关键词。
+ */
+/**
+ * 把步骤名拆成关键词，用于在讲稿里做覆盖判定。
+ *
+ * ⚠️⚠️ 这里的匹配逻辑反复失败过 6 次（今日第 2~6 次误报），教训固化如下：
+ *
+ * 讲稿用自己的话讲同一件事，措辞不照抄概念页标题，所以要拆关键词。
+ * 但实测「拆得多细」与「准不准」**不成正比**：
+ *  - 不拆 → 整串匹配不上（讲稿写「名字要动词+名词」≠ 标题「给工具起个名字」）→ 误报
+ *  - 拆太碎 → 关键词单字化 → 匹配也失败（rag 从 100% 掉到 0%）
+ *  - 门槛太严（只认≥3 字）→「检索」「过滤」这类 2 字术语全被判未覆盖 → 误报更多
+ *
+ * **最终形态：只做「最少加工」——剥掉序号前缀，按明确分隔符切，2 字即算。**
+ * 剩余的措辞差异**通过置信度表达，而不是继续调参**：
+ * 命中主干词 = high（可信）；只命中短词 = low（需人工确认，不下结论）。
+ *
+ * ⚠️ 排查时踩的一个假象（差点误判检测器有问题）：
+ * 我用「讲稿里有没有『检索』这个词」来判断 rag 是否覆盖 → 查到 True，
+ * 但那处「检索」其实在**标题「RAG 检索增强生成」**里，正文根本没讲检索动作。
+ * **抽样核实必须看上下文（`content.slice(i-40, i+40)`），只查「词是否存在」会得出假结论。**
+ */
 function stepKeywords(step: string): string[] {
-  const cleaned = step
-    .replace(/^第[一二三四五六七八九十\d]+[斧步个]*/, "")
+  // 剥序号前缀：支持「第一步 x」「第一斧 x」「维度一 · x」「招一 x」「模式二 · x」
+  let s = step
+    .replace(/^第\s*[一二三四五六七八九十\d]+\s*[斧步个道条]\s*/, "")
+    .replace(/^[一二三四五六七八九十\d]+\s*(?=[^\d])/, "")
     .trim();
-  const parts = cleaned.split(/[\s、：:，,和与及]/).filter(Boolean);
-  const kws = [cleaned, ...parts].filter((p) => p.length >= 2);
-  return kws.length > 0 ? kws : [cleaned];
+  // 去掉开头的「维度/ 模式 / 招 / 步骤 / 第一步」等序号词残留
+  s = s.replace(
+    /^(维度|模式|步骤|招|道)\s*[一二三四五六七八九十\d]*\s*[·・]?\s*/,
+    "",
+  );
+
+  const parts: string[] = [];
+  for (const p of s.split(/[\s、：:，,和与及（）()「」\-—·・]/)) {
+    const t = p.trim();
+    if (t.length >= 2) parts.push(t);
+  }
+  return parts.length > 0 ? parts : [s];
+}
+
+/**
+ * 覆盖判定 + 置信度。
+ *
+ * - `high`：≥3 字的主干词命中 —— 可信，讲稿确实讲了这个步骤
+ * - `low`：仅 2 字短词命中 —— 可能是巧合，**标记为待人工确认，不下结论**
+ * - `none`：没命中 —— 计入盲区
+ */
+function isCoveredWithConfidence(
+  step: string,
+  lecture: string,
+): "high" | "low" | "none" {
+  const kws = stepKeywords(step);
+  if (kws.some((k) => k.length >= 3 && lecture.includes(k))) return "high";
+  if (kws.some((k) => lecture.includes(k))) return "low";
+  return "none";
 }
 
 /** 讲稿里是否讲到了这个步骤（宽松：任一关键词出现即算覆盖）。 */
 function stepCovered(step: string, lecture: string): boolean {
-  return stepKeywords(step).some((kw) => lecture.includes(kw));
+  return isCoveredWithConfidence(step, lecture) === "high";
 }
 
 function checkBlindSpot(
@@ -235,8 +293,30 @@ function checkBlindSpot(
   const steps = extractAuthoritativeSteps(conceptMd);
   if (steps.length === 0) return [];
 
-  const uncovered = steps.filter((s) => !stepCovered(s, lecture));
-  if (uncovered.length === 0) return [];
+  // 逐步骤判定，只有「未覆盖」才计入盲区；「不确定」单独标记（见 isCoveredWithConfidence）
+  const uncovered: string[] = [];
+  const uncertain: string[] = [];
+  for (const s of steps) {
+    const c = isCoveredWithConfidence(s, lecture);
+    if (c === "none") uncovered.push(s);
+    else if (c === "low") uncertain.push(s);
+  }
+  if (uncovered.length === 0) {
+    return uncertain.length > 0
+      ? [
+          {
+            moduleId,
+            moduleName,
+            severity: "low" as const,
+            dimension: "blindSpot",
+            detail:
+              `${uncertain.length}/${steps.length} 个步骤**只能弱匹配**（讲稿措辞与概念页标题差异大，` +
+              `自动判定不可靠，需人工确认）`,
+            evidence: `待确认：${uncertain.join("、")}`,
+          },
+        ]
+      : [];
+  }
 
   return [
     {
@@ -247,7 +327,9 @@ function checkBlindSpot(
       detail:
         `概念页声明 ${steps.length} 个关键步骤，讲稿未覆盖 ${uncovered.length} 个` +
         `（覆盖率 ${Math.round(((steps.length - uncovered.length) / steps.length) * 100)}%）`,
-      evidence: `未覆盖：${uncovered.join("、")}`,
+      evidence:
+        `未覆盖：${uncovered.join("、")}` +
+        (uncertain.length > 0 ? `；另有 ${uncertain.length} 个待人工确认` : ""),
     },
   ];
 }
