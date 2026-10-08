@@ -33,6 +33,20 @@ export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash-ga-260731";
 export const ARK_DEFAULT_VISION_MODEL = "doubao-seed-2-1-pro-260915";
 
 /**
+ * 文本模型输出上限（tokens）。**定义在此而非 `ark.ts`**，因为
+ * `generate-lecture-cache.ts` 的截断守卫要用它，而该脚本不该为了一个数字
+ * 把整个 pi-coding-agent 拖进来（本文件头的存在理由就是不import SDK）。
+ *
+ * ⚠️ 换平台/换模型时**必须同步改这里**（2026-10-08 教训）：守卫阈值曾写死
+ * `>= 8000`（那时上限 8192），切回方舟后上限 16384，于是 llm-wiki(9572 tok)、
+ * multi-agent(8170 tok) 两条**完整正常的讲稿**被当成「顶到上限」拒收。
+ */
+export const TEXT_MAX_TOKENS = 16_384;
+
+/** 视觉模型输出上限（tokens）。 */
+export const VISION_MAX_TOKENS = 8_192;
+
+/**
  * 本模块用到的环境变量。
  *
  * 带索引签名是为了能直接传 `process.env`（`ProcessEnv` 是宽松字典类型）；若只声明

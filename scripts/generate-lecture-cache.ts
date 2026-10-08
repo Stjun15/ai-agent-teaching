@@ -30,7 +30,11 @@
  */
 
 import { lectureCacheDb } from "@/lib/db";
-import { readArkSettings, assertArkApiKey } from "@/lib/agent/ark-config";
+import {
+  readArkSettings,
+  assertArkApiKey,
+  TEXT_MAX_TOKENS,
+} from "@/lib/agent/ark-config";
 import { runAgentLoop } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import {
@@ -129,14 +133,28 @@ async function main(): Promise<void> {
       continue;
     }
 
-    // 截断守卫（实测教训）：模型输出 token 有 8192 上限，思考吃得太多时
-    // **正文会被拦腰砍断**（实测 multi-agent:observe 只剩 76 字、半句收尾；
-    // llm-wiki:observe 死在半行列表项上）。残稿绝不能进缓存 —— 学生会看到
-    // 「导师话说一半」。两个信号：output 顶到上限、正文短得反常。
-    if (summary.tokens.output >= 8000 || summary.text.length < 800) {
+    // 截断守卫（实测教训）：思考 token 吃太多时**正文会被拦腰砍断**
+    // （实测 multi-agent:observe 只剩 76 字、半句收尾）。残稿绝不能进缓存——
+    // 学生会看到「导师话说一半」。
+    //
+    // ⚠️ 阈值必须引用 ark.ts 的真实上限，**不能写死数字**（2026-10-08 教训）：
+    // 原守卫写死 `>= 8000`（那时上限 8192），切回方舟后上限变成 16384，
+    // 于是 llm-wiki(9572 tok) / multi-agent(8170 tok) 两条**正常讲稿**
+    // 被当成「顶到上限」拒收。改为引用常量后，换平台不会再漂移。
+    //
+    // 另加一条「半句收尾」信号：真正被砍断的文本结尾没有终止标点/代码块闭合。
+    const hitMax = summary.tokens.output >= TEXT_MAX_TOKENS;
+    const tooShort = summary.text.length < 800;
+    const unfinished =
+      !/[。！？）】`）]$/.test(summary.text.trim()) &&
+      !summary.text.trimEnd().endsWith("```");
+    if (hitMax || tooShort || unfinished) {
       failed += 1;
       console.error(
-        `${label} 疑似截断（output ${summary.tokens.output} tok / ${summary.text.length} 字），不写入缓存。重跑：--only=${job.moduleId}:${job.step} --force`,
+        `${label} 疑似截断（output ${summary.tokens.output} tok / ${summary.text.length} 字` +
+          `${hitMax ? " / 顶到上限" : ""}${tooShort ? " / 正文过短" : ""}` +
+          `${unfinished ? " / 结尾不完整" : ""}），不写入缓存。` +
+          `重跑：--only=${job.moduleId}:${job.step} --force`,
       );
       continue;
     }

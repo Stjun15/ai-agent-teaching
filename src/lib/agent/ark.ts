@@ -59,6 +59,8 @@ import {
   ARK_DEFAULT_TEXT_MODEL,
   ARK_DEFAULT_VISION_MODEL,
   ARK_PROVIDER_ID,
+  TEXT_MAX_TOKENS,
+  VISION_MAX_TOKENS,
   assertArkApiKey,
   readArkSettings,
   type ArkEnv,
@@ -85,12 +87,14 @@ export type { ArkEnv, ArkSettings };
  * `contextWindow` 只影响 pi 内部的上下文占用估算与自动压缩阈值，取保守值。
  * `maxTokens` **参与请求构造**（传入 `max_tokens`），与模型实际输出上限一致。
  *
- * DeepSeek V4.1 Flash 原生支持 128K 上下文窗口，输出上限 32K tokens。
+ * DeepSeek V4 Flash（方舟）：上下文 128K，输出上限按方舟文档取 16K。
+ *
+ * ⚠️ 上限常量本身定义在 `ark-config.ts`（纯逻辑、不 import SDK），这里只转出：
+ * `generate-lecture-cache.ts` 的截断守卫要用它，而那个脚本不该为了一个数字
+ * 把整个 pi-coding-agent 拖进来（理由见 ark-config 文件头）。
  */
 const TEXT_CONTEXT_WINDOW = 128_000;
-const TEXT_MAX_TOKENS = 16_384;
 const VISION_CONTEXT_WINDOW = 256_000;
-const VISION_MAX_TOKENS = 8_192;
 
 /**
  * 计费单价（美元 / 百万 token）。

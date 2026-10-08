@@ -241,6 +241,13 @@ function extractAuthoritativeSteps(conceptMd: string): string[] {
  * 我用「讲稿里有没有『检索』这个词」来判断 rag 是否覆盖 → 查到 True，
  * 但那处「检索」其实在**标题「RAG 检索增强生成」**里，正文根本没讲检索动作。
  * **抽样核实必须看上下文（`content.slice(i-40, i+40)`），只查「词是否存在」会得出假结论。**
+ *
+ * ✅ 决定性补充（实测 tool-calling后放弃继续调参）：
+ * 讲稿讲同一件事时**常用同义说法**：「给工具起个名字」→ 讲稿写「工具名」；
+ * 「写一句描述」→ 讲稿写「什么时候用」。正则拆词无法覆盖这类语义等价。
+ * **再加别名表只会陷入无穷调参**（今日已失败 6 次）。
+ * →所以本函数保持**简单可预测**，判定不准时由置信度标记为「需人工确认」，
+ *   真正的语义等价判断留给 LLM（尚未接入，见 plan-student-agent-v3）。
  */
 function stepKeywords(step: string): string[] {
   // 剥序号前缀：支持「第一步 x」「第一斧 x」「维度一 · x」「招一 x」「模式二 · x」
@@ -266,8 +273,14 @@ function stepKeywords(step: string): string[] {
  * 覆盖判定 + 置信度。
  *
  * - `high`：≥3 字的主干词命中 —— 可信，讲稿确实讲了这个步骤
- * - `low`：仅 2 字短词命中 —— 可能是巧合，**标记为待人工确认，不下结论**
+ * - `low`：仅 2 字短词命中，或**子串命中**（见下）—— 需人工确认，不下结论
  * - `none`：没命中 —— 计入盲区
+ *
+ * 为什么加「子串命中」这层兜底（实测 rag 的教训）：
+ * 概念页写「第一步 · 检索」，讲稿写「### 第一步 · 检索（Retrieval）」——
+ * 整块关键词「检索」明明在讲稿里，却因为剥离序号时多带了一个「·」而匹配不上。
+ * 故额外尝试：把关键词切成 2 字以上的**所有连续子串**，任一命中即算 low。
+ * 这层宁可宽松（只给 low 不给 high），避免把真覆盖误报成盲区。
  */
 function isCoveredWithConfidence(
   step: string,
@@ -276,6 +289,15 @@ function isCoveredWithConfidence(
   const kws = stepKeywords(step);
   if (kws.some((k) => k.length >= 3 && lecture.includes(k))) return "high";
   if (kws.some((k) => lecture.includes(k))) return "low";
+
+  // 兜底：任意 ≥2 字连续子串命中 → low（宽松，只降级不升级）
+  for (const kw of kws) {
+    for (let len = kw.length - 1; len >= 2; len--) {
+      for (let i = 0; i + len <= kw.length; i++) {
+        if (lecture.includes(kw.slice(i, i + len))) return "low";
+      }
+    }
+  }
   return "none";
 }
 
