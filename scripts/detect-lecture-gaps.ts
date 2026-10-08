@@ -175,23 +175,36 @@ function checkPrerequisite(
  * 取概念页声明的关键步骤（`## 关键步骤` 下的 `###` 子节）。
  * 这是「这一讲应该掌握什么」的权威来源。
  */
+/**
+ * 取概念页声明的关键步骤。
+ *
+ * ✅ 只认 A 型：`## 关键步骤…` 下的 `###` 子节（目前仅 platform-replica有）。
+ *
+ * ❌ **刻意不支持 B 型**（标题带「N 步」、步骤在正文列表/表格里）。
+ * 实测各页写法差异极大：tool-calling 是 `**第一步：…**` 加粗行 +「好名字/坏名字」
+ * 对照示例；agent-loop 是表格行；rag 是有序列表。硬做B 型会把「坏描述：天气」
+ * 这类**对照示例当成步骤** → 产出假结论（实测 tool-calling 因此误报 4 条）。
+ *
+ * **宁可报「该讲无权威步骤基准」，也不误报** —— 误报会让整个检测失去可信度。
+ * TODO：后续若要给其余 10 讲补基准，应先把概念页的步骤结构**统一成 A 型**
+ * （`## 关键步骤` + 每步一个 `###`），再把B 型支持加回来。
+ */
 function extractAuthoritativeSteps(conceptMd: string): string[] {
-  const lines = conceptMd.split("\n");
   const steps: string[] = [];
   let inSteps = false;
 
-  for (const line of lines) {
+  for (const line of conceptMd.split("\n")) {
     if (/^##\s/.test(line)) {
-      // 进入或离开「关键步骤」章节
       inSteps = /关键步骤|详细步骤/.test(line);
       continue;
     }
     if (!inSteps) continue;
     const m = /^###\s+(.+)$/.exec(line);
     if (m) {
-      const label = m[1].trim();
-      // 去掉括号补充说明，只留主干名
-      const main = label.replace(/[（(].*?[)）]/g, "").trim();
+      const main = m[1]
+        .trim()
+        .replace(/[（(].*?[)）]/g, "")
+        .trim();
       steps.push(main);
     }
   }
@@ -344,6 +357,17 @@ async function main(): Promise<void> {
         );
       }
     }
+  }
+
+  const noBaseline = summary.filter((s) => s.steps === 0);
+  if (noBaseline.length > 0) {
+    console.log(
+      `\n⚠️ 另有 ${noBaseline.length} 讲**无法判定 blindSpot**（概念页没有统一的「关键步骤」结构，` +
+        `检测器刻意不猜测以免误报）：${noBaseline.map((s) => s.moduleId).join("、")}`,
+    );
+    console.log(
+      "   → 「未检出断层」对这些讲**不成立**。要覆盖它们，需先把概念页步骤结构统一成 A 型。",
+    );
   }
   console.log(`\n合计：${gaps.length} 条`);
 }
