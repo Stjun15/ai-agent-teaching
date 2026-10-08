@@ -1397,7 +1397,7 @@ async function main(): Promise<void> {
   const options: ScreenDescriberOptions = {
     baseUrl: BASE_URL,
     studentId: STUDENT_ID,
-    visionModel: "doubao-seed-2-1-turbo-260628",
+    visionModel: "deepseek-v4.1-flash",
     visionApiKey: "",
     visionBaseUrl: BASE_URL,
     proxyUrl: `${BASE_URL}/api/audit/evaluate`,

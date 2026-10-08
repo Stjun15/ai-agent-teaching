@@ -93,8 +93,8 @@ pnpm db:seed:student         # 造一个测试学生
 pnpm dev                     # http://localhost:3000
 ```
 
-模型平台：**火山方舟** `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。
-pi SDK 的 **provider id 必须是 `ark`**（SDK 由 provider id 推导环境变量名，改名后症状是「模型存在但不可用」）。
+模型平台：**商汤日日新 SenseNova** `https://api.sensenova.cn/v1`，文本/视觉同模 `deepseek-v4.1-flash`。
+密钥环境变量：**`SENSENOVA_API_KEY`**。pi SDK 的 provider id 仍为 `ark`（避免大面积重构，apiKey 显式传 `$SENSENOVA_API_KEY`）。
 
 ## 六、改完怎么证明没搞坏（四级，缺一不可）
 

@@ -35,7 +35,7 @@ import {
 import type { StudentAction } from "@/lib/agent/student/types";
 import type { ComprehensionReport } from "@/lib/agent/student/comprehension-verifier";
 import type { ScreenDescriberOptions } from "@/lib/agent/student/types";
-import { ARK_API_KEY_ENV, ARK_DEFAULT_BASE_URL } from "@/lib/agent/ark-config";
+import { ARK_API_KEY_ENV, readArkSettings } from "@/lib/agent/ark-config";
 
 const OUT_DIR = path.resolve("student-agent-output");
 mkdirSync(OUT_DIR, { recursive: true });
@@ -115,12 +115,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  const settings = readArkSettings();
   const options: ScreenDescriberOptions = {
     baseUrl: BASE_URL,
     studentId: STUDENT_ID,
-    visionModel: process.env.ARK_VISION_MODEL ?? "doubao-seed-2-1-pro-260915",
+    visionModel: settings.visionModel,
     visionApiKey: apiKey,
-    visionBaseUrl: process.env.ARK_BASE_URL ?? ARK_DEFAULT_BASE_URL,
+    visionBaseUrl: settings.baseUrl,
   };
 
   console.log("🔑 注册身份…");

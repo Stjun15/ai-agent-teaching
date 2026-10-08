@@ -8,7 +8,7 @@
  *
  * 为什么需要这个端点
  * -----------------
- * 审计脚本是独立 Node 进程，无法读取服务端的 ARK_API_KEY。
+ * 审计脚本是独立 Node 进程，无法读取服务端的 API Key。
  * 此前它直连 Ark API，要求用户额外配置密钥。
  * 本端点让审计脚本复用平台已有的 LLM 基础设施——
  * 审计脚本只需发 HTTP 请求，密钥由服务端注入。
@@ -68,7 +68,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const apiKey = process.env[ARK_API_KEY_ENV];
-  const baseUrl = process.env.ARK_BASE_URL ?? ARK_DEFAULT_BASE_URL;
+  const baseUrl = process.env.SENSENOVA_BASE_URL ?? ARK_DEFAULT_BASE_URL;
   const model =
     body.model ??
     (body.type === "vision"
@@ -117,6 +117,7 @@ export async function POST(req: Request): Promise<Response> {
         messages,
         temperature: 0.3,
         max_tokens: body.type === "vision" ? 512 : 600,
+        reasoning_effort: "none",
       }),
     });
 
