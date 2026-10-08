@@ -55,6 +55,7 @@
 import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 
 import type { ArkEnv } from "./ark";
+import { filterThinkingDelta, flushThinking } from "./thinking-filter";
 import { calculatorTool } from "./tools/calculator";
 import { createSession, type AgentSessionHandle } from "./session";
 import {
@@ -323,6 +324,8 @@ function createEventTranslator(
   let toolCalls = 0;
   const tokens = { input: 0, output: 0 };
   const toolStartedAt = new Map<string, number>();
+  /** thinking 跨块过滤的尾部缓冲（见 thinking-filter.ts）。 */
+  let thinkingCarry = "";
 
   function handle(event: AgentSessionEvent): void {
     switch (event.type) {
@@ -342,10 +345,17 @@ function createEventTranslator(
             data: { content: inner.delta, messageId },
           });
         } else if (inner.type === "thinking_delta") {
-          stream.send({
-            type: "thinking",
-            data: { step: THINKING_STEP, content: inner.delta, agent },
-          });
+          // 铁律 5 的服务端兜底：thinking 里出现内部词就在这里拿走。
+          // 靠提示词约束已被实测证伪（模型复述禁令本身就泄漏），故必须在代码层拦。
+          // filterThinkingDelta 带跨块缓冲，能识别被拆到两个 delta 之间的词。
+          const filtered = filterThinkingDelta(inner.delta, thinkingCarry);
+          thinkingCarry = filtered.carry;
+          if (filtered.emit !== "") {
+            stream.send({
+              type: "thinking",
+              data: { step: THINKING_STEP, content: filtered.emit, agent },
+            });
+          }
         }
         return;
       }
@@ -383,6 +393,16 @@ function createEventTranslator(
         if (event.message.role === "assistant") {
           tokens.input += event.message.usage.input;
           tokens.output += event.message.usage.output;
+          // 本轮 thinking 到此结束，把跨块缓冲里剩下的尾巴吐出去，
+          // 否则最后不足一个词长的残留会丢字。
+          const tail = flushThinking(thinkingCarry);
+          if (tail !== "") {
+            thinkingCarry = "";
+            stream.send({
+              type: "thinking",
+              data: { step: THINKING_STEP, content: tail, agent },
+            });
+          }
         }
         return;
 

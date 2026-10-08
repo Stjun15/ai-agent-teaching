@@ -132,6 +132,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "思维链内部词过滤",
+    file: "scripts/thinking-filter-spec.ts",
+    model: false,
+  },
+  {
     name: "观察面板分段",
     file: "scripts/observe-segments-spec.ts",
     model: false,
