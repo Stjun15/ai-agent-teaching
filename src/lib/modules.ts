@@ -61,6 +61,12 @@ export interface TeachingModule {
   name: string;
   /** 正文「## 定义」的首段，用作模块卡片的一句话说明。 */
   summary: string;
+  /**
+   * 正文「## 关键步骤」下的 `###` 子节标题，本讲的步骤骨架。
+   * 讲稿预生成时随 prompt 送给模型（否则模型不知道该讲几步，见 extractKeySteps 注释）。
+   * 概念页没有该小节时为空数组。
+   */
+  keySteps: string[];
   /** 1~5，取自概念页 frontmatter。 */
   difficulty: number;
   /** 例如 `30min`，取自概念页 frontmatter。 */
@@ -120,6 +126,43 @@ function extractDefinition(body: string): string {
    * （2026-10-04 学生走查实测「从零搭出一个**能跑的**单机版…」）。
    */
   return paragraph.join("").replace(/\*\*/g, "").replace(/`/g, "");
+}
+
+/**
+ * 提取概念页「## 关键步骤」下的 `###` 子节标题，作为该讲的**步骤骨架**。
+ *
+ * 为什么要提取（2026-10-08 实测的缺陷）：
+ * `generate-lecture-cache.ts` 调`lectureOpenerPrompt` 时只传了**模块名**，
+ * 概念页正文与关键步骤**全都没进prompt** —— 于是模型不知道这一讲该讲几步、
+ * 每步是什么。实测后果：`platform-replica` 概念页声明了 5 个关键步骤
+ * （三板斧 + 龙骨），讲稿里**一个都没出现**，整节讲成了别的东西（任务分解）。
+ *
+ * 所以步骤骨架必须随讲稿一起送到模型，否则**内容错位无法靠重试解决**。
+ *
+ * 找不到该小节时返回空数组：概念页结构由 `detect-lecture-gaps` 的
+ * `prerequisite`/`blindSpot` 判据单独检出，不该在此静默降级成"没步骤"。
+ */
+function extractKeySteps(body: string): string[] {
+  const lines = body.split(/\r?\n/);
+  let inSteps = false;
+  const steps: string[] = [];
+  for (const line of lines) {
+    if (/^##\s/.test(line)) {
+      inSteps = /关键步骤|详细步骤/.test(line);
+      continue;
+    }
+    if (!inSteps) continue;
+    const m = /^###\s+(.+)$/.exec(line);
+    if (m !== null) {
+      steps.push(
+        m[1]
+          .trim()
+          .replace(/[（(].*?[)）]/g, "")
+          .trim(),
+      );
+    }
+  }
+  return steps;
 }
 
 /**
@@ -189,6 +232,7 @@ export async function loadModules(): Promise<TeachingModule[]> {
       id,
       name: asString(page.frontmatter.name, id),
       summary: extractDefinition(page.body),
+      keySteps: extractKeySteps(page.body),
       difficulty: Number(page.frontmatter.difficulty ?? 0),
       estimatedTime: asString(page.frontmatter.estimated_time),
       tags: asStringArray(page.frontmatter.tags),

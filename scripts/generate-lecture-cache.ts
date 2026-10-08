@@ -62,7 +62,12 @@ async function main(): Promise<void> {
   const { textModel } = readArkSettings();
 
   const modules = await loadModules();
-  const jobs: { moduleId: string; name: string; step: AutoLectureStep }[] = [];
+  const jobs: {
+    moduleId: string;
+    name: string;
+    step: AutoLectureStep;
+    keySteps: readonly string[];
+  }[] = [];
   for (const teachingModule of modules) {
     for (const step of AUTO_LECTURE_STEPS) {
       if (wanted(teachingModule.id, step)) {
@@ -70,6 +75,9 @@ async function main(): Promise<void> {
           moduleId: teachingModule.id,
           name: teachingModule.name,
           step,
+          // 概念页「## 关键步骤」子节。不传的话模型不知道该讲几步——
+          // 实测 platform-replica 因此整节讲成了「任务分解」（见 lecture-openers 注释）。
+          keySteps: teachingModule.keySteps,
         });
       }
     }
@@ -107,7 +115,7 @@ async function main(): Promise<void> {
     process.stdout.write(`${label} 生成中…\n`);
     const startedAt = Date.now();
     const loop = runAgentLoop({
-      prompt: lectureOpenerPrompt(job.step, job.name),
+      prompt: lectureOpenerPrompt(job.step, job.name, job.keySteps),
       agent: stepAgent.id,
       systemPrompt: stepAgent.systemPrompt,
     });
