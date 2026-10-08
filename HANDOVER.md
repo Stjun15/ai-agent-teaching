@@ -244,6 +244,10 @@
 
 ⚠️ **重跑会冲掉缓存级内容修复**：`generate-lecture-cache.ts:148` 用 `upsert` 覆盖 `(module_id, step)`。此前已修的 3 处（`llm-api` 上下文内联定义、`mcp` Agent 内联定义、`ai-safety` 四层防护主线段落）在重跑后**需要重新注入** —— 备份原文见 `.workbuddy/backup/explain-cache-before-force.json`。
 
+**10-08 重跑实测记录（11 条 explain）**：分批 `--only=<mod>:explain` + 间隔 100~150s，**9 条一次成功**；`mcp` 连续 2 次撞限流失败（补跑解决）；`platform-replica` 曾报「缺少五、现在轮到你任务节」→ **重试一次即成功（2636 字、结构完整）**。
+
+> 📌 **修正脚本注释里的一个说法**：`generate-lecture-cache.ts:137` 注释写「缺节多半不是模型偷懒…**修提示词而不是重试**」。10-08 实测表明该次缺节是**偶发**（端点 200、结构完整的情况下重试即成功），**不必一看到缺节就去改提示词** —— 先在端点正常时重试 1~2 次，仍缺再考虑动提示词结构声明。
+
 **排查耗时记录（10-08）**：一次性诊断脚本 `scripts/probe-observe.ts`（跑 11 模块 observe）约 7.5 分钟；`verify-thinking-leak.ts` 4 模块约 3 分钟。**限流下这些都是分钟级任务，务必后台跑。**
 
 **⚠️ 10-07 22:24 更新：阻塞原因已查明 = 方舟账号欠费，不是端点故障。** 直连 `ark.cn-beijing.volces.com/api/v3/chat/completions` 实测：`HTTP 403` + `{"error":{"code":"AccountOverdueError","message":"...account has an overdue balance..."}}` —— **任何模型都会被挡掉**，故 `verify-thinking-leak.ts` 4 个模块与 `generate-lecture-cache.ts --force` 11 个任务全部报「模型未产出内容」。
