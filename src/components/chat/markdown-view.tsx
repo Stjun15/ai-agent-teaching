@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { Check, Copy } from "lucide-react";
 
 import {
   parseMarkdown,
@@ -97,6 +98,96 @@ const HEADING_CLASS: Record<number, string> = {
 
 const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
 
+/** 从行内 token 列表中提取纯文本，用于生成标题 id。 */
+function getPlainText(tokens: InlineToken[]): string {
+  return tokens
+    .map((t) => {
+      if (t.type === "text") return t.value;
+      if (t.type === "code") return t.value;
+      if (t.type === "strong" || t.type === "emphasis" || t.type === "link") {
+        return getPlainText(t.children);
+      }
+      return "";
+    })
+    .join("");
+}
+
+/** 将标题文本转为 URL 安全的 slug。 */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fff]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+/** 代码块卡片（含语言标签 + 复制按钮）。 */
+function CodeBlock({
+  language,
+  value,
+  closed,
+}: {
+  language: string | null;
+  value: string;
+  closed: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 降级：选中文本让用户手动复制
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [value]);
+
+  return (
+    <div
+      className={`overflow-hidden rounded-md bg-muted/40 ${
+        closed ? "border" : "border border-dashed"
+      }`}
+    >
+      <div className="flex items-center justify-between border-b px-2 py-0.5">
+        {language !== null ? (
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {language}
+          </span>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          title={copied ? "已复制" : "复制代码"}
+        >
+          {copied ? (
+            <Check className="size-3 text-emerald-500" />
+          ) : (
+            <Copy className="size-3" />
+          )}
+          <span>{copied ? "已复制" : "复制"}</span>
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-2 text-[clamp(11px,1.8vw,16px)] leading-relaxed break-words whitespace-pre-wrap">
+        <code>{value}</code>
+      </pre>
+    </div>
+  );
+}
+
 /** 块级 token → React 节点。 */
 function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
   return blocks.map((block, index) => {
@@ -113,8 +204,10 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
       case "heading": {
         const level = Math.min(Math.max(block.level, 1), HEADING_TAGS.length);
         const Tag = HEADING_TAGS[level - 1];
+        const plainText = getPlainText(block.children);
+        const id = slugify(plainText);
         return (
-          <Tag key={key} className={HEADING_CLASS[level]}>
+          <Tag key={key} id={id || undefined} className={HEADING_CLASS[level]}>
             {renderInline(block.children, key)}
           </Tag>
         );
@@ -122,23 +215,12 @@ function renderBlocks(blocks: MarkdownBlock[], keyPrefix: string): ReactNode[] {
 
       case "code":
         return (
-          <div
+          <CodeBlock
             key={key}
-            // 未闭合（`closed: false`）说明模型还在写这一段，用虚线边框
-            // 如实表达「这段没写完」，比当成普通代码块更像真话。
-            className={`overflow-hidden rounded-md bg-muted/40 ${
-              block.closed ? "border" : "border border-dashed"
-            }`}
-          >
-            {block.language !== null ? (
-              <div className="border-b px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                {block.language}
-              </div>
-            ) : null}
-            <pre className="overflow-x-auto p-2 text-[clamp(11px,1.8vw,16px)] leading-relaxed break-words whitespace-pre-wrap">
-              <code>{block.value}</code>
-            </pre>
-          </div>
+            language={block.language}
+            value={block.value}
+            closed={block.closed}
+          />
         );
 
       case "list": {
