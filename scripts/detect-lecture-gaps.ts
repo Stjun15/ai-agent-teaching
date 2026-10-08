@@ -286,6 +286,20 @@ function isCoveredWithConfidence(
   step: string,
   lecture: string,
 ): "high" | "low" | "none" {
+  // 首查：步骤标题逐字命中 → high（2026-10-08 修复）。
+  // 实测教训：stepKeywords 剥掉「维度一 ·」「第三道 ·」这类序号前缀后只剩
+  // 2 字短词（角色/格式/限流/并行…），讲稿明明开了**同名小节**
+  // （「### 维度一 · 角色」「### 第三道 · 限流」）却只能判 low，
+  // 一轮误报 4 讲「需人工确认」——抽样核实后 4/4 全是真覆盖。
+  // 完整标题逐字出现，几乎只可能是真在讲这个步骤，判 high 是安全的。
+  // 规范化 = 去所有空白，容忍「维度一 · 角色」vs「维度一·角色」的空格差异。
+  // ⚠️ 标题去空白后仍须 ≥4 字才走这条捷径：2~3 字的裸标题（如「检索」）
+  // 逐字出现在别处标题里不足以定论（rag「检索」在页首标题的旧教训）。
+  const title = step.replace(/\s+/g, "");
+  if (title.length >= 4 && lecture.replace(/\s+/g, "").includes(title)) {
+    return "high";
+  }
+
   const kws = stepKeywords(step);
   if (kws.some((k) => k.length >= 3 && lecture.includes(k))) return "high";
   if (kws.some((k) => lecture.includes(k))) return "low";
