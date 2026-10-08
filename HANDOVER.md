@@ -225,9 +225,9 @@
 2. 二版：切点判断用「切点**之后**到末尾是否为词前缀」→ **方向错了**；「掌握|度」的切点落在词**前面**，「掌握」被当安全前缀吐出，后到的「度」再也配不上。
 3. 最终版：**先全量替换，再按「carry 长度 < 最长词长就一律不吐」切分**。正确测法是**穷举**（句子 × 全部固定粒度 × 全部单点切法 × 逐字，本轮 134 种组合），手挑几个用例抓不到这类bug。
 
-> 📌 **阻塞已解除** —— 平台已迁商汤（见 4.5）。`--force` 重跑缓存须**分批 + 拉长间隔**，规程见 4.6。
+> 📌 **阻塞已解除** —— 平台已迁商汤（见 4.5）。`--force` 重跑缓存须**分批 + 拉长间隔**，规程见 4.7。
 
-### 4.6 限流下的真模型任务规程（10-08 实证）
+### 4.7 限流下的真模型任务规程（10-08 实证）
 
 **问题**：SenseNova 免费额度限流很紧，报`429 insufficient_quota`（`inference exceeds tpm/rpm limit`）。密集跑必然中途失败，且失败信息是 `LLM_ERROR 模型未产出内容` —— **看起来像代码/模型问题，实际是限流**。
 
@@ -256,29 +256,32 @@
 
 > 📌 **该阻塞已解除 —— 平台已于 10-08 迁到商汤日日新**，方舟欠费不再是阻塞原因。见 4.5。
 
-### 4.5 平台迁移：火山方舟 → 商汤日日新（10-08）
+### 4.8 平台迁移历史：方舟 → 商汤 → **已切回方舟**（10-08）
 
-| 项          | 值                                                                             |
-| ----------- | ------------------------------------------------------------------------------ |
-| 端点        | `https://token.sensenova.cn/v1`（**不是** `api.sensenova.cn`）                 |
-| 模型        | `deepseek-v4-flash` —— **没有 `.1`**（不是 `deepseek-v4.1-flash`）             |
-| 密钥 env    | `SENSENOVA_API_KEY`（旧 `ARK_*` 变量已废弃，但仍残留在系统环境变量里，可清理） |
-| provider id | 仍是 `ark`（内部标识故意不改；`apiKey` 显式传 `"$SENSENOVA_API_KEY"` 引用）    |
+**当前生效配置（提交 `d7ea12b`，实测 200 OK + `pnpm test` 全绿）**：
 
-**关思考的正确写法**（`ark.ts`）：`reasoning: false` + `compat: { thinkingFormat: "deepseek", supportsReasoningEffort: true }` + `thinkingLevelMap` 全部映射 `null`。
-⛔ **不要写 `samplingParams: { reasoning_effort: "none" }`** —— 运行时虽被 `Object.assign` 进请求体（`openai-completions.js:761`），但**不在 `ProviderModelConfig` 类型里** → `tsc` 报 TS2353。
+| 项          | 值                                                                            |
+| ----------- | ----------------------------------------------------------------------------- |
+| 平台        | **火山方舟 Volcengine Ark**                                                   |
+| 端点        | `https://ark.cn-beijing.volces.com/api/v3`                                    |
+| 文本模型    | `deepseek-v4-flash-ga-260731`（`ARK_TEXT_MODEL`）                             |
+| 视觉模型    | `doubao-seed-2-1-pro-260915`（`ARK_VISION_MODEL`）—— **方舟文本与视觉不同模** |
+| 密钥 env    | `ARK_API_KEY`（`SENSENOVA_*` 已清除）                                         |
+| provider id | 仍是 `ark`（内部标识故意不改）                                                |
 
-**三条踩过的坑**：
+#### 商汤时期的关键配置（**已不适用**，留档以免重犯）
 
-1. **文本/视觉同 id**：SenseNova 原生多模态，`models: [text, vision]` 会注册**两条同 id** 条目（name 不同）。实测**不影响调用**，别误判为故障。
-2. **thinking 未彻底关闭**：`reasoning: false` 下实测 thinking 仍有**约 23 字符**残留 → **B 核验不能假设 thinking 恒为空**。
-3. **限流紧**：连续请求会 `429 insufficient_quota`（`inference exceeds tpm/rpm limit`）→ 诊断时每次探测之间 `sleep 20~25s`，否则会把限流误读成配置错。
+- 端点 `https://token.sensenova.cn/v1`（**不是** `api.sensenova.cn`），模型 `deepseek-v4-flash`（**没有 `.1`**）。
+- ⛔ 商汤特有：关思考要 `reasoning: false` + `compat: { thinkingFormat: "deepseek" }` + `thinkingLevelMap` 映射 `null`；**切回方舟后这些已全部移除**（`reasoning_effort` 是 SenseNova 独有机制）。
+- ⛔ `samplingParams: { reasoning_effort: "none" }` 运行时虽被 `Object.assign` 进请求体，但**不在 `ProviderModelConfig` 类型里** → tsc TS2353。
+- 商汤限流很紧（`429 insufficient_quota`），**方舟没有这个问题** —— 切回后 `pnpm test` 首次全绿（3 组真模型全过）。
 
-**实测结论（10-08）**：raw fetch 与 SDK 路径（`runAgentLoop`）**均 200 OK**，`{"ok":true}` 可解析，`pnpm check` 0 error。
+#### ⚠️ 换平台时必查的两处（10-08 实际踩到）
 
-**⚠️ 限流对测试的影响（10-08 实测，报告失败时必须带上这句）**：`pnpm test` 跑出 **2 / 44 失败**（讲解、出题两个真模型组，报「输出里找不到 JSON 对象」）。**这不是配置错、也不是产品回归** —— 单独重跑讲解组得到 `ok=true`、`usedFallback=false`、**`attempts=2`**、`durationMs=45256`，内容质量正常（正确用了类比 + visualize 场景）。即**首次尝试撞 429、`extractJson` 重试救回**；测试里那次是重试也没过。**结论：疑似限流，须在限流窗口过后复跑才能定性，勿当回归。**
+1. **环境变量残留**：PowerShell 改的是注册表，但**已运行的宿主进程仍持有旧快照**，新 shell 从父进程继承旧值 → 曾导致后台任务用 `doubao` 而非配置里的 `deepseek`。**后台脚本必须显式 `export`，并在日志里打印实际使用的模型。**
+2. **按旧上限估的阈值**：`generate-lecture-cache.ts` 的截断守卫曾写死 `>= 8000`（商汤上限 8192），方舟上限 16384 → **两条完整正常的讲稿被当成「顶到上限」拒收**。已改为引用 `ark-config.ts` 的 `TEXT_MAX_TOKENS`。
 
-> 📌 **诊断脚本读 SSE 的帧类型是 `token`**（不是 `text`/`delta`）。漏了这个分支会误判成「SDK 路径返回空」—— 我犯过，白排查一轮。
+> 📌 诊断脚本读SSE 的帧类型是 `token`（不是 `text`/`delta`）。漏了这个分支会误判成「SDK 路径返回空」。
 
 解除阻塞后的顺序：① 探端点确认 200 → ② 跑 `verify-thinking-leak.ts`（thinking 无内部词）→ ③ `--force` 重跑 `generate-lecture-cache.ts`。**注意第③ 步会 `upsert` 覆盖 `explain` 讲稿，冲掉已做的 3 处缓存级内容修复**（术语断层 2 条 + ai-safety 一致性 1 条），需重跑后重新注入 —— 备份见 `.workbuddy/backup/explain-cache-before-force.json`。
 
@@ -487,7 +490,7 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 | #   | 问题                                 | 裁定                                                       | 落地                                                                                                                                                                                                                           |
 | --- | ------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1   | 模拟学生 Agent 定位（见 4.3 断点 1） | **选 A**：离线「课程质量审计工具」                         | `00-MASTER.md` 增补「实现备注」写明；产品用户是真学生，模拟学生不接产品运行时                                                                                                                                                  |
-| 2   | 5 工具只做 1 个（见 4.6）            | **有意裁剪**（符合第一原则「不训练这些能力的功能，不做」） | `00-MASTER.md` 同节说明：天气/文件读写/网络搜索/数据库查询不在六项协作能力范畴，非遗漏                                                                                                                                         |
+| 2   | 5 工具只做 1 个（见 4.7）            | **有意裁剪**（符合第一原则「不训练这些能力的功能，不做」） | `00-MASTER.md` 同节说明：天气/文件读写/网络搜索/数据库查询不在六项协作能力范畴，非遗漏                                                                                                                                         |
 | 3   | 思维链泄漏验证                       | **A+B 组合 + 列为 P0 修复**                                | 铁律5已延伸到thinking（提交 `c6686f3`）；新增 `scripts/verify-thinking-leak.ts`(B) 与 `scan-cache-internal-words.ts`(A)；**B核验与 `--force` 重跑缓存受阻于方舟账号欠费 403**（见 4.2，充值后即恢复；⚠️ 会反复，跑前先探端点） |
 
 > 裁定纪实：用户「直接处理三件事」后凭事实裁定。A 选择依据——`grep -rn 'agent/student' src/` 返回空（产品零引用），扇出审计已证其价值；B（接产品做陪练）差异化最强但工作量最大，距省赛截止 2026-11-18 不应再开产品面。事3 的 B 路径是唯一能验 thinking 的手段（缓存无 thinking 字段），A 路径只能查界面输出。
