@@ -225,7 +225,26 @@
 2. 二版：切点判断用「切点**之后**到末尾是否为词前缀」→ **方向错了**；「掌握|度」的切点落在词**前面**，「掌握」被当安全前缀吐出，后到的「度」再也配不上。
 3. 最终版：**先全量替换，再按「carry 长度 < 最长词长就一律不吐」切分**。正确测法是**穷举**（句子 × 全部固定粒度 × 全部单点切法 × 逐字，本轮 134 种组合），手挑几个用例抓不到这类bug。
 
-> 📌 **阻塞已解除** —— 平台已迁商汤（见 4.5）。`--force` 重跑缓存仍待做，且受 SenseNova 限流影响须分批。
+> 📌 **阻塞已解除** —— 平台已迁商汤（见 4.5）。`--force` 重跑缓存须**分批 + 拉长间隔**，规程见 4.6。
+
+### 4.6 限流下的真模型任务规程（10-08 实证）
+
+**问题**：SenseNova 免费额度限流很紧，报`429 insufficient_quota`（`inference exceeds tpm/rpm limit`）。密集跑必然中途失败，且失败信息是 `LLM_ERROR 模型未产出内容` —— **看起来像代码/模型问题，实际是限流**。
+
+**规程**：
+
+| 做法                | 说明                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **先探端点**        | 任何真模型任务前先发一个 `max_tokens:20` 的最小请求。返回 429 就先等，别开工                                          |
+| **间隔 100 秒以上** | 实测单条讲稿生成要 65 秒 / `out 5189 tok`，间隔至少 100s                                                              |
+| **分批 + 单条跑**   | 用 `generate-lecture-cache.ts --force --only=<module>:explain` 逐条跑，不要一次 `--force` 全量（11 条必然中途撞限流） |
+| **失败先归因限流**  | 报「模型未产出内容」时先探端点 + 拉长间隔复跑，**别当模块缺陷或代码 bug 去查**                                        |
+
+**重跑范围**：`AUTO_LECTURE_STEPS = ["explain"]`（`lecture-openers.ts:22`）→ `--force` 只重跑 **explain 共 11 条**；缓存里另有 9 条 `observe`（+1 条退役的 `python-basics`）**不由该脚本生成**，别误以为漏跑。
+
+⚠️ **重跑会冲掉缓存级内容修复**：`generate-lecture-cache.ts:148` 用 `upsert` 覆盖 `(module_id, step)`。此前已修的 3 处（`llm-api` 上下文内联定义、`mcp` Agent 内联定义、`ai-safety` 四层防护主线段落）在重跑后**需要重新注入** —— 备份原文见 `.workbuddy/backup/explain-cache-before-force.json`。
+
+**排查耗时记录（10-08）**：一次性诊断脚本 `scripts/probe-observe.ts`（跑 11 模块 observe）约 7.5 分钟；`verify-thinking-leak.ts` 4 模块约 3 分钟。**限流下这些都是分钟级任务，务必后台跑。**
 
 **⚠️ 10-07 22:24 更新：阻塞原因已查明 = 方舟账号欠费，不是端点故障。** 直连 `ark.cn-beijing.volces.com/api/v3/chat/completions` 实测：`HTTP 403` + `{"error":{"code":"AccountOverdueError","message":"...account has an overdue balance..."}}` —— **任何模型都会被挡掉**，故 `verify-thinking-leak.ts` 4 个模块与 `generate-lecture-cache.ts --force` 11 个任务全部报「模型未产出内容」。
 
