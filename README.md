@@ -51,19 +51,19 @@
 
 ## 技术栈
 
-| 层               | 选型                                                        |
-| ---------------- | ----------------------------------------------------------- |
-| 框架             | Next.js 16（App Router）+ React 19 + TypeScript             |
-| 样式             | Tailwind CSS v4 + shadcn/ui                                 |
-| 模型平台         | 火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`）        |
-| 主模型           | `deepseek-v4-flash-ga-260731`（环境变量 `ARK_TEXT_MODEL`）  |
-| 多模态模型       | `doubao-seed-2-1-pro-260915`（环境变量 `ARK_VISION_MODEL`） |
-| Agent 底座       | piagentSDK                                                  |
-| 知识层           | LLM Wiki + 轻量 RAG                                         |
-| 数据库（开发期） | SQLite + repository 抽象层                                  |
-| 数据库（部署期） | 腾讯云 CloudBase PostgreSQL + pgvector                      |
-| 包管理器         | pnpm                                                        |
-| 代码规范         | ESLint + Prettier + TypeScript 严格模式                     |
+| 层               | 选型                                                      |
+| ---------------- | --------------------------------------------------------- |
+| 框架             | Next.js 16（App Router）+ React 19 + TypeScript           |
+| 样式             | Tailwind CSS v4 + shadcn/ui                               |
+| 模型平台         | 商汤日日新SenseNova（OpenAI 兼容端点 `/v1`）              |
+| 主模型           | `deepseek-v4-flash`（环境变量 `SENSENOVA_TEXT_MODEL`）    |
+| 多模态模型       | 同主模型，原生多模态（环境变量 `SENSENOVA_VISION_MODEL`） |
+| Agent 底座       | piagentSDK                                                |
+| 知识层           | LLM Wiki + 轻量 RAG                                       |
+| 数据库（开发期） | SQLite + repository 抽象层                                |
+| 数据库（部署期） | 腾讯云 CloudBase PostgreSQL + pgvector                    |
+| 包管理器         | pnpm                                                      |
+| 代码规范         | ESLint + Prettier + TypeScript 严格模式                   |
 
 ---
 
@@ -85,7 +85,7 @@ pnpm install
 
 # 配置环境变量（API Key 绝不落盘，只放在本地 .env.local）
 cp .env.example .env.local
-# 然后编辑 .env.local 填入 ARK_API_KEY
+# 然后编辑 .env.local 填入 SENSENOVA_API_KEY
 
 pnpm dev          # 启动开发服务器 http://localhost:3000
 ```
