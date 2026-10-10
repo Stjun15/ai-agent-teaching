@@ -1,27 +1,27 @@
-# 接手文档 — 2026-10-08（当日更新：费曼复习卡 + 平台复刻优化 + 页脚处理）
+# 接手文档 — 2026-10-10（当日更新：概念测验安全加固 + 讲稿批量直写工具）
 
-> 上一份（2026-10-07）的「课程审计员」命题已经走完一个完整闭环：**学生 Agent 试点审计 → 抓出 2 个 critical → 根因定位 → 修复 → 缓存重生成 → 浏览器验证**。本文件记录这个闭环，以及扇出与产品内审计员的落地结果。
-> 本次新增：费曼学习法复习卡（模块学习收尾）、教学平台复刻文档与界面优化、页脚声明移除。
+> 上一份（2026-10-08）已完成费曼复习卡、平台复刻优化、页脚声明移除、思维链泄漏修复。
+> 本次新增：**概念测验安全加固**——清除 11 篇预写讲稿中「🎉 概念通过」提前宣告，学生必须通过概念测验才能放行；新增 `_direct-cache-write.ts` 批量直写讲稿缓存工具（不调外部 LLM）；新增 `query-wiki.ts` 知识库查询工具。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
 
 ---
 
-## 〇、当前状态速查（2026-10-08 更新）
+## 〇、当前状态速查（2026-10-10 更新）
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                           |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `c307c88`（提交总数 **约 533**；**已与远端同步** —— 2026-10-08 推送 20 个提交后独立 `ls-remote` 核验，远端 == 本地）                                                                                                                                                                                                                   |
-| 与远端       | ✅ **已同步**（2026-10-08）—— 推送 `d4077d1..01dce84` 共 20 个提交，**推送后另跑 `git ls-remote origin dev`（带四个开关）独立核验，远端 SHA 与本地 `git rev-parse HEAD` 逐字符相等**。⚠️ **本地 `origin/dev` 引用仍缺失**（已知地雷），故核同步**只能用 `ls-remote` 比对，勿用 `git rev-list origin/dev..HEAD`**（会静默返回空）。推送见第六节 |
-| 工作区       | **有未提交改动**：`feynman-review.tsx`（新文件）、`module-workspace.tsx`（改）、`platform-replica-workspace.tsx`（改）、`platform-replica.md`（改）。`site-footer.tsx` 已通过 `skip-worktree` 隐藏本地改动（删「AI 生成内容，仅供学习参考」）。⚠️ 接手下一位需决定是否提交或继续本地保留。                                                     |
+| 分支 / HEAD  | `dev` @ `27a3eb9`（提交总数 **约 534**）                                                                                                                                                                                                                                                                                                       |
+| 与远端       | ⚠️ **未推送** —— `git push` 后报 "upstream is gone"（本机 origin/dev 引用缺失）。须用 `git ls-remote` 核验远端后再推送，姿势见第六节                                                                                                                                                                                                         |
+| 工作区       | **干净** —— `git status` 显示 `nothing to commit, working tree clean`。此前 10-08 的 4 个未提交文件已随 10-10 提交全部入库。`site-footer.tsx` 已通过 `skip-worktree` 隐藏本地改动（删「AI 生成内容，仅供学习参考」）                                                                                                                             |
 | 仓库完整性   | `write-tree` == `HEAD^{tree}` 逐字符相等（`c1b5e4de…`）；`git fsck` 无 missing                                                                                                                                                                                                                                                                 |
 | 门禁         | `pnpm check` **0 error**、prettier 全过、`tsc` 0 错                                                                                                                                                                                                                                                                                            |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`                                                                                                                                                                   |
 | 产品内审计员 | **可用**：`/audit` 页 + `/api/audit`，DB 里 11 讲已审、3 缺陷                                                                                                                                                                                                                                                                                  |
 | 三步进度     | 第 0/1/2 步 ✅ 全部完成（见下）                                                                                                                                                                                                                                                                                                                |
 | 测试套件     | 44 组，每次全跑无跳过；3 组真模型。**10-07 22:06 实测：充值后仅 1 / 44 失败**（点评 8 例、讲解 6 例真模型组均通过；余下出题组因 doubao-pro 慢而约 44s 超时）；`thinking-seal-spec` 毫秒竞态偶发（测试自身 bug，见 4.4）。⚠️ **欠费会反复** —— 22:24 复测又全量 403，真因见 4.2，改动前先探端点                                                 |
-| 本会话新增   | **费曼复习卡组件**（`feynman-review.tsx`）+ 集成到模块工作区（`module-workspace.tsx`）；**平台复刻优化**（教案保留、目录内部滚动、markdown 代码块复制）；**页脚声明移除**（`skip-worktree` 本地隐藏）                                                                                                                                          |
+| 本会话新增   | **概念测验安全加固**（11 篇讲稿清除「🎉 概念通过」提前宣告）；**批量直写工具**（`_direct-cache-write.ts`，零 LLM 调用）；**知识库查询工具**（`query-wiki.ts`）；**讲稿缓存列表**（`_list-cache.ts`）；**ExplainNextButton 弹窗**（测验确认提醒文案）                                                                                        |
 
-### ✅ 远端已于 19:55 推送完成
+### ✅ 远端已于 19:55 推送完成 (10-08)；⚠️ 10-10 未推送
 
 此前 19:40~19:50 记录为「未核实」，**那是误判** —— 当时把证书错误当成了网络不通。
 真实症结与正确推法见第六节「推送与核验远端的正确姿势」。
@@ -135,7 +135,7 @@
 
 **两条诚实边界写死在界面上**（不是写在注释里）：「没查到 ≠ 没问题」（判断类缺陷不在五项里）、「分数 null 显示未检测而非 0」（本轮不调模型，画 0 就是编数据）。
 
-### 2.8 本会话新增（10-08，未提交）
+### 2.8 本会话新增（10-08，已于 10-10 全部提交入库）
 
 已提交部分（`c307c88` 及之前 4 个提交）：
 
@@ -146,7 +146,7 @@
 | `8a8561d` | feat(ui): 平台复刻任务数据加 `detail`/`pitfalls` 字段，详细操作步骤 + 常见问题提示 |
 | `c307c88` | refactor(ui): 平台复刻移除概念讲解面板，只保留教案；目录跳转改为仅在教案内部滚动   |
 
-**未提交（接手下一位需决定）**：
+**已于 10-10 提交入库（此前 10-08 为未提交）**：
 
 | 文件                                                  | 内容                                                                                                                                                                                                   |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -156,12 +156,44 @@
 | `llm-wiki/concepts/platform-replica.md`               | 从 ~432 行扩充至 ~1400 行；新增：前置知识速查（Node.js/npm/pnpm/VS Code）、详细操作步骤（每步含命令 + 解释 + 预期结果）、逐行代码讲解、验收清单、常见问题排查                                          |
 | `src/components/layout/site-footer.tsx`               | **本地修改已通过 `git update-index --skip-worktree` 隐藏**。改动内容：删除「AI 生成内容，仅供学习参考」文本。如需恢复跟踪：`git update-index --no-skip-worktree src/components/layout/site-footer.tsx` |
 
-**费曼复习卡设计要点**：
+### 2.9 概念测验安全加固（10-10，本次提交 `27a3eb9`）
 
-- 四步分别对应四种心理状态：回忆（选定概念）→ 转译（假装教人）→ 反思（发现漏洞）→ 压缩（一句话说清）
-- 每步有独立的提示语和 placeholder，引导学生写出真实想法
-- 第四步完成后才显示「完成」按钮，确保完整走完流程
-- 学习报告形式展示所有四步内容，可作为复习材料保存
+**问题**：11 篇预写讲稿全部在概念测验后直接写了「🎉 **概念通过。下一步...**」——学生还没答题就看到通过宣告，完全绕过测验校验。学生可以通过连续点击「讲解完毕」跳过所有测验直接进入下一环节。
+
+**发现过程**：从三段链条分别查验——讲稿缓存内容（静态）→ 教学提示词约束（动态）→ 讲解完毕按钮逻辑（UI）。
+
+**修复（一次提交，覆盖 14 修改 + 4 新增文件）**：
+
+| 修改层     | 文件                                           | 修复内容                                                                                         |
+| ---------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 讲稿缓存层 | `scripts/_direct-cache-write.ts`（新文件）     | 批量直写 11 模块 explain 讲稿，零 LLM API 调用；11 处「🎉 概念通过」全部替换为「把答案发在聊天框」 |
+| 讲稿缓存层 | 所有 11 模块 explain 讲稿（SQLite 落盘）       | 出题后引导学生在聊天框答题，不提前给答案、不提前宣告通过                                         |
+| 提示词层   | `src/lib/agent/prompts/teaching-chat.ts`       | 铁律已写：「出题时只出题，不许给答案。答案只允许在学生选完之后才出现，没选之前一个字都不许透露」   |
+| UI 层      | `src/components/learn/explain-next-button.tsx` | 讲解完毕点击弹出确认弹窗：「完成了概念测验并通过」的提醒文案                                     |
+| 讲稿拆分   | `src/lib/lecture-split.ts`                     | 讲稿拆分逻辑确保「五、现在轮到你」任务节不出现在讲解页，仅在模仿页渲染任务卡                     |
+| 其他修复   | —                                              | 修复「五、现在轮到你」标题的 `**` 后缀、清除 llm-wiki 重复行                                     |
+
+**安全链条现状**：
+
+```
+讲稿出题 → 只出题不给答案 → 引导学生在聊天框答题
+         → 讲解完毕按钮弹出提醒弹窗 → 学生自觉确认后方可继续
+         → AI prompt 铁律：「出题时只出题，答案只在学生选完后才出现」
+```
+
+**三重保障**：讲稿静态层（不出答案）+ 提示词动态层（出题不给答案）+ 讲解完毕按钮 UI 层（弹窗提醒确认）。
+
+⚠️ **当前无硬校验**——讲解完毕弹窗依赖学生自觉点击「确认」，没有后端强校验。若需硬阻断，可在 `explain-next-button.tsx` 中检查 mastery 状态。
+
+**新增工具文件**：
+
+| 文件                          | 用途                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `scripts/_direct-cache-write.ts` | 批量直写讲稿缓存到 SQLite，不调外部 LLM API，用于批量修正预写讲稿内容 |
+| `scripts/_list-cache.ts`         | 列出所有讲稿缓存条目，含字数统计                                      |
+| `src/lib/agent/tools/query-wiki.ts` | Agent 工具：按关键字查询知识库内容，返回匹配段落                   |
+
+⚠️ `_direct-cache-write.ts` 内含 11 篇完整讲稿硬编码文本（约 26000 字），每次修改讲稿内容须同步更新该文件。修改后运行 `npx tsx --tsconfig tsconfig.json scripts/_direct-cache-write.ts` 即可覆盖入库。
 
 ---
 
@@ -390,7 +422,10 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 ├── src/stores/session.ts               ← inFlightThinking（思维链归属修复点）；
 │                                          persist 键 sso.conversations，可直接读 localStorage 验证 store
 ├── src/lib/agent/prompts/teaching-chat.ts ← LECTURE_TASK_SECTION / OUTPUT_PACING_NOTICE（C2 修复点）
+│                                          ← 10-10 加固：铁律「出题时只出题，不许给答案」
 ├── scripts/generate-lecture-cache.ts   ← 结构守卫 + 截断守卫；--only=模块:步骤 可单跑
+├── scripts/_direct-cache-write.ts      ← 🆕 10-10：批量直写 11 模块 explain 讲稿缓存，零 LLM 调用
+├── scripts/_list-cache.ts              ← 🆕 10-10：列出所有讲稿缓存条目+字数统计
 ├── scripts/lecture-split-spec.ts       ← C1 回归 6 例
 ├── scripts/thinking-attribution-spec.ts ← 思维链归属回归 2 例
 ├── scripts/run-tests.mjs               ← 新组：分屏消息过滤 / 思维链归属
@@ -399,12 +434,14 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 │                                          screen-describer（See）/ action-executor（Act）
 │                                          comprehension-verifier（Verify）/ types
 │                                          ⚠️ 产品运行时零引用，是离线审计工具，见 4.3
-├── src/components/learn/feynman-review.tsx  ← 🆕 费曼学习法复习卡（四步流程，纯客户端组件）
-├── src/components/learn/module-workspace.tsx ← 🆕 集成 FeynmanReview 到掌握判定步骤
-├── src/components/learn/platform-replica-workspace.tsx ← 🆕 移除概念讲解面板、教案内部滚动
-├── src/components/chat/markdown-view.tsx    ← 🆕 代码块复制按钮 + 标题锚点
-├── src/lib/platform-replica-phases.ts       ← 🆕 ReplicaTask 扩展 detail/pitfalls 字段
-├── llm-wiki/concepts/platform-replica.md    ← 🆕 从 ~432 行扩充至 ~1400 行（逐行代码讲解）
+├── src/components/learn/feynman-review.tsx  ← 费曼学习法复习卡（四步流程，纯客户端组件）
+├── src/components/learn/module-workspace.tsx ← 集成 FeynmanReview 到掌握判定步骤
+├── src/components/learn/explain-next-button.tsx ← 10-10 加固：讲解完毕弹窗含测验确认提醒
+├── src/components/learn/platform-replica-workspace.tsx ← 移除概念讲解面板、教案内部滚动
+├── src/components/chat/markdown-view.tsx    ← 代码块复制按钮 + 标题锚点
+├── src/lib/agent/tools/query-wiki.ts        ← 🆕 10-10：Agent 工具，按关键字查询知识库
+├── src/lib/platform-replica-phases.ts       ← ReplicaTask 扩展 detail/pitfalls 字段
+├── llm-wiki/concepts/platform-replica.md    ← 从 ~432 行扩充至 ~1400 行（逐行代码讲解）
 └── scripts/student-agent/              ← curriculum-audit.ts（1645 行，扇出审计的编排器）
                                            knowledge-window.ts（12 模块词汇表 + detectLeaks，纯函数）
                                            run.ts / run-chain.ts / persona.ts / grounding-analysis.ts
@@ -430,33 +467,24 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 
 ---
 
-## 六、Git 状态（2026-10-08 更新）
+## 六、Git 状态（2026-10-10 更新）
 
 ```bash
-# 分支：dev；HEAD = c307c88（2026-10-08）
-# refactor(ui): simplify replica concept panel to lesson plan card
-# 提交总数：约 533；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
-# 与远端：**已同步** —— 2026-10-08 推送 d4077d1..01dce84（20 个提交），推送后 ls-remote 独立核验远端 == 本地；origin/dev 引用仍缺失，核同步只能用 ls-remote 比对（勿用 git rev-list origin/dev..HEAD）
-# 工作区：**有未提交改动**（见 § 2.8 未提交清单）
-#   - feynman-review.tsx（新文件）
-#   - module-workspace.tsx（改）
-#   - platform-replica-workspace.tsx（改）
-#   - platform-replica.md（改）
-#   - site-footer.tsx（skip-worktree 隐藏，不在 git status 中显示）
+# 分支：dev；HEAD = 27a3eb9（2026-10-10）
+# fix: 加固概念测验安全——讲稿不出答案、不出提前通过宣告
+# 提交总数：约 534；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
+# 与远端：⚠️ 未推送（本机 origin/dev 引用缺失，"upstream is gone"）
+# 工作区：干净（nothing to commit, working tree clean）
+#   - site-footer.tsx 仍为 skip-worktree 隐藏本地改动状态
 
-# 移交时（10-07 上午）的三类 WIP 已全部消化为提交：
-#   ① 语言断层修复 → 23b2882（wiki）+ 8f67b34（代码）
-#   ② ExplainNextButton → 931cd53
-#   ③ 5 个实验脚本 → 移出仓库到 student-agent-output/_untracked-demos/（可逆）
-#      ⚠️ 其中 2 个首字符被写坏，跑不起来，见 4.3 断点 3
-
-# 当日 30 个提交里，与本轮接手相关的 6 个：
-#   4e4deb5 fix(audit): 修正 module_audits 列名语义并追加迁移
-#   921645b / 6af67e8 / 5fa8bf4 / f5d7df4  审计员四层
-#   c04c059 / a18d0e1  /audit 页 + 12 条 CDP 验收
-#   2605173 style: prettier 格式化
-#   6d41cc5 / 7c2895b  AGENTS.md 与本文件
-#   12c7546 fix(audit): 去掉 deterministic.ts 里的两个裸 NUL 字节
+# 本次提交（27a3eb9）包含：14 修改 + 4 新增
+#   修改：HANDOVER.md, platform-replica.md, teaching-step-spec.ts,
+#         thinking-seal-spec.ts, message/route.ts, chat-panel.tsx,
+#         message-item.tsx, explain-next-button.tsx, module-workspace.tsx,
+#         platform-replica-workspace.tsx, ark.ts, loop.ts, teaching-chat.ts,
+#         lecture-split.ts
+#   新增：_direct-cache-write.ts, _list-cache.ts, feynman-review.tsx, query-wiki.ts
+#   （feynman-review.tsx 此前 10-08 为未提交文件，现已入库）
 ````
 
 **⚠️ 本机 git 地雷（`AGENTS.md` 第四节有完整版）**：
@@ -524,6 +552,7 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 | P3     | 登录表单提交后不跳转                                                                  | 10/10 采集者遇到 → 10-07 复核为**误报**（前端 redirect 逻辑正确）                                                                                                                                                                                                                                                                                                                                                                                                 |
 | P3     | 生成器自动重试（带字段级错误反馈）                                                    | 现为「拒写 + 重跑提示」                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | P3     | 知识窗泛词白名单（`agent`/`tool`/`multi-agent` 误报）                                 | 影响确定性检查可用性 → 10-07 **已修**（加 `GENERIC_WHITELIST`，泛词误报归零）                                                                                                                                                                                                                                                                                                                                                                                     |
+| P2     | 概念测验硬校验（10-10 新增）                                                         | 当前讲解完毕弹窗依赖学生自觉点击确认，无后端强校验阻断。若需硬阻断，可在 `explain-next-button.tsx` 中检查 mastery 状态（score >= 3）                                                                       |
 
 ### 三件事裁定结果（2026-10-07 已裁定并落地）
 
