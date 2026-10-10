@@ -50,8 +50,6 @@ afterEach(() => {
   resetStore();
 });
 
-const flush = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
-
 /** message-item.tsx 判定「进行中」徽标的同一个表达式。 */
 function showsStreamingBadge(message: {
   thinkingSteps?: readonly { endedAt?: number }[];
@@ -59,7 +57,7 @@ function showsStreamingBadge(message: {
   return (message.thinkingSteps ?? []).some((s) => s.endedAt === undefined);
 }
 
-test("completeTurn：消息快照的思维段被封口，徽标不再显示「进行中」", async () => {
+test("completeTurn：消息快照的思维段被封口，徽标不再显示「进行中」", () => {
   const store = useSessionStore.getState();
   store.beginTurn("第一问", { step: "explain" });
   dispatch({
@@ -70,9 +68,8 @@ test("completeTurn：消息快照的思维段被封口，徽标不再显示「�
     type: "token",
     data: { content: "回复正文", messageId: "m1" },
   });
-  await flush();
+  store.flushTokenBuffer();
 
-  // 收尾前：正在流式，徽标本就应该亮
   const during = useSessionStore.getState().messages.find((m) => m.id === "m1");
   assert.ok(during);
   assert.equal(
@@ -81,11 +78,7 @@ test("completeTurn：消息快照的思维段被封口，徽标不再显示「�
     "流式期间应显示「进行中」——这是正确行为，不是缺陷",
   );
 
-  dispatch({
-    type: "done",
-    data: { messageId: "m1", tokens: { input: 1, output: 2 } },
-  });
-  await flush();
+  store.completeTurn({ messageId: "m1", tokens: { input: 1, output: 2 } });
 
   const after = useSessionStore.getState().messages.find((m) => m.id === "m1");
   assert.ok(after);
@@ -100,7 +93,7 @@ test("completeTurn：消息快照的思维段被封口，徽标不再显示「�
   assert.equal(typeof step.endedAt, "number", "快照末段应拿到 endedAt");
 });
 
-test("failTurn：error 收尾同样封口快照", async () => {
+test("failTurn：error 收尾同样封口快照", () => {
   const store = useSessionStore.getState();
   store.beginTurn("第一问", { step: "explain" });
   dispatch({
@@ -111,12 +104,8 @@ test("failTurn：error 收尾同样封口快照", async () => {
     type: "token",
     data: { content: "半截回复", messageId: "m1" },
   });
-  await flush();
-  dispatch({
-    type: "error",
-    data: { code: "LLM_ERROR", message: "上游断开", recoverable: true },
-  });
-  await flush();
+  store.flushTokenBuffer();
+  store.failTurn({ code: "LLM_ERROR", message: "上游断开", recoverable: true });
 
   const after = useSessionStore.getState().messages.find((m) => m.id === "m1");
   assert.ok(after);
@@ -128,7 +117,7 @@ test("failTurn：error 收尾同样封口快照", async () => {
   );
 });
 
-test("abortTurn：中断同样封口快照（中断不是错误）", async () => {
+test("abortTurn：中断同样封口快照（中断不是错误）", () => {
   const store = useSessionStore.getState();
   store.beginTurn("第一问", { step: "explain" });
   dispatch({
@@ -139,9 +128,8 @@ test("abortTurn：中断同样封口快照（中断不是错误）", async () =>
     type: "token",
     data: { content: "半截回复", messageId: "m1" },
   });
-  await flush();
-  useSessionStore.getState().abortTurn();
-  await flush();
+  store.flushTokenBuffer();
+  store.abortTurn();
 
   const after = useSessionStore.getState().messages.find((m) => m.id === "m1");
   assert.ok(after);
@@ -149,7 +137,7 @@ test("abortTurn：中断同样封口快照（中断不是错误）", async () =>
   assert.equal(showsStreamingBadge(after), false);
 });
 
-test("全局时间线的封口时间与消息快照一致（耗时不会被算成 0ms）", async () => {
+test("全局时间线的封口时间与消息快照一致（耗时不会被算成 0ms）", () => {
   const store = useSessionStore.getState();
   store.beginTurn("第一问", { step: "explain" });
   dispatch({
@@ -160,16 +148,12 @@ test("全局时间线的封口时间与消息快照一致（耗时不会被算�
     type: "token",
     data: { content: "回复正文", messageId: "m1" },
   });
-  await flush();
-  dispatch({
-    type: "done",
-    data: { messageId: "m1", tokens: { input: 1, output: 2 } },
-  });
-  await flush();
+  store.flushTokenBuffer();
+
+  store.completeTurn({ messageId: "m1", tokens: { input: 1, output: 2 } });
 
   const state = useSessionStore.getState();
   const globalStep = state.thinking[state.thinking.length - 1];
-  // messages[0] 是 beginTurn 追加的学生消息，要按 id 取助手那条。
   const assistant = state.messages.find((m) => m.id === "m1");
   const messageStep = (assistant?.thinkingSteps ?? [])[0];
   assert.ok(globalStep && messageStep);

@@ -1,24 +1,25 @@
-# 接手文档 — 2026-10-07（当日 19:40 更新：三步完成 + 理念核验 + 三处新断点）
+# 接手文档 — 2026-10-08（当日更新：费曼复习卡 + 平台复刻优化 + 页脚处理）
 
-> 上一份（2026-10-06）的「课程审计员」命题已经走完一个完整闭环：**学生 Agent 试点审计 → 抓出 2 个 critical → 根因定位 → 修复 → 缓存重生成 → 浏览器验证**。本文件记录这个闭环，以及扇出与产品内审计员的落地结果。
+> 上一份（2026-10-07）的「课程审计员」命题已经走完一个完整闭环：**学生 Agent 试点审计 → 抓出 2 个 critical → 根因定位 → 修复 → 缓存重生成 → 浏览器验证**。本文件记录这个闭环，以及扇出与产品内审计员的落地结果。
+> 本次新增：费曼学习法复习卡（模块学习收尾）、教学平台复刻文档与界面优化、页脚声明移除。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
 
 ---
 
-## 〇、当前状态速查（2026-10-07 20:25 补正）
+## 〇、当前状态速查（2026-10-08 更新）
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                           |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `01dce84`（提交总数 **528**；**已与远端同步** —— 2026-10-08 推送 20 个提交后独立 `ls-remote` 核验，远端 == 本地）                                                                                                                                                                                                                      |
+| 分支 / HEAD  | `dev` @ `c307c88`（提交总数 **约 533**；**已与远端同步** —— 2026-10-08 推送 20 个提交后独立 `ls-remote` 核验，远端 == 本地）                                                                                                                                                                                                                   |
 | 与远端       | ✅ **已同步**（2026-10-08）—— 推送 `d4077d1..01dce84` 共 20 个提交，**推送后另跑 `git ls-remote origin dev`（带四个开关）独立核验，远端 SHA 与本地 `git rev-parse HEAD` 逐字符相等**。⚠️ **本地 `origin/dev` 引用仍缺失**（已知地雷），故核同步**只能用 `ls-remote` 比对，勿用 `git rev-list origin/dev..HEAD`**（会静默返回空）。推送见第六节 |
-| 工作区       | **完全干净**（`git write-tree` == `HEAD^{tree}`，硬判据 PASS）                                                                                                                                                                                                                                                                                 |
+| 工作区       | **有未提交改动**：`feynman-review.tsx`（新文件）、`module-workspace.tsx`（改）、`platform-replica-workspace.tsx`（改）、`platform-replica.md`（改）。`site-footer.tsx` 已通过 `skip-worktree` 隐藏本地改动（删「AI 生成内容，仅供学习参考」）。⚠️ 接手下一位需决定是否提交或继续本地保留。                                                     |
 | 仓库完整性   | `write-tree` == `HEAD^{tree}` 逐字符相等（`c1b5e4de…`）；`git fsck` 无 missing                                                                                                                                                                                                                                                                 |
 | 门禁         | `pnpm check` **0 error**、prettier 全过、`tsc` 0 错                                                                                                                                                                                                                                                                                            |
-| 当日提交     | **约 39 个**（含本会话收尾 6 个：schannel 推法记录 + 铁律5修复 + 三件事裁定 + 验证脚本 + HANDOVER 裁定）                                                                                                                                                                                                                                       |
-| 标签         | `v0.1.0` ~ `v0.4.0` + 一个 `dev-phase5-backup`                                                                                                                                                                                                                                                                                                 |
+| 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`                                                                                                                                                                   |
 | 产品内审计员 | **可用**：`/audit` 页 + `/api/audit`，DB 里 11 讲已审、3 缺陷                                                                                                                                                                                                                                                                                  |
 | 三步进度     | 第 0/1/2 步 ✅ 全部完成（见下）                                                                                                                                                                                                                                                                                                                |
 | 测试套件     | 44 组，每次全跑无跳过；3 组真模型。**10-07 22:06 实测：充值后仅 1 / 44 失败**（点评 8 例、讲解 6 例真模型组均通过；余下出题组因 doubao-pro 慢而约 44s 超时）；`thinking-seal-spec` 毫秒竞态偶发（测试自身 bug，见 4.4）。⚠️ **欠费会反复** —— 22:24 复测又全量 403，真因见 4.2，改动前先探端点                                                 |
+| 本会话新增   | **费曼复习卡组件**（`feynman-review.tsx`）+ 集成到模块工作区（`module-workspace.tsx`）；**平台复刻优化**（教案保留、目录内部滚动、markdown 代码块复制）；**页脚声明移除**（`skip-worktree` 本地隐藏）                                                                                                                                          |
 
 ### ✅ 远端已于 19:55 推送完成
 
@@ -133,6 +134,34 @@
 **API 与前端**：`/api/audit`（GET 读 / POST 触发，独立限流桶 `curriculum-audit` 3 次/分）+ `/audit` 页（拆 5 个文件）+ 顶栏导航项 + `scripts/audit-page-acceptance.mjs`（浏览器验收 12/12）。
 
 **两条诚实边界写死在界面上**（不是写在注释里）：「没查到 ≠ 没问题」（判断类缺陷不在五项里）、「分数 null 显示未检测而非 0」（本轮不调模型，画 0 就是编数据）。
+
+### 2.8 本会话新增（10-08，未提交）
+
+已提交部分（`c307c88` 及之前 4 个提交）：
+
+| 提交      | 内容                                                                               |
+| --------- | ---------------------------------------------------------------------------------- |
+| `015dbbe` | docs(wiki): 教学平台复刻文档从 ~432 行扩充至 ~1400 行，逐行代码讲解 + 前置知识速查 |
+| `2a07e7e` | feat(ui): markdown-view 代码块加复制按钮 + 标题锚点                                |
+| `8a8561d` | feat(ui): 平台复刻任务数据加 `detail`/`pitfalls` 字段，详细操作步骤 + 常见问题提示 |
+| `c307c88` | refactor(ui): 平台复刻移除概念讲解面板，只保留教案；目录跳转改为仅在教案内部滚动   |
+
+**未提交（接手下一位需决定）**：
+
+| 文件                                                  | 内容                                                                                                                                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/learn/feynman-review.tsx`             | **费曼学习法复习卡**。四步流程：选定概念 → 假装教人 → 发现漏洞 → 一句话说清。纯客户端组件，无外部依赖。完成后生成摘要卡，支持「重新写一次」                                                            |
+| `src/components/learn/module-workspace.tsx`           | 在掌握判定步骤（mastery）下集成 FeynmanReview 组件，展示位置在 MasteryCheck 卡片下方                                                                                                                   |
+| `src/components/learn/platform-replica-workspace.tsx` | 移除概念讲解面板保留教案；用 `useRef` + `scrollTo` 实现教案内容区内部滚动（不影响外层页面）；滚动目标容器 `maxHeight: 60vh`                                                                            |
+| `llm-wiki/concepts/platform-replica.md`               | 从 ~432 行扩充至 ~1400 行；新增：前置知识速查（Node.js/npm/pnpm/VS Code）、详细操作步骤（每步含命令 + 解释 + 预期结果）、逐行代码讲解、验收清单、常见问题排查                                          |
+| `src/components/layout/site-footer.tsx`               | **本地修改已通过 `git update-index --skip-worktree` 隐藏**。改动内容：删除「AI 生成内容，仅供学习参考」文本。如需恢复跟踪：`git update-index --no-skip-worktree src/components/layout/site-footer.tsx` |
+
+**费曼复习卡设计要点**：
+
+- 四步分别对应四种心理状态：回忆（选定概念）→ 转译（假装教人）→ 反思（发现漏洞）→ 压缩（一句话说清）
+- 每步有独立的提示语和 placeholder，引导学生写出真实想法
+- 第四步完成后才显示「完成」按钮，确保完整走完流程
+- 学习报告形式展示所有四步内容，可作为复习材料保存
 
 ---
 
@@ -370,6 +399,12 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 │                                          screen-describer（See）/ action-executor（Act）
 │                                          comprehension-verifier（Verify）/ types
 │                                          ⚠️ 产品运行时零引用，是离线审计工具，见 4.3
+├── src/components/learn/feynman-review.tsx  ← 🆕 费曼学习法复习卡（四步流程，纯客户端组件）
+├── src/components/learn/module-workspace.tsx ← 🆕 集成 FeynmanReview 到掌握判定步骤
+├── src/components/learn/platform-replica-workspace.tsx ← 🆕 移除概念讲解面板、教案内部滚动
+├── src/components/chat/markdown-view.tsx    ← 🆕 代码块复制按钮 + 标题锚点
+├── src/lib/platform-replica-phases.ts       ← 🆕 ReplicaTask 扩展 detail/pitfalls 字段
+├── llm-wiki/concepts/platform-replica.md    ← 🆕 从 ~432 行扩充至 ~1400 行（逐行代码讲解）
 └── scripts/student-agent/              ← curriculum-audit.ts（1645 行，扇出审计的编排器）
                                            knowledge-window.ts（12 模块词汇表 + detectLeaks，纯函数）
                                            run.ts / run-chain.ts / persona.ts / grounding-analysis.ts
@@ -395,14 +430,19 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 
 ---
 
-## 六、Git 状态（2026-10-07 20:25 补正）
+## 六、Git 状态（2026-10-08 更新）
 
 ```bash
-# 分支：dev；HEAD = 2dd3ef7（2026-10-07 接手核查实测；本提交为文档对齐，会使 HEAD 递增 1）
-# 提交总数：514；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
+# 分支：dev；HEAD = c307c88（2026-10-08）
+# refactor(ui): simplify replica concept panel to lesson plan card
+# 提交总数：约 533；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
 # 与远端：**已同步** —— 2026-10-08 推送 d4077d1..01dce84（20 个提交），推送后 ls-remote 独立核验远端 == 本地；origin/dev 引用仍缺失，核同步只能用 ls-remote 比对（勿用 git rev-list origin/dev..HEAD）
-# 工作区判定：git write-tree == HEAD^{tree} 为真（见下方实测）；git fsck 无 missing
-# 未提交：无（工作区完全干净）
+# 工作区：**有未提交改动**（见 § 2.8 未提交清单）
+#   - feynman-review.tsx（新文件）
+#   - module-workspace.tsx（改）
+#   - platform-replica-workspace.tsx（改）
+#   - platform-replica.md（改）
+#   - site-footer.tsx（skip-worktree 隐藏，不在 git status 中显示）
 
 # 移交时（10-07 上午）的三类 WIP 已全部消化为提交：
 #   ① 语言断层修复 → 23b2882（wiki）+ 8f67b34（代码）
@@ -530,3 +570,4 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 15. ⚠️ **核验远端同步不能只看 `git rev-list origin/dev..HEAD`** —— `.git/refs/remotes/origin/` 消失时它**静默返回空**，看着像「已同步」。必须 `git ls-remote`。且本机网络两种方式都可能失败（裸连超时 / 代理 502），**核不上就写「未核实」，不要猜**。
 16. **改一份未提交的文件前，先 `git show HEAD:<path>` 确认基线** —— 本机「工作区状态与 HEAD 不一致」是常态，否则会把入库的有效内容误判成「我删了东西」。
 17. **`pnpm test` 全绿 ≠ 门禁全绿** —— 测试不跑 `tsc`。今日 `AGENTS.md` 第二节曾写「`npm run check` 全绿」，实际当时有 3 条 `tsc` error + build 失败，被测试全绿掩盖了。三者独立：`pnpm check` = eslint + prettier --check + tsc。
+18. **`git update-index --skip-worktree` 用于本地隐藏改动** —— `site-footer.tsx` 的「AI 生成内容，仅供学习参考」删除改动已通过此方式隐藏。效果：文件本地已改但 `git status` 不显示、`git add` 不包含。恢复命令：`git update-index --no-skip-worktree <file>`。适用场景：本地需要但仓库不应体现的改动（如品牌声明、水印等）。

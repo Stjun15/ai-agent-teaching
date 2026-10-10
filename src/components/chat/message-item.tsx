@@ -206,7 +206,7 @@ function ThinkingChain({ steps }: { steps: readonly ThinkingStep[] }) {
   const isStreaming = steps.some((s) => s.endedAt === undefined);
 
   return (
-    <details className="group">
+    <details className="group" open>
       <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent/60">
         <ChevronRight className="size-3 shrink-0 transition-transform group-open:rotate-90" />
         <Brain className="size-3.5 shrink-0" />

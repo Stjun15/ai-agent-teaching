@@ -67,14 +67,14 @@ test("其余步骤保持通用答疑口径", () => {
 });
 
 test("教学提示词要求讲透 + 实例", () => {
-  // observe / imitate 版：讲透 + 实例 + 学生动手
+  // observe / imitate 版：讲透 + 实例 + 双任务守门（不另出题）
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /禁止一句话回答/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /打个比方/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /正经说清楚/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /看一个完整例子/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /容易引起|容易踩的坑/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /现在轮到你/);
-  assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /做完发给我/);
+  assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /不要另出一道新任务/);
   // explain 版：讲透 + 实例，但**没有**动手环节
   assert.match(TEACHING_EXPLAIN_PROMPT, /禁止一句话回答/);
   // 2026-10-01：旧结构第一节是「🚪 门禁确认」，会把「编排层没有提示前置

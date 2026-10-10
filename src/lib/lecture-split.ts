@@ -105,3 +105,50 @@ export function getAssignmentFromMessages(
   if (!lecture) return null;
   return splitLecture(lecture.content).assignment;
 }
+
+/**
+ * 检测实时对话消息是否包含任务标题（观察示范/动手模仿步）。
+ *
+ * 任务卡（assignment-card.tsx）已从 explain 讲稿缓存里取到权威任务，
+ * 实时导师回复再带一个「五、现在轮到你」节就形成双任务冲突——
+ * 学生看到两个不同的任务，不知道该做哪个。
+ *
+ * 本函数只检测不修改内容；调用方用它决定是否追加仲裁文案。
+ */
+export function hasTaskHeading(content: string): boolean {
+  return ASSIGNMENT_HEADING.test(content);
+}
+
+/**
+ * 实时对话中出现任务标题时的仲裁文案。
+ *
+ * 不直接删掉导师回复里的任务节（删了反而让学生困惑「为什么话说一半」），
+ * 而是在任务节前面追加一行说明，引导学生以任务卡为准。
+ */
+export const LIVE_TASK_ARBITRATION_NOTE =
+  "> ⚠️ 以上任务是导师在对话中给出的。**请以上方「现在轮到你」任务卡里的任务为准**——" +
+  "那张卡是课程预置的正式任务，点评也会按它来评分。";
+
+/**
+ * 对实时对话消息做双任务仲裁：如果消息包含任务标题且已有缓存任务，
+ * 在任务标题前插入仲裁说明。
+ *
+ * @param content 实时导师回复的完整正文
+ * @param hasCachedTask 当前模块是否已有预置任务（assignment-card 已成功取到）
+ * @returns 仲裁后的正文；不满足条件时返回原内容
+ */
+export function arbitrateDualTask(
+  content: string,
+  hasCachedTask: boolean,
+): string {
+  if (!hasCachedTask) return content;
+  const match = content.match(ASSIGNMENT_HEADING);
+  if (!match || match.index === undefined) return content;
+  return (
+    content.slice(0, match.index) +
+    "\n\n" +
+    LIVE_TASK_ARBITRATION_NOTE +
+    "\n\n" +
+    content.slice(match.index)
+  );
+}

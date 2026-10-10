@@ -5,7 +5,11 @@ import { MessageSquare } from "lucide-react";
 
 import { MessageItem } from "@/components/chat/message-item";
 import { useSessionStore } from "@/stores";
-import { selectStepMessages, type LectureMode } from "@/lib/lecture-split";
+import {
+  selectStepMessages,
+  arbitrateDualTask,
+  type LectureMode,
+} from "@/lib/lecture-split";
 
 /**
  * 对话面板（模块页中栏主体）。
@@ -24,6 +28,7 @@ export function ChatPanel({
   stepFilter,
   lectureMode = "full",
   moduleId,
+  hasCachedTask = false,
 }: {
   /**
    * 按学习步骤过滤消息（七步分屏，2026-09-19）：每一步只渲染属于自己的
@@ -38,18 +43,28 @@ export function ChatPanel({
    * 模块的对话；渲染守卫防止切换瞬间闪现旧模块的消息。
    */
   moduleId?: string;
+  /**
+   * 当前模块是否有缓存任务（assignment-card 已从 explain 讲稿中取出）。
+   * 为 true 时，检测实时对话消息中的任务标题并追加仲裁文案，
+   * 防止导师在 observe/imitate 步另出一道新题造成双任务冲突。
+   */
+  hasCachedTask?: boolean;
 }) {
   const rawMessages = useSessionStore((state) => state.messages);
   const activeModuleId = useSessionStore((state) => state.activeModuleId);
   const status = useSessionStore((state) => state.status);
   const error = useSessionStore((state) => state.error);
-  const messages = useMemo(
-    () =>
-      stepFilter
-        ? selectStepMessages(rawMessages, stepFilter, lectureMode)
-        : rawMessages,
-    [rawMessages, stepFilter, lectureMode],
-  );
+  const messages = useMemo(() => {
+    const filtered = stepFilter
+      ? selectStepMessages(rawMessages, stepFilter, lectureMode)
+      : rawMessages;
+    if (!hasCachedTask) return filtered;
+    return filtered.map((message) =>
+      message.role === "assistant"
+        ? { ...message, content: arbitrateDualTask(message.content, true) }
+        : message,
+    );
+  }, [rawMessages, stepFilter, lectureMode, hasCachedTask]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -74,11 +74,19 @@ export function PlatformReplicaWorkspace({
     return headings;
   }, [wikiContent]);
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const scrollToHeading = useCallback((slug: string) => {
-    const el = document.getElementById(slug);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    const container = contentRef.current;
+    if (!container) return;
+    const el = container.querySelector(
+      `#${CSS.escape(slug)}`,
+    ) as HTMLElement | null;
+    if (!el) return;
+    container.scrollTo({
+      top: el.offsetTop - container.offsetTop,
+      behavior: "smooth",
+    });
   }, []);
 
   const fetchWikiContent = useCallback(async () => {
@@ -227,6 +235,7 @@ export function PlatformReplicaWorkspace({
               </nav>
             ) : null}
             <div
+              ref={contentRef}
               className="prose prose-sm dark:prose-invert max-w-none min-w-0 flex-1 overflow-y-auto px-6 py-4 [&_li]:text-[clamp(12px,1.8vw,16px)] [&_p]:text-[clamp(12px,1.8vw,16px)] [&_pre]:text-[clamp(11px,1.6vw,14px)] [&_table]:text-[clamp(11px,1.6vw,14px)]"
               style={{ maxHeight: "60vh" }}
             >

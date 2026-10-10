@@ -193,28 +193,57 @@ export async function createArkModelRuntime(
 }
 
 /**
+ * ModelRuntime 单例缓存。
+ *
+ * 为什么需要缓存
+ * -------------
+ * 首 token 延迟实测瓶颈之一是 `ModelRuntime.create()` + `registerProvider()`，
+ * 每次请求各做一遍浪费启动时间。环境变量在进程运行期不变，ModelRuntime 内部
+ * 也不持任何请求级状态，因此一份单例可跨请求复用。只在模型名变更（`ARK_TEXT_MODEL` /
+ * `ARK_VISION_MODEL` 中途换过）时才重建。
+ */
+let cachedArkModels: Promise<ArkModels> | undefined;
+
+/**
  * 创建运行时并解析出两个模型。解析失败即抛错——模型名写错时应当立刻暴露，
  * 而不是等到第一次请求才报 404。
+ *
+ * 首次调用走完整的 `ModelRuntime.create()` + `registerProvider()`；
+ * 后续调用复用缓存的运行时（按模型名做 key，模型名不变就不重建）。
  */
 export async function createArkModels(
   env: ArkEnv = process.env,
 ): Promise<ArkModels> {
-  const modelRuntime = await createArkModelRuntime(env);
   const { textModel, visionModel } = readArkSettings(env);
+  const cacheKey = `${textModel}|${visionModel}`;
 
-  const text = modelRuntime.getModel(ARK_PROVIDER_ID, textModel);
-  if (!text) {
-    throw new Error(
-      `方舟主模型 ${textModel} 注册后无法解析，请检查 ARK_TEXT_MODEL 的值。`,
-    );
+  if (cachedArkModels && cacheKey === createArkModels._cacheKey) {
+    return cachedArkModels;
   }
 
-  const vision = modelRuntime.getModel(ARK_PROVIDER_ID, visionModel);
-  if (!vision) {
-    throw new Error(
-      `方舟视觉模型 ${visionModel} 注册后无法解析，请检查 ARK_VISION_MODEL 的值。`,
-    );
-  }
+  cachedArkModels = (async (): Promise<ArkModels> => {
+    const modelRuntime = await createArkModelRuntime(env);
 
-  return { modelRuntime, text, vision };
+    const text = modelRuntime.getModel(ARK_PROVIDER_ID, textModel);
+    if (!text) {
+      throw new Error(
+        `方舟主模型 ${textModel} 注册后无法解析，请检查 ARK_TEXT_MODEL 的值。`,
+      );
+    }
+
+    const vision = modelRuntime.getModel(ARK_PROVIDER_ID, visionModel);
+    if (!vision) {
+      throw new Error(
+        `方舟视觉模型 ${visionModel} 注册后无法解析，请检查 ARK_VISION_MODEL 的值。`,
+      );
+    }
+
+    return { modelRuntime, text, vision };
+  })();
+
+  createArkModels._cacheKey = cacheKey;
+  return cachedArkModels;
 }
+
+/** 只在模块闭包内使用；TS 不关心。 */
+createArkModels._cacheKey = "";

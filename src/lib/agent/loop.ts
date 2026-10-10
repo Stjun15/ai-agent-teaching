@@ -57,7 +57,11 @@ import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import type { ArkEnv } from "./ark";
 import { filterThinkingDelta, flushThinking } from "./thinking-filter";
 import { calculatorTool } from "./tools/calculator";
-import { createSession, type AgentSessionHandle } from "./session";
+import {
+  createSession,
+  type AgentCustomTool,
+  type AgentSessionHandle,
+} from "./session";
 import {
   createSSEStream,
   sseResponse,
@@ -268,6 +272,17 @@ export interface AgentLoopOptions {
   env?: ArkEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */
   signal?: AbortSignal;
+  /**
+   * 额外工具名（纯加法，不影响 calculator 工具）。
+   *
+   * 为什么叫 extra 而不是 tools
+   * -------------------------
+   * 如果叫 tools，调用方就要记得把 calculator 也列上，否则会把它关掉。
+   * extra 语义是「只增不减」：calculator 始终注册，调用方只需关心本步要加什么。
+   */
+  extraTools?: readonly string[];
+  /** 额外自定义工具，与 extraTools 一一对应（同名必须同时出现）。 */
+  extraCustomTools?: readonly AgentCustomTool[];
 }
 
 /** 一轮运行的汇总，供调用方断言与记录。 */
@@ -447,6 +462,8 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
     preludeEvents,
     env,
     signal,
+    extraTools = [],
+    extraCustomTools = [],
   } = options;
   // 组装一次、全程用组装后的值：后续若要记录「模型到底看到了什么」（审计、
   // 复现一次失败），必须能拿到同一个字符串，不能在两处各拼一次。
@@ -473,8 +490,8 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
         systemPrompt,
         // 工具白名单。注意 `tools` 是总白名单，自定义工具必须按名字列进来，
         // 写成空数组会把 calculate 一起挡掉（见文件头「工具白名单」的踩坑记录）。
-        tools: [calculatorTool.name],
-        customTools: [calculatorTool],
+        tools: [calculatorTool.name, ...extraTools],
+        customTools: [calculatorTool, ...extraCustomTools],
         onEvent: translator.handle,
         env,
         signal,

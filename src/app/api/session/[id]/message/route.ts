@@ -66,6 +66,7 @@ import {
   type AgentLoopOptions,
 } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
+import { queryWikiTool } from "@/lib/agent/tools/query-wiki";
 import {
   DEFAULT_CITATION_COUNT,
   retrieveCitations,
@@ -224,6 +225,11 @@ export async function POST(
   };
   if (stepAgent.systemPrompt !== "") {
     loopOptions.systemPrompt = stepAgent.systemPrompt;
+  }
+  // 讲解导师接入 Wiki 知识库：用到哪灌倒哪，不用整篇灌进系统提示词
+  if (stepAgent.teaching) {
+    loopOptions.extraTools = [queryWikiTool.name];
+    loopOptions.extraCustomTools = [queryWikiTool];
   }
   const loop = runAgentLoop(loopOptions);
 

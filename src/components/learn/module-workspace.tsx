@@ -7,6 +7,7 @@ import { ChevronRight, Clock } from "lucide-react";
 import { AssignmentCard } from "@/components/learn/assignment-card";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { ExplainFullscreen } from "@/components/learn/explain-fullscreen";
+import { FeynmanReview } from "@/components/learn/feynman-review";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
 import { ObservePanel } from "@/components/learn/observe-panel";
@@ -281,7 +282,11 @@ export function ModuleWorkspace({
           ) : currentStepId === "observe" ? (
             <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                <ChatPanel moduleId={teachingModule.id} {...chatStepProps} />
+                <ChatPanel
+                  moduleId={teachingModule.id}
+                  {...chatStepProps}
+                  hasCachedTask
+                />
                 <Composer step={currentStepId} moduleId={teachingModule.id} />
               </CardContent>
             </Card>
@@ -307,17 +312,35 @@ export function ModuleWorkspace({
             判定线与学习路径解锁用同一档（MASTERY_PASS_SCORE），两条口径不分叉。
           */}
           {currentStepId === "mastery" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>掌握判定</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MasteryCheck
-                  teachingModule={teachingModule}
-                  nextModule={nextModule}
-                />
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>掌握判定</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MasteryCheck
+                    teachingModule={teachingModule}
+                    nextModule={nextModule}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">
+                    费曼复习卡 —— 用自己的话讲一遍
+                  </CardTitle>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                    费曼说：
+                    <em>「如果你不能简单地解释它，你就没有真正理解它。」</em>
+                    用四步把你的理解说出来——输出是最好的输入。
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <FeynmanReview />
+                </CardContent>
+              </Card>
+            </>
           ) : null}
 
           {showWorkspacePanels &&
