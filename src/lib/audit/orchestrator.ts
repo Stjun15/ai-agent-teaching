@@ -25,6 +25,8 @@ import {
   type AuditSubject,
 } from "@/lib/audit/deterministic";
 import { auditDb, lectureCacheDb, type AuditSeverity } from "@/lib/db";
+import { splitLecture } from "@/lib/lecture-split";
+import { loadModules } from "@/lib/modules";
 import { readDemoCode } from "@/lib/teaching-script";
 import { listPages, readPageSync } from "@/wiki";
 
@@ -66,7 +68,10 @@ export interface AuditRunResult {
  * 讲稿从 `lecture_cache` 读 —— 不另抄一份模块表（AGENTS.md 明令：会立刻产生
  * 第三份数据）。
  */
-export async function auditModule(moduleId: string): Promise<AuditRunResult> {
+export async function auditModule(
+  moduleId: string,
+  options?: { earlierTeachings?: string },
+): Promise<AuditRunResult> {
   let conceptPage = "";
   let moduleName = moduleId;
   let conceptPageMissing = false;
@@ -91,6 +96,7 @@ export async function auditModule(moduleId: string): Promise<AuditRunResult> {
     conceptPage,
     demoCode: conceptPageMissing ? "" : readDemoCode(moduleId),
     lecture: cache?.content ?? null,
+    earlierTeachings: options?.earlierTeachings,
   };
 
   const result = auditSubjectDeterministically(subject);
@@ -118,9 +124,28 @@ export async function auditAllModules(options?: {
 }): Promise<ModuleAuditOutcome[]> {
   const moduleIds = options?.onlyModuleIds ?? (await listAuditableModuleIds());
 
+  // 术语跨讲累积：按课程顺序（prerequisites 拓扑序，与学习页同源）把每讲
+  // 之前已讲过的讲稿正文收进池子，随 subject 传下去 —— Agent 在 agent-loop
+  // 讲正式定义，课程后段再用就不算断层，逐讲独立判定会全量误报。
+  // 池子的取料口径与术语检查自身一致：splitLecture 的 teaching 部分。
+  const ordered = await loadModules();
+  const earlierPool = new Map<string, string>();
+  let accumulated = "";
+  for (const teachingModule of ordered) {
+    earlierPool.set(teachingModule.id, accumulated);
+    const cached = await lectureCacheDb.get(teachingModule.id, "explain");
+    if (cached !== null) {
+      accumulated +=
+        (accumulated === "" ? "" : "\n\n") +
+        splitLecture(cached.content).teaching;
+    }
+  }
+
   const outcomes: ModuleAuditOutcome[] = [];
   for (const moduleId of moduleIds) {
-    const result = await auditModule(moduleId);
+    const result = await auditModule(moduleId, {
+      earlierTeachings: earlierPool.get(moduleId) ?? "",
+    });
 
     auditDb.replaceModuleFindings(
       moduleId,

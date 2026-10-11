@@ -41,6 +41,13 @@ export interface AuditSubject {
   demoCode: string;
   /** explain 步讲稿缓存；null = 本轮没缓存。 */
   lecture: string | null;
+  /**
+   * 课程顺序里排在**前面**的各讲讲稿正文（已截掉任务节，可选）。
+   *
+   * 术语是跨讲累积的：Agent 在 agent-loop 讲正式定义，后面的讲再用就不算
+   * 断层。没有这个字段时（单讲审计），只看本讲 —— 那会对课程后段误报。
+   */
+  earlierTeachings?: string;
 }
 
 /** 代码类构造：讲稿「教过」与「要求用」的判定词表。 */
@@ -188,9 +195,16 @@ function isDefinedSomewhere(teaching: string, term: string): boolean {
  *
  * 这就是上一轮的 C2（11/11 模块全中）—— 任务卡取不到任务节就整卡不渲染，
  * 学生面对空编辑器。判据复用渲染层同一个 `splitLecture`，避免两处口径漂移。
+ *
+ * 讲稿由专属工作区承载的模块（复刻：六阶段任务卡 + 概念页手册）刻意不设
+ * 讲稿缓存，缺失不算缺陷 —— 名单与 `learn/[moduleId]/page.tsx` 的路由分流
+ * 对应，那边的分支多了要同步这里。
  */
+const LECTURE_LESS_MODULES = new Set(["platform-replica"]);
+
 function checkTaskSection(subject: AuditSubject): RawFinding[] {
   if (subject.lecture === null) {
+    if (LECTURE_LESS_MODULES.has(subject.moduleId)) return [];
     return [
       {
         severity: "high",
@@ -315,7 +329,15 @@ function checkUndefinedTerms(subject: AuditSubject): RawFinding[] {
   for (const term of CONCEPT_TERMS) {
     const standalone = countStandalone(teaching, term);
     if (standalone === 0) continue;
+    // 定义可以是本讲给的，也可以是课程前面任何一讲给的 —— 术语教学是
+    // 跨讲累积的，逐讲独立判定会对课程后段全量误报（Agent 在 5 讲命中 4 讲）。
     if (isDefinedSomewhere(teaching, term)) continue;
+    if (
+      subject.earlierTeachings !== undefined &&
+      isDefinedSomewhere(subject.earlierTeachings, term)
+    ) {
+      continue;
+    }
 
     findings.push({
       severity: "medium",
