@@ -98,8 +98,8 @@ test("practice / mastery 两步各挂对面板，判定线用共享常量", () =
   );
   assert.match(
     workspace,
-    /currentStepId === "mastery" \? \(\s*<Card>[\s\S]*?<MasteryCheck/,
-    "mastery 步必须挂 MasteryCheck",
+    /currentStepId === "mastery" \? \(\s*(?:<>[\s\S]*?)?<Card>[\s\S]*?<MasteryCheck/,
+    "mastery 步必须挂 MasteryCheck（允许包一层 Fragment）",
   );
 
   const check = read("../src/components/learn/mastery-check.tsx");
