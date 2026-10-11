@@ -18,9 +18,11 @@
  * （对比 /api/chat 按 IP 限流的理由是「每请求一整轮模型调用」，两边的
  * 成本模型完全不同。）
  *
- * `step` 只接受 explain / observe：其余步骤没有「预先准备的讲稿」
- * （validate / practice 是结构化输出，走 /api/agent/*，见 step-prompt.ts），
- * 返回 400 而不是 404 —— 参数本身就非法，不是「这份讲稿不存在」。
+ * `step` 只接受 explain：observe 的示范已改为从 wiki 页面直读示范代码，
+ * 不再走 LLM（2026-09-25），observe 缓存行也已清空；其余步骤没有
+ * 「预先准备的讲稿」（validate / practice 是结构化输出，走 /api/agent/*，
+ * 见 step-prompt.ts），返回 400 而不是 404 —— 参数本身就非法，
+ * 不是「这份讲稿不存在」。
  */
 
 import { jsonError } from "@/lib/api-error";
@@ -32,7 +34,7 @@ export const runtime = "nodejs";
 // （重）生成，所以响应不能进任何缓存。
 export const dynamic = "force-dynamic";
 
-const CACHED_STEPS = new Set(["explain", "observe"]);
+const CACHED_STEPS = new Set(["explain"]);
 
 export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
@@ -45,15 +47,12 @@ export async function GET(request: Request): Promise<Response> {
   if (!CACHED_STEPS.has(step)) {
     return jsonError(
       "INVALID_INPUT",
-      `step 只支持 explain / observe（收到：${step || "空"}）。`,
+      `step 只支持 explain（收到：${step || "空"}）。`,
     );
   }
 
   try {
-    const entry = await lectureCacheDb.get(
-      moduleId,
-      step as "explain" | "observe",
-    );
+    const entry = await lectureCacheDb.get(moduleId, step as "explain");
     if (entry === null) {
       // 200 + found:false 而不是 404：对前端来说「没有缓存」是正常分支
       // （回退实时生成），不是需要全局错误处理的异常。
