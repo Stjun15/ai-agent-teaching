@@ -55,6 +55,14 @@ function mapEntry(row: Row): LectureCacheEntry {
 }
 
 export const lectureCacheDb = {
+  /** 列出全部缓存讲稿（维护脚本盘点用，如 _list-cache.ts）。 */
+  async list(): Promise<LectureCacheEntry[]> {
+    const rows = getDb()
+      .prepare("SELECT * FROM lecture_cache ORDER BY module_id, step")
+      .all();
+    return rows.map((row) => mapEntry(row as Row));
+  },
+
   /** 取某模块某步骤的缓存讲稿；无缓存返回 null（调用方据此回退实时生成）。 */
   async get(
     moduleId: string,
