@@ -446,6 +446,15 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                   </p>
                 ) : null}
 
+                {task.why ? (
+                  <p className="mb-2 rounded-md bg-primary/5 px-2.5 py-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-primary">
+                      为什么有这步：
+                    </span>
+                    {task.why}
+                  </p>
+                ) : null}
+
                 {task.pitfalls && task.pitfalls.length > 0 ? (
                   <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 dark:border-amber-800 dark:bg-amber-950/30">
                     <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">

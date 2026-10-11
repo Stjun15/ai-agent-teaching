@@ -21,6 +21,8 @@ export interface ReplicaTask {
   file?: string;
   /** 怎么做：具体操作步骤（零基础可照抄）。 */
   detail?: string;
+  /** 为什么有这步：一句话讲清它在整盘棋里的作用——防「照菜谱抄完不知所以然」。 */
+  why?: string;
   /** 常见坑：做完后对照检查。 */
   pitfalls?: string[];
 }
@@ -100,6 +102,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         moduleRef: "llm-api",
         detail:
           "在项目根目录（teaching-platform/）新建 `.env.local` 文件，写入一行 `ARK_API_KEY=你的密钥`。把「你的密钥」替换成火山方舟控制台申请的 API Key。**等号两边不能有空格**。写完后重启 `npm run dev`（Ctrl+C 停掉，再 `npm run dev` 启动）——`.env.local` 的改动不重启不生效。",
+        why: "密钥是调大模型的通行证，后面每一步都靠它；放进 .env.local 而不是代码里，是让它永远不进 Git、不随代码泄露。",
         pitfalls: [
           "`.env.local` 在 VS Code 里可能是灰色——这正常，说明 Git 会忽略它",
           "API Key 是一长串字符，像 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`",
@@ -112,6 +115,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "src/lib/llm.ts",
         detail:
           "新建 `src/lib/llm.ts`。用 `fetch` 封装对火山方舟 `/chat/completions` 的调用。**不要装任何 LLM SDK**——本课程的核心就是让你亲眼看到：调大模型 = 一个 HTTP POST 请求。函数签名参考：`async function chat(messages) → 返回模型回复文本`。请求体里要传 `model`、`messages`、`stream: true`。",
+        why: "这是全平台的发动机——讲解、出题、点评最终都是「发 messages、收回复」，封装一次处处复用。",
         pitfalls: [
           "请求头里 `Authorization: 'Bearer ' + apiKey`——Bearer 和 Key 之间有一个空格",
           "`Content-Type` 必须是 `application/json`",
@@ -124,6 +128,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "agent-prompts/teaching-chat.ts",
         detail:
           "在项目根目录新建 `agent-prompts/` 文件夹，里面建 `teaching-chat.ts`。export 一个 `TEACHING_SYSTEM_PROMPT` 常量，内容是给 AI 的「角色说明书」：你是教学导师、用通俗语言讲解、每个概念给示范代码、学生不懂就换方式解释。先写 5-8 行就好，后面会迭代。",
+        why: "同一个模型，System Prompt 决定它是客服还是老师——你的平台「会教书」全靠这份说明书。",
         pitfalls: [
           "System Prompt 里不要说「你是一个有用的助手」——太模糊，模型会放飞",
           "用「你做…」「你不做…」的句式，比「请做…」更有约束力",
@@ -135,6 +140,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "src/app/api/chat/route.ts",
         detail:
           "在 `src/app/api/chat/` 下新建 `route.ts`。export 一个 `POST` 函数：用 `await req.json()` 拿到用户消息 → 调大模型 API（stream: true）→ 把模型返回的 SSE 流用 `new Response(upstream.body, { headers: {...} })` 原样桥接给前端。响应头必须设 `Content-Type: text/event-stream`。",
+        why: "打字机效果不是前端装出来的——是后端把模型的字节流原样转发给浏览器，这一步就是把水管接通。",
         pitfalls: [
           "文件名必须叫 `route.ts`，Next.js 靠这个名字识别 API 路由",
           "`new Response` 是浏览器内置的，不需要 import——但 Node 18+ 也支持",
@@ -146,6 +152,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "src/components/chat/",
         detail:
           "在 `src/components/chat/` 下新建 `chat-panel.tsx`。文件顶部写 `'use client'`。核心逻辑：发 POST 到 `/api/chat` → 拿到 `response.body` → `getReader()` 创建读取器 → `while(true)` 循环 `reader.read()` → `TextDecoder` 解码字节 → 按 `data: ` 前缀解析 SSE 行 → `JSON.parse` 取 `delta.content` → 逐字追加到消息列表 → React 自动重新渲染 → 打字机效果。",
+        why: "把字节流解码成一个一个字追加到界面——学生「看见 AI 正在打字」的体验从这里来。",
         pitfalls: [
           "文件顶部必须有 `'use client'`，否则 useState 会报错",
           "`TextDecoder` 的 `decode(value, { stream: true })`——`stream: true` 参数不能省，否则多字节中文会被截断成乱码",
