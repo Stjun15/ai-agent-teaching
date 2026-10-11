@@ -1,9 +1,9 @@
 ---
 type: concept
-last_updated: 2026-09-23
+last_updated: 2026-10-11
 id: ts-basics
 name: TypeScript 基础速通
-prerequisites: []
+prerequisites: [vibe-coding]
 difficulty: 1
 estimated_time: 30min
 tags: [language, typescript, beginner, reading]
