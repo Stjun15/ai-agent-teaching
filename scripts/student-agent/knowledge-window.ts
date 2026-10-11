@@ -53,6 +53,17 @@ export interface KnowledgeWindowReport {
  * key = 术语名（小写），value = { display: 展示名, definition: 定义 }
  */
 const MODULE_VOCABULARY: Record<string, Record<string, string>> = {
+  "vibe-coding": {
+    "vibe coding": "完全沉浸在灵感里、把代码细节交给 AI 的编程方式",
+    宪法: "项目长期遵守的工程原则，每条必须可验证",
+    规格: "功能需求的自然语言描述——只写 What 和 Why，不写 How",
+    非目标: "明确写下来的「不做什么」——跟目标同等重要",
+    需求采访: "开始写代码前先让 AI 问你四个问题——目标/上下文/约束/完成条件",
+    完成条件: "定义什么可观察的结果才是「做完了」",
+    四步工作法: "说清楚 → 定规矩 → 切小块 → 回头看",
+    子任务: "把一个大目标拆成独立、可单独验证的小任务",
+    审查: "做完后不信任 AI 的输出——规格审功能、代码审质量、diff 审范围、人类审体验",
+  },
   "ts-basics": {
     typescript: "给数据贴标签的编程语言，浏览器能读懂",
     编程语言: "人和电脑之间的翻译官",
@@ -213,6 +224,7 @@ function isGenericTerm(termName: string): boolean {
 // ---- 模块顺序 ----
 
 export const MODULE_ORDER = [
+  "vibe-coding",
   "ts-basics",
   "llm-api",
   "system-prompt",
@@ -220,10 +232,10 @@ export const MODULE_ORDER = [
   "tool-calling",
   "rag",
   "llm-wiki",
-  "platform-replica",
   "multi-agent",
   "mcp",
   "ai-safety",
+  "platform-replica",
 ];
 
 // ---- 知识窗类 ----
