@@ -1,30 +1,33 @@
-# 接手文档 — 2026-10-10（当日更新：概念测验安全加固 + 讲稿批量直写工具）
+# 接手文档 — 2026-10-11（当日更新：讲稿优化专项——复刻讲稿退役 + 做中学三件套 + 审计口径升级）
 
-> 上一份（2026-10-08）已完成费曼复习卡、平台复刻优化、页脚声明移除、思维链泄漏修复。
-> 本次新增：**概念测验安全加固**——清除 11 篇预写讲稿中「🎉 概念通过」提前宣告，学生必须通过概念测验才能放行；新增 `_direct-cache-write.ts` 批量直写讲稿缓存工具（不调外部 LLM）；新增 `query-wiki.ts` 知识库查询工具。
+> 上一份（2026-10-10）已完成概念测验安全加固、讲稿批量直写工具、知识库查询工具。
+> 本次新增：**讲稿优化专项**——上一会话手写重制的 12 讲讲解稿入库；修正讲稿事实错误（沙箱注释/编造统计）；ai-safety 概念页统一五道闸门；课程顺序改为 vibe-coding 第 1 讲；**复刻讲稿退役**（用户裁定：复刻阶段做中学，不要理论课）；复刻导师对话携带阶段上下文（phaseContext）；十一讲任务卡「复刻连线」；复刻任务卡「为什么有这步」试点；报错求助四件套模板；审计口径升级（跨讲术语累积 + 无讲稿模块豁免），**全量审计 12 讲 0 缺陷**。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
+> ⚠️ **接手的是新模型？先读〇一节**——那节是本轮的完整移交记录，读完再往下看历史。
 
 ---
 
-## 〇、当前状态速查（2026-10-10 更新）
+## 〇、当前状态速查（2026-10-11 更新）
 
-| 项           | 事实                                                                                                                                                                                                                                                                                           |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `27a3eb9`（提交总数 **约 534**）                                                                                                                                                                                                                                                       |
-| 与远端       | ⚠️ **未推送** —— `git push` 后报 "upstream is gone"（本机 origin/dev 引用缺失）。须用 `git ls-remote` 核验远端后再推送，姿势见第六节                                                                                                                                                           |
-| 工作区       | **干净** —— `git status` 显示 `nothing to commit, working tree clean`。此前 10-08 的 4 个未提交文件已随 10-10 提交全部入库。`site-footer.tsx` 已通过 `skip-worktree` 隐藏本地改动（删「AI 生成内容，仅供学习参考」）                                                                           |
-| 仓库完整性   | `write-tree` == `HEAD^{tree}` 逐字符相等（`c1b5e4de…`）；`git fsck` 无 missing                                                                                                                                                                                                                 |
-| 门禁         | `pnpm check` **0 error**、prettier 全过、`tsc` 0 错                                                                                                                                                                                                                                            |
-| 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`                                                                                                                   |
-| 产品内审计员 | **可用**：`/audit` 页 + `/api/audit`，DB 里 11 讲已审、3 缺陷                                                                                                                                                                                                                                  |
-| 三步进度     | 第 0/1/2 步 ✅ 全部完成（见下）                                                                                                                                                                                                                                                                |
-| 测试套件     | 44 组，每次全跑无跳过；3 组真模型。**10-07 22:06 实测：充值后仅 1 / 44 失败**（点评 8 例、讲解 6 例真模型组均通过；余下出题组因 doubao-pro 慢而约 44s 超时）；`thinking-seal-spec` 毫秒竞态偶发（测试自身 bug，见 4.4）。⚠️ **欠费会反复** —— 22:24 复测又全量 403，真因见 4.2，改动前先探端点 |
-| 本会话新增   | **概念测验安全加固**（11 篇讲稿清除「🎉 概念通过」提前宣告）；**批量直写工具**（`_direct-cache-write.ts`，零 LLM 调用）；**知识库查询工具**（`query-wiki.ts`）；**讲稿缓存列表**（`_list-cache.ts`）；**ExplainNextButton 弹窗**（测验确认提醒文案）                                           |
+| 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 分支 / HEAD  | `dev` @ `cb06d98`（提交总数 **559**）                                                                                                                                                                                                                                                                                                                                                                           |
+| 与远端       | 🔴 **状态异常，需作者人工核验** —— 10-08 曾核验同步到 `01dce84`（当时第 528 个提交），此后 **31 个提交未推**（本轮 15 个 + 10-10/10-11 之间 16 个，`git log 01dce84..HEAD --oneline \| wc -l` = 31）。**10-11 实测 `ls-remote origin` 返回 0 个 ref（exit 0）**，push --dry-run 也静默无输出——远端仓库可能被清空/删除，或网络中转异常。**先让作者登录 GitHub 网页确认仓库在不在、非不非空，再按第六节姿势推送** |
+| 工作区       | 干净（`git write-tree` == `HEAD^{tree}`）。三个**有意不提交**的未跟踪文件：`.zcodeignore`（ZCode 工具配置，作者裁定要不要入库）、`_temp_vibe_coding.pdf` / `_temp_vibe_coding.txt`（vibe-coding 讲的素材原件，用完可删）。`site-footer.tsx` 仍为 `skip-worktree` 隐藏本地改动状态                                                                                                                               |
+| 门禁         | **10-11 实测全绿**：`pnpm check` 0 error（7 条 eslint warning 为历史遗留）；`pnpm test` **45/45**（含 3 组真模型，方舟账号当时有余额）。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`），见〇一节验证清单                                                                                                                                                                                          |
+| 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
+| 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
+| 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
+| 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
+| 测试套件     | 45 组全跑无跳过；3 组真模型。**10-11 实测 45/45 全绿**。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
+| 本会话新增   | 见「〇一、2026-10-11 会话全记录」——15 个提交、改稿流程、架构不变量、遗留待办，**本轮移交重点**                                                                                                                                                                                                                                                                                                                  |
 
-### ✅ 远端已于 19:55 推送完成 (10-08)；⚠️ 10-10 未推送
+### 远端推送状态（10-11 更新）：🔴 异常待人工核验
 
-此前 19:40~19:50 记录为「未核实」，**那是误判** —— 当时把证书错误当成了网络不通。
-真实症结与正确推法见第六节「推送与核验远端的正确姿势」。
+10-08 19:55 曾成功推送并核验（`c0a6619`），随后推进到 `01dce84` 也核验同步——**那是最后一次成功的远端确认**。
+10-11 本轮用同样的四开关姿势实测：`ls-remote origin dev` 与 `ls-remote origin`（全量）都返回 **0 个 ref 且 exit 0**，
+`push --dry-run origin dev` 静默无输出。这不像是证书问题（那个会报 `CRYPT_E_NO_REVOCATION_CHECK`），
+更像远端仓库被清空/删除或中转层吞了响应。**处置：让作者本人登录 GitHub 网页看仓库状态，再决定重推还是重建远端；别在本机反复盲试。**
 
 ### 已闭合（原「等作者裁定」的两项均已解决）
 
@@ -34,6 +37,127 @@
 > **新增待裁定（10-07）**：文本模型若需临时切到 doubao，注意**文本/视觉不能设成同一个模型 id** —— `ark.ts:161` 的 `models: [text, vision]` 会出现两条同 id 条目（且 name 是硬编码文案，与实际 id 无关）。当前临时配置：文本 `doubao-seed-2-1-pro-260915` + 视觉 `doubao-seed-2-1-turbo-260628`（走用户级环境变量，**非代码默认值**）。
 
 > ~~3. `HANDOVER.md` 是否入库~~ —— **已裁定并完成**（提交 `7c2895b`），本文件现为入库状态。
+
+---
+
+## 〇一、2026-10-11 会话全记录（本轮移交重点——接手的人先读完这节再干活）
+
+> 这节写给接手本轮工作的模型，自包含：改了什么、怎么验证、哪些别动、什么没做完。
+> 历史背景在下面的章节里，不影响本轮操作。
+
+### 这轮的出发点（用户裁定，别反向执行）
+
+1. **课程目标**：零基础学生通过课程学会「和 AI 协作」，最终把平台复刻出来。
+2. **复刻模块不要理论课**（用户原话方向）：学生「只需要知道怎么做就行，给出指导应该就够了」。
+   因此 platform-replica 的讲解稿**退役**——它本来就是运行时死数据（该模块被 `src/app/learn/[moduleId]/page.tsx:49`
+   整体路由到专属工作区，那里从不播种讲稿缓存），而它承载的边界表/三斧总览
+   `llm-wiki/concepts/platform-replica.md` 里本来就有且更详尽。
+3. 「做中学」的粘合靠三件套：①任务卡末尾「复刻连线」（把每讲练习焊在复刻项目上）；
+   ②复刻阶段任务卡「为什么有这步」（防照菜谱抄完不知所以然）；③报错求助四件套模板（零基础最大的卡点是报错不会描述）。
+
+### 本会话 15 个提交（全部在 dev，未推送；SHA 前 7 位即可定位）
+
+| #   | SHA       | 主题                                                       | 一句话说明                                                                                                                                                                                                                             |
+| --- | --------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `e04c4b1` | feat: 手写重制十二讲讲解稿并新增 vibe-coding 模块          | **上一个会话的未提交工作原样入库**（12 篇讲解稿源 + vibe-coding 概念页 + 3 个概念页对齐 + 审计词表）                                                                                                                                   |
+| 2   | `1c2a377` | style: prettier 补格式化上个会话遗留的 14 个文件           | 修复 `pnpm check` 的 prettier 违规（上会话提交时没跑格式化）                                                                                                                                                                           |
+| 3   | `fcf38c5` | fix: 修正讲稿事实错误——沙箱注释、虚构 api 脚注、无出处统计 | `Function()` 注释「不用 eval，用安全沙箱」是**错的**（Function≡eval，无沙箱）；tool-calling/rag/llm-wiki/mcp/llm-api 的虚构 API 补「示意函数」脚注；删 vibe-coding「95% 项目活不过两周（社区统计）」编造数据                           |
+| 4   | `43138b4` | fix: ai-safety 概念页统一为五道闸门口径                    | 概念页标题节是五道、示范代码和动手任务却是四道（自相矛盾）；补第五道「引用溯源」代码，全文统一五道                                                                                                                                     |
+| 5   | `b2c07c5` | fix: ts-basics 挂 vibe-coding 前置，方法课先讲             | ts-basics.md 的 `prerequisites: [vibe-coding]`——vibe-coding 讲稿自称「第一讲」，但此前拓扑排序里 ts-basics 排它前面（两者都无前置时按 id 字典序）                                                                                      |
+| 6   | `d0dbfa3` | fix: 补 lectureCacheDb.list 修复 tsc 编译错误              | 上会话的 `_list-cache.ts` 调了不存在的 `lectureCacheDb.list()`（tsc 挂）；在 `src/lib/db/lecture-cache.ts` 补了 list()                                                                                                                 |
+| 7   | `98652e8` | chore: 退役复刻讲稿缓存，内容由概念页承载                  | 删 `_direct-cache-write.ts` 里 platform-replica 条目（-138 行）+ 删 DB 行；概念页「前 9 个模块」过期计数改 11                                                                                                                          |
+| 8   | `a22ef0f` | chore: 讲稿缓存端点收窄为 explain，清空死缓存行            | `/api/lecture-cache` 的 `CACHED_STEPS` 只留 explain；删 9 篇 9-22 的旧 observe 稿 + 退役 python-basics 残稿（运行时零消费、口径还是内部词修复前的）                                                                                    |
+| 9   | `62d8a1b` | feat: 复刻导师对话携带当前阶段上下文                       | `ChatRequestSchema.phaseContext`（≤500 字）四件套：schema → `/api/chat` 注入 → Composer 透传 → 复刻工作区组装「阶段 2/6「第一斧」——目标：…」                                                                                           |
+| 10  | `0c3a053` | feat: 十一讲任务卡加复刻连线                               | 每讲任务节末尾加一段「**复刻连线**：…」（如 tool-calling → 复刻第二斧的出题工具就是这个练习的实战版）                                                                                                                                  |
+| 11  | `a243b2e` | feat: 复刻第一斧任务卡补「为什么有这步」                   | `ReplicaTask.why` 字段 + 详情卡渲染；只试点第一斧 5 任务（wiki 对应小节本就有逐行讲解，UI 侧才是缺 why 的一侧）                                                                                                                        |
+| 12  | `3d6504f` | feat: 讲稿与复刻对话加报错求助四件套模板                   | vibe-coding 讲稿新增「卡住了怎么办：向 AI 求助的四件套」（现象/期望/实际/已尝试）；复刻对话空态提示加「报错原样贴」                                                                                                                    |
+| 13  | `604347e` | fix: 讲稿审计口径升级——跨讲术语累积与无讲稿模块豁免        | `AuditSubject.earlierTeachings`：术语在前面任何一讲定义过就不算断层（Agent 在第 5 讲定义，此前 5 讲逐讲独立判定全量误报）；`LECTURE_LESS_MODULES = {"platform-replica"}` 豁免可达性检查                                                |
+| 14  | `ae39cf2` | test: mastery 面板守卫允许 Fragment 包裹                   | 10-10 的提交给 mastery 分支包了 `<>`，`practice-mastery-spec.ts` 的正则没跟上（**上会话没跑全量测试的欠账**）                                                                                                                          |
+| 15  | `cb06d98` | fix: 补齐审计发现的真实内容缺口                            | rag 脚注改用已定义的 embedding 口径（原「向量化」触发术语断层）；ai-safety 测验场景标签改「场景A/B/C」对齐概念页承诺词；vibe-coding 补「上下文就是」定义句 + `## 示范代码` 节（观察步不再显示占位）；ts-basics 的 Agent 首现补内联定义 |
+
+### 数据现状（接手后先跑这 4 条核对，全对再动手）
+
+```bash
+# ① 讲稿缓存必须是且仅是 11 行 explain（顺序无关）：
+node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('dev.db',{readOnly:true});console.log(db.prepare('SELECT module_id,step FROM lecture_cache ORDER BY module_id').all().map(r=>r.module_id+':'+r.step).join(', '))"
+# 期望：agent-loop:explain, ai-safety:explain, llm-api:explain, llm-wiki:explain, mcp:explain,
+#       multi-agent:explain, rag:explain, system-prompt:explain, tool-calling:explain, ts-basics:explain, vibe-coding:explain
+
+# ② 内部词扫描全绿：
+node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/scan-cache-internal-words.ts
+# 期望最后一行：✅ 缓存讲稿输出无内部词（platform-replica:explain 无缓存，跳过）
+
+# ③ 课程顺序（vibe-coding 必须是 0）—— 本机 node -e 跑 ESM 顶层 await 不可靠，写成文件跑（见第八节 12 条）：
+cat > _probe-modules.mts << 'EOF'
+import { loadModules } from "./src/lib/modules";
+console.log((await loadModules()).map((m, i) => i + "." + m.id).join(" | "));
+EOF
+npx tsx --tsconfig tsconfig.json _probe-modules.mts && rm _probe-modules.mts
+# 期望：0.vibe-coding | 1.ts-basics | 2.llm-api | ... | 11.platform-replica
+
+# ④ 三级门禁：pnpm check（期望 0 error）；
+#    pnpm test 前必须先起服务器（冷启动组打 localhost:3000）：
+CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build && PORT=3000 pnpm start   # 另开终端
+pnpm test   # 期望：=== 全部 45 组通过 ===
+```
+
+产品内审计（第 ⑤ 项，改过讲稿/概念页后必跑）：起服务器后浏览器开 `/audit` 页点触发，
+或 `curl -X POST http://localhost:3000/api/audit`。**期望 12 讲、0 findings**（10-11 本轮清零）。
+审计当前口径下会抓：讲稿缺任务节、无讲稿模块（复刻已豁免）、示范代码缺讲解、任务超纲语法、
+术语在「本讲+前面所有讲」都未定义、概念页机制承诺词（如「场景A」「五道」）在讲稿零出现。
+
+### 改讲稿的唯一正确流程（这轮建立的，下次改稿照做）
+
+1. 打开 `scripts/_direct-cache-write.ts`，找到对应模块的 `{ moduleId: "xxx", content: \`...\` }` 条目，**直接改模板字符串**。
+   这是讲稿的唯一源头——它是「我（代码助手）手写、不调模型」的直写脚本。
+2. 重跑写入：`npx tsx --tsconfig tsconfig.json scripts/_direct-cache-write.ts`（本地直写 SQLite，零模型调用、零花钱）。
+3. 验证：跑上面数据现状的 ①②④ + 审计 ⑤。
+4. `git add scripts/_direct-cache-write.ts`（**具体路径**，禁 `git add -u`）→ 提交。
+
+**三条红线**：
+
+- **不要用 `generate-lecture-cache.ts` 重新生成讲稿**——它调真实模型，会把精心手写的稿子覆盖成模型生成的口径。
+- **不要直接改 `dev.db` 里的讲稿内容**——数据库是产物，源在脚本里；下次重跑直写就冲掉了。
+- 直写脚本**没有结构守卫**（`generate-lecture-cache.ts` 有截断/缺任务节检查，直写脚本故意没抄——待办见下节）。
+  改完自己数一遍结构：开场 → 一~四节 → 「五、现在轮到你」（任务卡从这节抽题面，缺了任务卡全站消失）。
+
+### 架构不变量（别改回去的部分，每条都有事故背景）
+
+1. `lecture_cache` 只承载 explain。observe 示范 2026-09-25 起改 wiki 直读（`ObservePanel` 读概念页「示范代码」节），
+   本轮把 9 篇旧 observe 行清掉了、`CACHED_STEPS` 收窄成 explain。**别把 observe 加回 CACHED_STEPS**。
+2. `src/lib/audit/deterministic.ts` 的 `LECTURE_LESS_MODULES` 必须与
+   `src/app/learn/[moduleId]/page.tsx` 的路由分流同步：哪个模块走专属工作区（= 没有讲稿），这个集合就要包含谁。
+   现在只有 `platform-replica`。不同步的后果：审计把「无讲稿」报成 high 缺陷（假警报）。
+3. `llm-wiki/concepts/ts-basics.md` 的 `prerequisites: [vibe-coding]` **是课程顺序的唯一来源**
+   （模块顺序 = prerequisites 拓扑排序，见 `src/lib/modules.ts` 的 `sortByPrerequisites`）。删掉它顺序就变回去。
+4. 复刻讲稿**不要重建**：`_direct-cache-write.ts` 里没有 platform-replica 条目是本轮用户裁定的结果（见「这轮的出发点」）。
+5. `phaseContext` 四件套成套改：`src/schemas/api.ts`（schema）→ `src/app/api/chat/route.ts`（注入系统提示词）→
+   `src/components/chat/composer.tsx`（透传）→ `src/components/learn/platform-replica-workspace.tsx`（组装）。
+   schema 上限 500 字是防它变成第二条教材通道——教材走 moduleId 的概念页注入，别绕开。
+6. ai-safety 的「五道闸门」口径已在四处统一（概念页标题节 / 示范代码 / 动手任务 / 讲稿）。
+   改回「四道」会重新触发审计 high（内容一致性查概念页的机制承诺词）。
+7. 任务卡「复刻连线」写在讲稿源的任务节末尾（`_direct-cache-write.ts`），它随「五、现在轮到你」整节
+   被动手模仿页的任务卡渲染——概念讲解页会把任务节截掉，学生只在模仿页看到，这是设计不是 bug。
+
+### 本轮踩过的坑（知道了我能少踩，你也是）
+
+1. `pnpm check` 一口气报 36 个文件 prettier 违规 → 22 个是我在仓库根新建的 `_lecture_dump/` 临时目录被 prettier 扫到（已删），
+   14 个是上会话遗留（已补格式化提交）。**教训：临时导出目录要么放 gitignored 路径，要么用完立刻删。**
+2. `git commit --amend` 只改 HEAD。我 amend 时 HEAD 已经往前走了一个提交，结果把 chore 提交的信息覆盖成了 fix 的
+   （立即发现并 amend 回来了）。**教训：amend 前先 `git log --oneline -1` 确认 HEAD 是哪个提交。**
+3. 审计的术语检查抓到了**我自己**在 rag 脚注里引入的「向量化」（未定义术语）。审计是真的在工作——**改讲稿后必跑审计**。
+4. `ls-remote` 返回 0 个 ref、`push --dry-run` 静默 exit 0（都是带四开关实测的）——远端状态异常但本机无法确诊，
+   别反复盲试，**让作者上 GitHub 网页看一眼**。
+
+### 遗留给你的事（按优先级）
+
+| 级别 | 事项                                                                   | 具体怎么做                                                                                                                                                                                                                                             |
+| ---- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P0   | 远端核验与推送                                                         | 先让**作者本人**登录 GitHub 网页确认 `jiajunjiang15/ai-agent-teaching` 仓库是否存在且非空（10-11 实测 `ls-remote` 返回 0 ref）。确认后按第六节姿势推 31 个提交（`01dce84..HEAD`），推完 `ls-remote` 比对 SHA                                           |
+| P1   | 直写脚本补结构守卫                                                     | `scripts/_direct-cache-write.ts` 的 `main()` 里，写入前加两条检查（判据抄 `generate-lecture-cache.ts:146-172`）：`splitLecture(content).assignment === null` 拒写（防任务节缺失）、内容长度下限（防半截稿）。改完跑一条讲稿验证拒写逻辑                |
+| P1   | 「为什么有这步」批量                                                   | 目前只有第一斧 5 个任务有 `why`。批量到二斧/三斧/龙骨时：wiki 对应小节已有逐行讲解和「核心要记住的」，`why` 只写一句压缩版（是 wiki 讲解的提炼不是新口径），两边同步改                                                                                 |
+| P2   | 讲稿遗留小瑕疵                                                         | ① system-prompt 讲稿的第二层测验是选择题，规格（`teaching-chat.ts` EXPLAIN_GATE_SECTIONS）要求「一正一误判断」；② llm-api 讲稿「现在停一下——你能立刻说出这三个维度吗」在一次性缓存稿里出现略怪（读者无法真的互动）。都在 `_direct-cache-write.ts` 里改 |
+| P2   | 上会话遗留：`_temp_vibe_coding.pdf/txt`、`.zcodeignore` 两个未跟踪文件 | 素材原件与工具配置，**作者裁定**去留；别替作者删，也别顺手提交                                                                                                                                                                                         |
 
 ---
 
@@ -467,24 +591,29 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 
 ---
 
-## 六、Git 状态（2026-10-10 更新）
+## 六、Git 状态（2026-10-11 更新）
 
 ```bash
-# 分支：dev；HEAD = 27a3eb9（2026-10-10）
-# fix: 加固概念测验安全——讲稿不出答案、不出提前通过宣告
-# 提交总数：约 534；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
-# 与远端：⚠️ 未推送（本机 origin/dev 引用缺失，"upstream is gone"）
-# 工作区：干净（nothing to commit, working tree clean）
+# 分支：dev；HEAD = cb06d98（2026-10-11）
+# fix: 补齐审计发现的真实内容缺口
+# 提交总数：559；标签 v0.1.0 ~ v0.4.0 + dev-phase5-backup
+# 与远端：🔴 异常待人工核验 —— 10-08 核验同步到 01dce84（当时第 528 个提交），
+#   此后 31 个提交未推（git log 01dce84..HEAD --oneline | wc -l = 31）。
+#   10-11 实测：ls-remote origin 返回 0 个 ref（exit 0）、push --dry-run 静默无输出。
+#   远端仓库可能被清空/删除，或网络中转异常 —— 先让作者上 GitHub 网页确认，别盲推。
+# 工作区：干净（git write-tree == HEAD^{tree}）
 #   - site-footer.tsx 仍为 skip-worktree 隐藏本地改动状态
+#   - 未跟踪：.zcodeignore / _temp_vibe_coding.pdf / _temp_vibe_coding.txt（有意不提交，作者裁定）
 
-# 本次提交（27a3eb9）包含：14 修改 + 4 新增
-#   修改：HANDOVER.md, platform-replica.md, teaching-step-spec.ts,
-#         thinking-seal-spec.ts, message/route.ts, chat-panel.tsx,
-#         message-item.tsx, explain-next-button.tsx, module-workspace.tsx,
-#         platform-replica-workspace.tsx, ark.ts, loop.ts, teaching-chat.ts,
-#         lecture-split.ts
-#   新增：_direct-cache-write.ts, _list-cache.ts, feynman-review.tsx, query-wiki.ts
-#   （feynman-review.tsx 此前 10-08 为未提交文件，现已入库）
+# 本轮（10-11）15 个提交：e04c4b1 → 1c2a377 → fcf38c5 → 43138b4 → b2c07c5 →
+#   d0dbfa3 → 98652e8 → a22ef0f → 62d8a1b → 0c3a053 → a243b2e → 3d6504f →
+#   604347e → ae39cf2 → cb06d98（逐个做了什么见〇一节提交表）
+# 涉及文件：scripts/_direct-cache-write.ts（讲稿唯一源头）、
+#   llm-wiki/concepts/{ai-safety,ts-basics,vibe-coding,platform-replica}.md、
+#   src/lib/{db/lecture-cache,audit/deterministic,audit/orchestrator,platform-replica-phases}.ts、
+#   src/schemas/api.ts、src/app/api/{chat,lecture-cache}/route.ts、
+#   src/components/{chat/composer,chat/lecture-launcher(未动),learn/platform-replica-workspace}.tsx、
+#   scripts/{practice-mastery-spec,chat-schema-spec,lecture-cache-spec(未动)}.ts
 ````
 
 **⚠️ 本机 git 地雷（`AGENTS.md` 第四节有完整版）**：
@@ -518,6 +647,8 @@ npx tsc --noEmit --ignoreConfig --skipLibCheck \
 ---
 
 ## 七、后续待办
+
+> **10-11 之后的待办以〇一节「遗留给你的事」为准**（P0 远端核验/推送、P1 直写脚本结构守卫、P1 why 批量、P2 讲稿小瑕疵、P2 未跟踪文件裁定）。本节是 10-10 及更早的存档，其中已被后续推翻/完成的条目保留原文不动，别照着重做。
 
 ### ~~第 0 步：推送 + 处置 WIP~~ ✅ 已完成
 
