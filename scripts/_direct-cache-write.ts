@@ -32,7 +32,7 @@ const LECTURES: LectureEntry[] = [
 
 2025 年 2 月，OpenAI 联合创始人 Andrej Karpathy 提出 **Vibe Coding（氛围编程）**——「完全沉浸在灵感里，把代码细节交给 AI」。这个概念引爆了整个开发者圈子，柯林斯词典把它选为 2025 年度词汇。
 
-听起来很美好——你描述想要什么，AI 帮你写。但现实是：**95% 的 Vibe Coding 项目活不过两周**（社区统计）。为什么？
+听起来很美好——你描述想要什么，AI 帮你写。但现实是：**大量第一次跟 AI 协作的项目半途而废**——不是 AI 不行，是没人教过怎么跟它配合。为什么？
 
 两个人装修同一套房子：
 
@@ -282,6 +282,8 @@ const response = await callLLM({
 \`\`\`
 
 > stream: true 是"打字机效果"——AI 一个字一个字往外蹦。stream: false 是等全部写完再一次返回。
+>
+> 示范里的 callLLM 是示意函数——它代表你以后要自己封装的「调用 AI 的函数」。本讲的重点是 messages 的结构；真正手写调用代码，在复刻项目第一斧会带你做。
 
 ---
 
@@ -587,7 +589,9 @@ const tools = [
     description: "计算数学表达式。需要精确结果时使用，不让模型心算。",
     execute: async (params) => {
       const expr = params.expression as string;
-      return Function(\`"use strict"; return (\${expr})\`)();  // 不用 eval，用安全沙箱
+      return Function(\`"use strict"; return (\${expr})\`)();
+      // ⚠️ 能跑，但不安全——Function() 和 eval 是一回事，用户输入会变成代码执行。
+      // 真实项目要用白名单或沙箱，第 11 讲「AI 安全」专门讲怎么防。
     },
     parameters: { expression: "string" },
   },
@@ -603,6 +607,8 @@ await agent.run("3斤苹果每斤5块？");
 \`\`\`
 
 > 上面的 getWeather 写死了返回 { temp: 25 }。不管问哪个城市都返回 25 度——因为 execute 没读参数里的城市名。真实实现里要用参数去查真实数据。
+>
+> 示范里的 createAgent 是示意函数——真实实现由 Agent 框架提供，你看懂「输入系统提示词和工具列表、输出能跑循环的 Agent」就行。
 
 ---
 
@@ -721,6 +727,8 @@ async function ask(question: string) {
 await ask("买完不喜欢能退吗？");
 \`\`\`
 
+> 示范里的 embed 和 cosineSimilarity 是示意函数——真实的向量化要调用专门的 embedding 模型服务。你看懂三步流程就行：向量化 → 算相似度排序 → 拼进提示词。
+
 ---
 
 ### 三、防踩坑
@@ -817,6 +825,8 @@ const answer = await wiki.query("Agent Loop 有几步？");
 
 await wiki.maintain();
 \`\`\`
+
+> 示范里的 wiki.ingest / wiki.query / wiki.maintain 是示意 API——三件事本身是真实存在的（你正在用的这个平台的教材库就是这么建的），具体函数名取决于你用什么工具实现。
 
 ---
 
@@ -1004,6 +1014,8 @@ const result = await mcpClient.callTool("webSearch", {
   query: "最新 AI 新闻",
 });
 \`\`\`
+
+> 示范里的 connectMCP 是示意写法——真实的 MCP 客户端有现成的官方 SDK，接入方式是「配一个服务地址」，不需要手写连接代码。
 
 ---
 
