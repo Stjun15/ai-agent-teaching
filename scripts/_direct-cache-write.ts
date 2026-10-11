@@ -5,6 +5,7 @@
  */
 import { lectureCacheDb } from "@/lib/db";
 import { readArkSettings } from "@/lib/agent/ark-config";
+import { splitLecture } from "@/lib/lecture-split";
 
 const MODEL = readArkSettings().textModel;
 
@@ -381,7 +382,7 @@ System Prompt 由三个维度构成，缺一不可：
 
 **维度三 · 边界（出事了怎么办）**：不知道时怎么办、跑题时怎么拉回、情绪低落时怎么接。比如「不确定的事直说我不确定，不要编造」。少了它，AI 会瞎编答案、跟学生吵架、越聊越歪。
 
-> 现在停一下——你能立刻说出这三个维度吗？角色、格式、边界。不能的话，再看一遍。
+> 三个维度——角色、格式、边界——记住它们，后面的测验要用到。
 
 来看完整示范：
 
@@ -433,13 +434,17 @@ D. "你是笔试批改老师，只做选择题"
 
 **第二层 动手判断。**
 
-下面这个 System Prompt 少了哪个维度？
+下面两个 System Prompt，一个是对的、一个是错的。判断哪个对、为什么。
 
-"你是计算器助手，回答用 JSON 格式：{result: 数字, steps: '步骤'}"
+**方案 A：**
 
-A. 角色  B. 格式  C. 边界  D. 一个没少
+"你是计算器助手，回答用 JSON 格式：{result: 数字, steps: '步骤'}。不确定的事直说'我不确定'，不要编造。"
 
-> 说说你的判断理由。**把答案发在下面的聊天框里，我来告诉你是对是错。**
+**方案 B：**
+
+"你是计算器助手，回答用 JSON 格式：{result: 数字, steps: '步骤'}。"
+
+选 A 还是 B？**把答案发在下面的聊天框里，我来告诉你是对是错。**
 
 ---
 
@@ -1371,10 +1376,33 @@ max(3, 15);   // 返回什么？
 
 async function main() {
   let ok = 0;
+  let skipped = 0;
   for (const entry of LECTURES) {
     const content = entry.content.trim();
     if (!content) {
       console.error(`${entry.moduleId}:explain 内容为空，跳过`);
+      skipped++;
+      continue;
+    }
+
+    const label = `${entry.moduleId}:explain`;
+
+    const MIN_CONTENT_LENGTH = 800;
+
+    if (content.length < MIN_CONTENT_LENGTH) {
+      console.error(
+        `${label} 内容过短（${content.length} 字 < ${MIN_CONTENT_LENGTH}），疑似半截稿，跳过。`,
+      );
+      skipped++;
+      continue;
+    }
+
+    if (splitLecture(content).assignment === null) {
+      console.error(
+        `${label} 缺少「五、现在轮到你」任务节，跳过。` +
+          `检查对应 LECTURES 条目是否完整——任务卡依赖这一节。`,
+      );
+      skipped++;
       continue;
     }
 
@@ -1390,7 +1418,10 @@ async function main() {
     console.log(`${entry.moduleId}:explain 写入完成（${content.length} 字）`);
     ok++;
   }
-  console.log(`\n写入 ${ok} 条讲稿缓存`);
+  console.log(
+    `\n写入 ${ok} 条讲稿缓存` + (skipped > 0 ? `，跳过 ${skipped} 条` : ""),
+  );
+  if (skipped > 0) process.exitCode = 1;
 }
 
 main().catch((e) => {
