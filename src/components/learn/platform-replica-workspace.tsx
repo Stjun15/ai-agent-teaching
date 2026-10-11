@@ -373,7 +373,9 @@ export function PlatformReplicaWorkspace({
                   </Button>
                 ) : (
                   <p className="text-[11px] text-muted-foreground">
-                    遇到问题随时问导师，按模块、按步骤、按报错都行
+                    遇到问题随时问导师，按模块、按步骤、按报错都行。报错就把报错信息
+                    <span className="font-medium">原样</span>
+                    贴上来（现象 / 期望 / 实际 / 已尝试），别翻译别删
                   </p>
                 )}
               </div>
