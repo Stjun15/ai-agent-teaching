@@ -70,7 +70,7 @@ tags: [core, safety, security]
 
 ## 示范代码
 
-四层防护：输入过滤 → 沙箱隔离 → 输出兜底 → 限流防炸。每一层都是一道闸门。
+五道闸门，示范代码把它们串成一条流水线。少任何一道，就少一层兜底。
 
 ```typescript
 // ① 输入过滤：用户说的话先进安全检查，不合规的直接挡掉
@@ -114,26 +114,34 @@ function checkRateLimit(userId: string, maxPerMinute: number = 10): boolean {
   return true;
 }
 
-// ⑤ 完整的安全 Agent：四层闸门串联
+// ⑤ 引用溯源：给回答记出处，让老师和学生能核对 AI 有没有编
+function sourceQuote(output: string, source: string): string {
+  return output + "\n\n（本回答依据：" + source + "）";
+}
+
+// ⑥ 完整的安全 Agent：五道闸门串联
 async function safeAgentRun(userInput: string) {
-  // 第一道门：输入过滤
+  // 输入过滤闸门
   const inputCheck = filterInput(userInput);
   if (!inputCheck.ok) return inputCheck.reason;
 
-  // 第二道门：限流检查
+  // 限流闸门
   if (!checkRateLimit("student-1")) return "请求太频繁，请 2 秒后再试。";
 
-  // 第三道门：沙箱执行
+  // 沙箱闸门
   const rawOutput = await safeExecute(() => agent.run(userInput));
 
-  // 第四道门：输出过滤
-  return filterOutput(String(rawOutput));
+  // 输出兜底闸门
+  const filtered = filterOutput(String(rawOutput));
+
+  // 引用溯源闸门
+  return sourceQuote(filtered, "concepts/ai-safety.md");
 }
 ```
 
 ## 自己动手：你来说
 
-> 用"机场安检"的例子，解释 AI 安全的四道闸门各检查什么。
+> 用"机场安检"的例子，解释 AI 安全的五道闸门各检查什么。
 
 然后判断下面三个场景——每一层拦截的谁，放行的谁：
 
@@ -143,7 +151,7 @@ async function safeAgentRun(userInput: string) {
 
 **场景C.** 同一个 IP 在 1 秒内发了 50 次请求
 
-> 每个场景分别触发了哪一层？哪几层放过了？（对照示范代码里的四层回答）
+> 每个场景分别触发了哪一道闸门？哪几道放过了？（对照示范代码里的五道回答）
 
 ---
 
