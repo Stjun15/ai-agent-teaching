@@ -51,6 +51,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       {
         label: "确认 Node ≥ 22.5",
         file: "node --version",
+        why: "后面每一步依赖的运行时——版本不对，后面全白搭。",
         detail:
           "打开终端（Win：Win+R 输入 powershell；Mac：Cmd+空格 输入 Terminal），输入 `node --version`。看到 v22.5.0 或更高 → 通过。如果提示「不是内部或外部命令」→ 去 https://nodejs.org 下载 LTS 版本安装，装完关掉终端重开。如果版本 < 22.5 → 同样去下载新版本覆盖安装。",
         pitfalls: [
@@ -61,6 +62,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       {
         label: "创建项目",
         file: "npx create-next-app teaching-platform",
+        why: "Next.js 是整座平台的脚手架——页面、路由、API 都在这个壳里长出来。",
         detail:
           "终端里先 cd 到你想放项目的文件夹（如 `cd ~/Desktop`），然后运行 `npx create-next-app teaching-platform`。过程中会问你 6 个问题：TypeScript? → Yes / ESLint? → Yes / Tailwind CSS? → Yes / src/ directory? → Yes / App Router? → Yes / import alias? → No。全选默认就好。",
         pitfalls: [
@@ -72,6 +74,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       {
         label: "启动开发服",
         file: "npm run dev",
+        why: "改一行代码立刻在浏览器看到效果——这是你的反馈回路，整个平台搭建就靠它快速迭代。",
         detail:
           "`cd teaching-platform` 进入项目文件夹，然后 `npm run dev`。终端会显示 `Local: http://localhost:3000`。这个终端窗口不要关——关了服务器就停了。",
         pitfalls: [
@@ -81,6 +84,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       },
       {
         label: "浏览器打开 localhost:3000，确认空壳能跑",
+        why: "第一步是地基——先看到东西活着，后面加什么都心里有数。",
         detail:
           "打开浏览器，地址栏输入 `http://localhost:3000`，回车。看到 Next.js 的欢迎页（中间有个黑色 N logo，写着「Get started by editing…」）→ 空壳跑通。",
         pitfalls: [
@@ -178,6 +182,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         label: "出题工具 + 参数 Schema",
         moduleRef: "tool-calling",
         file: "src/lib/quiz-tool.ts",
+        why: "告诉模型「你可以出题」——不给工具，模型只会动嘴不会动手；Schema 是双方契约，保证每道题格式统一。",
         detail:
           "新建 `src/lib/quiz-tool.ts`。export 一个 `quizTool` 对象：`type: 'function'`，`function.name: 'make_quiz'`，`function.description` 写清楚「什么时候用这个工具」，`function.parameters` 用 JSON Schema 描述 4 个必填参数：question（题干）、options（4 个选项的数组）、answer（正确选项如 B）、explanation（解析）。",
         pitfalls: [
@@ -190,6 +195,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         label: "把一次调用包成带工具的循环",
         moduleRef: "agent-loop",
         file: "src/lib/agent-loop.ts",
+        why: "这是 Agent 的心脏——模型不是一次说完就完，而是「思考→要工具→拿到结果→再思考」的多轮博弈。",
         detail:
           "新建 `src/lib/agent-loop.ts`。export `async function runAgentLoop(userMessage)`：\n1. 初始化 messages 数组（system prompt + user message）\n2. `for (let step = 0; step < 5; step++)`——最多 5 步防死循环\n3. 调大模型 API，传 `tools: [quizTool]`\n4. 检查返回的 `choice.message.tool_calls`：没有 → 返回 `choice.message.content`（循环结束）\n5. 有 tool_calls → 先把 `choice.message` push 进 messages\n6. 遍历 tool_calls，解析 `call.function.arguments`，包装成 `{ role: 'tool', tool_call_id, content }` push 进 messages\n7. 回到 for 循环开头——模型看到工具结果后再次决策",
         pitfalls: [
@@ -202,6 +208,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
       {
         label: "验证：模型能出题 + 讲解",
         moduleRef: "agent-loop",
+        why: "不验证就是盲搭——亲眼看到「讲概念→出题」全链路跑通，定位问题才有依据。",
         detail:
           "跑验收 curl 命令（下方）。预期：AI 先用 2-3 句话讲清楚概念（带类比或例子），然后出现两道选择题，每题 4 个选项 + 标明正确答案 + 解析。服务端终端能观察到完整的「模型要工具 → 你执行 → 喂回 → 模型继续」日志。",
         pitfalls: [
@@ -228,6 +235,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         label: "概念页注入上下文（RAG）",
         moduleRef: "rag",
         file: "src/lib/lecture-context.ts",
+        why: "没有讲稿注入，AI 不知道你在学什么——概念页就是 AI 的「备课笔记」，决定了它讲的内容对不对。",
         detail:
           "新建 `src/lib/lecture-context.ts`。用 `node:fs` 的 `readFileSync` 读取 `llm-wiki/concepts/` 下的 .md 讲稿文件。去掉文件头部的 YAML front matter（`---` 包裹的元数据块），返回正文。在 `agent-loop.ts` 里：调模型前先 `loadLectureContent(moduleId)`，把返回的讲稿拼到 System Prompt 末尾（如 `【本讲参考资料】\n...`）。",
         pitfalls: [
@@ -240,6 +248,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         label: "SQLite 存掌握度",
         moduleRef: "llm-wiki",
         file: "src/lib/db.ts",
+        why: "没有数据库，每次对话都是从零开始——存了掌握度，AI 才知道你哪里弱、该重点练哪里。",
         detail:
           "新建 `src/lib/db.ts`。`import { DatabaseSync } from 'node:sqlite'`，`new DatabaseSync('dev.db')` 创建/打开数据库。用 `db.exec()` 执行 `CREATE TABLE IF NOT EXISTS mastery (...)` 建表（字段：id, module_id, score, dimension_scores, feedback, created_at, updated_at）。实现 `upsertMastery(moduleId, score, dimensions, feedback)`——先查有没有记录，有就 UPDATE，没有就 INSERT。用 `db.prepare(...).get()` 做查询，`?` 占位符防注入。",
         pitfalls: [
@@ -253,6 +262,7 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         label: "点评 Agent：按维度打分 + 落库",
         moduleRef: "system-prompt",
         file: "src/lib/review.ts",
+        why: "这是教学的闭环——学生交作业 → AI 按维度打分+给建议 → 落库记录进度，和数据库串成一条线。",
         detail:
           "新建 `src/lib/review.ts`。写一个 `REVIEW_SYSTEM_PROMPT`：定义 4 个评分维度（正确性/可读性/完整性/规范性，每个 1-5 分），严格按 JSON 格式输出 `{ dimensions: {...}, deductions: [...], suggestions: '...', overall: 4 }`。函数 `reviewHomework(moduleId, homework)` 调模型拿评分 JSON，解析后调用 `upsertMastery` 落库。temperature 设 0.3 让评分稳定。",
         pitfalls: [
@@ -278,6 +288,7 @@ curl -X POST http://localhost:3000/api/validate \\
       {
         label: "首页 `/`",
         file: "src/app/page.tsx",
+        why: "所有学习路径的起点——没有首页，学生不知道从哪进。",
         detail:
           "修改 `src/app/page.tsx`。用 Next.js 的 `<Link href='/learn'>` 和 `<Link href='/playground'>` 做两个入口按钮。标题写「AI 教学平台」+ 一句话介绍。用 Tailwind CSS 居中布局（`flex min-h-screen items-center justify-center`）。",
         pitfalls: [
@@ -288,6 +299,7 @@ curl -X POST http://localhost:3000/api/validate \\
       {
         label: "学习中心 `/learn`",
         file: "src/app/learn/page.tsx",
+        why: "课程目录——学生从这里选模块、看进度，是整个教学平台的导航枢纽。",
         detail:
           "新建 `src/app/learn/page.tsx`。定义一个模块列表数组（id + name + desc），用 `map` 渲染成卡片列表。每个卡片是 `<Link href={/learn/\${mod.id}}>`，点击跳转到对应模块的工作区。卡片上显示序号、模块名、一句话描述。",
         pitfalls: [
@@ -298,6 +310,7 @@ curl -X POST http://localhost:3000/api/validate \\
       {
         label: "工作区 `/learn/[id]`",
         file: "src/app/learn/[id]/page.tsx",
+        why: "这才是学生真正「上课」的地方——左边看讲稿、右边跟 AI 聊，讲练结合的完整学习环境。",
         detail:
           "新建 `src/app/learn/[id]/page.tsx`。用 `async function Page({ params }: { params: Promise<{ id: string }> })` 接收动态路由参数。页面分左右两栏：左侧渲染模块讲稿（后续接 RAG），右侧嵌入 `ChatPanel` 聊天组件。顶部加面包屑和返回按钮。",
         pitfalls: [
@@ -308,6 +321,7 @@ curl -X POST http://localhost:3000/api/validate \\
       {
         label: "沙箱 `/playground`",
         file: "src/app/playground/page.tsx",
+        why: "给学生一个不受课程约束的自由空间——学到的概念可以在这里随意尝试、自由提问。",
         detail:
           "新建 `src/app/playground/page.tsx`。极简页面——标题「自由对话」+ `ChatPanel` 组件。学生在这里不跟课程内容绑定，纯粹跟 AI 聊天、测试想法。",
         pitfalls: ["ChatPanel 在第一斧已经写好了，这里直接 import 复用即可"],
@@ -315,6 +329,7 @@ curl -X POST http://localhost:3000/api/validate \\
       {
         label: "设置 `/settings`",
         file: "src/app/settings/page.tsx",
+        why: "让学生确认平台配置是否正确——看不到设置页，出问题时连「是不是 Key 没配」都排查不了。",
         detail:
           "新建 `src/app/settings/page.tsx`。显示当前 API Key 状态（从 `.env.local` 读取，脱敏显示）、当前使用的模型名称。用一个只读输入框或文本展示即可——这个页面主要是让学生确认「配置对了没有」。",
         pitfalls: [
@@ -333,36 +348,43 @@ curl -X POST http://localhost:3000/api/validate \\
     tasks: [
       {
         label: "能跟 AI 实时对话（SSE 流式，打字机渲染）",
+        why: "打字机效果在 = 流式 SSE 没断——这是第一斧的核心成果，断了说明水管有问题。",
         detail:
           "在前端输入「你好」，AI 逐字回复，不是一次性弹出一大段。打开浏览器开发者工具（F12）→ Network 标签 → 找到 /api/chat 请求 → 看 Response，应该是逐行 `data: {...}` 的 SSE 格式。",
       },
       {
         label: "AI 被 System Prompt 约束为教学导师，不讲无关内容",
+        why: "如果 AI 回答无关内容，System Prompt 约束力不够——回到第一斧第三步加固。",
         detail:
           "问 AI「今天天气怎么样」或「帮我写一封辞职信」→ AI 应该拒绝或引导回学习话题。如果 AI 回答了无关内容，回到 `agent-prompts/teaching-chat.ts` 加强约束。",
       },
       {
         label: "Agent 能多步输出：讲概念 → 给示范 → 出测验题",
+        why: "讲→示→测的完整链路 = 第二斧 Agent 循环真跑起来了——只有一步说明 tool_calls 没触发。",
         detail:
           "输入「给我讲讲什么是闭包，再出两道选择题」。观察回复：先有概念讲解 → 然后出现题目。服务端终端日志能看到「模型请求工具 → 执行 → 喂回」的完整链路。",
       },
       {
         label: "出题 Agent 输出的题目符合 Schema（有选项、有答案、有解析）",
+        why: "Schema 是一斧和二斧的接头——题格式不对，要么 quiz-tool 的 JSON Schema 写错了，要么 agent-loop 解析 tool_calls 有问题。",
         detail:
           "看 AI 出的题——4 个选项齐全、标明了正确答案、有解析。缺少任何一项 → 检查 quiz-tool.ts 的 required 数组和 agent-loop.ts 的 tool 结果处理。",
       },
       {
         label: "点评 Agent：交作业能拿到维度分、扣分点、改进建议，且落库",
+        why: "点评+落库 = 第三斧的闭环——缺一项说明 review.ts 或 db.ts 没对接好。",
         detail:
           '在下方「交付与检验单」编辑器贴一段代码，点「提交点评」。返回的 JSON 里有 dimensions（4 个维度的分数）、deductions（扣分点）、suggestions（改进建议）。然后跑 `node -e "..."` 验证数据库里有这条记录。',
       },
       {
         label: "SQLite 记录学习进度，刷新不丢",
+        why: "持久化的铁证——数据没丢说明 upsert 逻辑和 dev.db 文件位置都对。",
         detail:
           '点评完成后关闭浏览器标签页，重新打开 `/learn/platform-replica`，查数据库 `node -e "..."`——之前的评分记录还在。如果丢了 → 检查 dev.db 文件是否在项目根目录、是否被 gitignore 忽略了（应该忽略，但文件本身要存在）。',
       },
       {
         label: "页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置",
+        why: "龙骨四斧的接头——五条路由全通说明页面连线没断，缺一页整个学习路径就断了。",
         detail:
           "从首页开始，逐一访问 5 个页面。检查：每个页面都能正常渲染（不白屏）、面包屑导航正确、返回按钮能回到上一级。",
       },
