@@ -39,7 +39,7 @@ export const queryWikiTool = defineTool({
     query: Type.String({
       description:
         "要在 Wiki 中搜索的问题或关键词。用自然语言写，不要用 AND/OR 语法。" +
-        "越具体越好，例如 TypeScript 中 interface 和 type 的区别比\"类型\"更可能命中。",
+        '越具体越好，例如 TypeScript 中 interface 和 type 的区别比"类型"更可能命中。',
     }),
   }),
   execute: async (_toolCallId, params) => {
@@ -79,8 +79,7 @@ export const queryWikiTool = defineTool({
         details: { query: params.query, hitCount: result.hits.length },
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       return {
         content: [
           {
