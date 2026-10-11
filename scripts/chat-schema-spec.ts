@@ -73,3 +73,34 @@ test("ChatRequestSchema：无 moduleId 时仍放行", () => {
   const r = ChatRequestSchema.safeParse({ content: "你好" });
   assert.equal(r.success, true);
 });
+
+// ---------------------------------------------------------------------------
+// phaseContext（复刻阶段上下文，可选）
+// ---------------------------------------------------------------------------
+
+test("ChatRequestSchema：放行合法 phaseContext", () => {
+  const context =
+    "阶段 2/6「第一斧 · 对话骨架」——本阶段目标：搭完能跟 AI 聊天。";
+  const r = ChatRequestSchema.safeParse({
+    content: "我卡住了",
+    phaseContext: context,
+  });
+  assert.equal(r.success, true, "复刻工作区的阶段上下文应被放行");
+});
+
+test("ChatRequestSchema：拒绝超长 phaseContext（只允许位置信息，不允许塞教材）", () => {
+  const r = ChatRequestSchema.safeParse({
+    content: "我卡住了",
+    phaseContext: "长".repeat(501),
+  });
+  assert.equal(
+    r.success,
+    false,
+    "phaseContext 上限 500 字，防它变成第二条教材通道",
+  );
+});
+
+test("ChatRequestSchema：缺省 phaseContext 仍放行（非复刻模块不受影响）", () => {
+  const r = ChatRequestSchema.safeParse({ content: "你好" });
+  assert.equal(r.success, true);
+});

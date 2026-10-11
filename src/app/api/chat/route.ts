@@ -139,6 +139,15 @@ export async function POST(req: Request): Promise<Response> {
   // 身份层系统提示词 + 概念页教学脚本拼接。
   // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」。
   const parts = [conceptScript, stepAgent.systemPrompt].filter((p) => p !== "");
+  // 复刻项目的阶段上下文（可选）：让学生不必重复描述自己卡在哪一步。
+  // 只注入位置，不注入教材 —— 教材已随 moduleId 的概念页进来。
+  if (parsed.data.phaseContext) {
+    parts.push(
+      "## 学生当前所处位置（复刻项目实时上下文）\n" +
+        parsed.data.phaseContext +
+        "\n回答时默认学生就停在这一步，直接针对它给指导，不要反问「你做到哪一步了」。",
+    );
+  }
   if (parts.length > 0) {
     loopOptions.systemPrompt = parts.join("\n\n");
   }

@@ -120,6 +120,8 @@ export function PlatformReplicaWorkspace({
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
   );
   const phase = REPLICA_PHASES[activePhaseIndex];
+  // 导师的「位置感」：随每条消息告诉导师学生停在哪一阶段（见 Composer → /api/chat）。
+  const phaseContext = `阶段 ${phase.index + 1}/${REPLICA_PHASES.length}「${phase.title}」——本阶段目标：${phase.goal}`;
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
@@ -379,7 +381,11 @@ export function PlatformReplicaWorkspace({
             {chatOpen ? (
               <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                 <ChatPanel moduleId={teachingModule.id} />
-                <Composer moduleId={teachingModule.id} step="explain" />
+                <Composer
+                  moduleId={teachingModule.id}
+                  step="explain"
+                  phaseContext={phaseContext}
+                />
               </CardContent>
             ) : null}
           </Card>

@@ -93,9 +93,12 @@ function compressImage(file: File): Promise<string> {
 export function Composer({
   step,
   moduleId,
+  phaseContext,
 }: {
   step?: StepType;
   moduleId?: string;
+  /** 复刻项目当前阶段上下文（仅复刻工作区携带），随消息带给导师。 */
+  phaseContext?: string;
 }) {
   const { send, abort } = useChatStream();
 
@@ -230,6 +233,7 @@ export function Composer({
         content,
         ...(step !== undefined ? { step } : {}),
         ...(moduleId ? { moduleId } : {}),
+        ...(phaseContext ? { phaseContext } : {}),
         ...(showCode && code.trim() !== ""
           ? { code: code.trim(), language }
           : {}),
