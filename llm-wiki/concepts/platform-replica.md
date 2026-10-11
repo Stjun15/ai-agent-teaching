@@ -13,7 +13,7 @@ tags: [core, integration, project]
 
 ## 定义（开始前先看！）
 
-「教学平台复刻」= 用本课程前 9 个模块教的每一个技术零件（LLM API、System Prompt、Agent Loop、Tool Calling、RAG、LLM Wiki、SQLite），从零搭出一个**能跑的单机版 AI 教学平台**。
+「教学平台复刻」= 用本课程前 11 个模块教的每一个技术零件（LLM API、System Prompt、Agent Loop、Tool Calling、RAG、LLM Wiki、SQLite），从零搭出一个**能跑的单机版 AI 教学平台**。
 
 它是课程的总验收：不是选择题得分，而是「你能不能独立做一个 AI 应用」的试金石。复刻的对象就是**你正在用的这个平台本身**——学什么就造什么，造什么就验证什么。
 
@@ -1345,7 +1345,7 @@ export default function SettingsPage() {
 | **Agent Loop 一定是 5 步**                             | `step < 5` 是安全上限，不是必须跑满。大多数对话 2-3 步就结束了：模型决定调用工具（第 1 步），你执行并返回结果，模型拿到结果后直接输出最终回复（第 2 步），循环结束。                  |
 | **SSE 打字机效果必须用第三方库**                       | 不需要。本文档前端代码里 `response.body.getReader()` + `TextDecoder` + `while(true)` 循环就是打字机的全部实现。三个 API 全部是浏览器内置的，零依赖。                                  |
 | **点评 Agent 的 JSON 输出需要 `response_format` 参数** | 不必须。DeepSeek V4 Flash 对 System Prompt 里写的 JSON 格式遵循度很高。`response_format: { type: "json_object" }` 是后续进阶优化——先跑通再优化。                                      |
-| **学完前 9 个模块才能开始复刻**                        | 可以边学边造。学完 LLM API 那一讲，你就已经可以写出本文档第一斧的后端 route.ts。每学一个模块，你就往项目里加一个文件。最后全部连起来就是完整平台。                                    |
+| **学完前 11 个模块才能开始复刻**                       | 可以边学边造。学完 LLM API 那一讲，你就已经可以写出本文档第一斧的后端 route.ts。每学一个模块，你就往项目里加一个文件。最后全部连起来就是完整平台。                                    |
 
 ---
 
