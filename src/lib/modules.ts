@@ -24,6 +24,7 @@
  * 这不是疏忽，是刻意的：让误用立刻在构建期暴露，而不是留到运行期白屏。
  */
 
+import { cache } from "react";
 import { listPages } from "@/wiki";
 import type { SceneId } from "@/lib/agent/scene-ids";
 import type { WikiPage } from "@/wiki";
@@ -219,7 +220,7 @@ function sortByPrerequisites(pages: WikiPage[]): WikiPage[] {
 }
 
 /** 读取全部概念页并组装成教学模块列表（按依赖顺序）。 */
-export async function loadModules(): Promise<TeachingModule[]> {
+export const loadModules = cache(async (): Promise<TeachingModule[]> => {
   const pages = await listPages();
   const concepts = pages.filter((page) => page.type === "concept");
 
@@ -243,15 +244,15 @@ export async function loadModules(): Promise<TeachingModule[]> {
       href: `/learn/${id}`,
     };
   });
-}
+});
 
 /** 按 id 取单个模块；不存在时返回 undefined（由调用方决定是 404 还是兜底）。 */
-export async function findModule(
-  id: string,
-): Promise<TeachingModule | undefined> {
-  const modules = await loadModules();
-  return modules.find((teachingModule) => teachingModule.id === id);
-}
+export const findModule = cache(
+  async (id: string): Promise<TeachingModule | undefined> => {
+    const modules = await loadModules();
+    return modules.find((teachingModule) => teachingModule.id === id);
+  },
+);
 
 /** 难度 1~5 的固定档位数量，用于掌握度条等需要满量程的地方。 */
 export const MAX_DIFFICULTY = 5;

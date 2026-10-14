@@ -105,6 +105,7 @@ export function TopNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 aria-current={active ? "page" : undefined}
                 title={item.label}
                 className={cn(

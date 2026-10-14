@@ -106,6 +106,13 @@
   }
 }
 
+/* 告诉浏览器首屏之下的区块可以延迟渲染，大幅减少首帧布局开销。
+   每个大段加了这个 utility 后，进入视口前浏览器不做 layout/paint。 */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
 @keyframes shimmer {
   from {
     transform: translateX(-100%);
