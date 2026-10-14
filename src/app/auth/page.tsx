@@ -12,7 +12,6 @@
  */
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { Blocks, Info, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,13 +50,17 @@ const inputClass = (hasError: boolean) =>
     hasError && "border-destructive",
   );
 
+function readRedirectDestination(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("redirect");
+  if (!raw) return null;
+  // 防开放重定向：只允许站内相对路径（以 / 开头且不含 //）。
+  if (!raw.startsWith("/") || raw.includes("//")) return null;
+  return raw;
+}
+
 export default function AuthPage() {
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (currentAuthToken()) router.replace("/learn");
-  }, [router]);
-
   const [tab, setTab] = React.useState<Tab>("login");
 
   // 登录表单
@@ -100,11 +103,13 @@ export default function AuthPage() {
   function adoptIdentity(id: string, token: string, username: string) {
     rememberStudentId(id, browserStorage());
     rememberAuthToken(token, browserStorage());
-    // 同时记一个简单用户名供顶栏展示
     browserStorage()?.setItem("ai-teaching:currentUsername", username);
     // 清空前一个身份的对话缓存，避免账号切换后看到旧对话
     useSessionStore.getState().reset();
-    router.push("/");
+    // 直接读 URL 参数（不依赖 React 钩子，useEffect 在 Turbopack 下不触发）
+    const redirect = readRedirectDestination();
+    const dest = redirect ?? "/";
+    window.location.href = dest;
   }
 
   async function handleLogin(event: React.FormEvent) {
@@ -197,7 +202,7 @@ export default function AuthPage() {
     browserStorage()?.removeItem?.("ai-teaching:currentUsername");
     // 清空对话缓存，退出后不再显示前一个身份的对话
     useSessionStore.getState().reset();
-    router.push("/");
+    window.location.href = "/";
   }
 
   return (

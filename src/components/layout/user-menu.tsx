@@ -12,7 +12,6 @@
 
 import * as React from "react";
 import { useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronDown, KeyRound, LogOut, User as UserIcon } from "lucide-react";
 
 import {
@@ -68,8 +67,6 @@ interface Props {
 }
 
 export function UserMenu({ className }: Props) {
-  const router = useRouter();
-
   const loggedIn = useSyncExternalStore(
     subscribeToken,
     tokenSnapshot,
@@ -111,7 +108,7 @@ export function UserMenu({ className }: Props) {
     useSessionStore.getState().reset();
     setMenuOpen(false);
     notifyAuthChanged();
-    router.push("/auth");
+    window.location.href = "/auth";
   }
 
   const menuItem =
@@ -121,7 +118,9 @@ export function UserMenu({ className }: Props) {
     return (
       <button
         type="button"
-        onClick={() => router.push("/auth")}
+        onClick={() => {
+          window.location.href = "/auth";
+        }}
         className={cn(
           "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
           className,
@@ -162,7 +161,7 @@ export function UserMenu({ className }: Props) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setMenuOpen(false);
-                router.push("/auth/change-password");
+                window.location.href = "/auth/change-password";
               }}
               className={menuItem}
             >

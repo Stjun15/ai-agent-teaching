@@ -35,6 +35,22 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang={siteConfig.locale}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  if (window.location.pathname.startsWith("/auth")) return;
+  var token = localStorage.getItem("ai-teaching:authToken");
+  if (token && token.length > 0) return;
+  var path = window.location.pathname;
+  var dest = path === "/" ? "/auth" : "/auth?redirect=" + encodeURIComponent(path);
+  window.location.replace(dest);
+})();
+            `.trim(),
+          }}
+        />
+      </head>
       <body className="flex min-h-dvh flex-col antialiased">
         <ThemeBootstrap />
         <AuthGate>
