@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthGate } from "@/components/auth/auth-gate";
+import { FloatingChatBot } from "@/components/chat/floating-bot";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { TopNav } from "@/components/layout/top-nav";
 import { StudentBootstrap } from "@/components/student/student-bootstrap";
@@ -58,6 +59,7 @@ export default function RootLayout({
           <TopNav />
           {children}
           <SiteFooter />
+          <FloatingChatBot />
         </AuthGate>
       </body>
     </html>

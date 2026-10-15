@@ -9,6 +9,7 @@
  */
 
 export * from "./code";
+export * from "./floating-chat";
 export * from "./session";
 export * from "./settings";
 export * from "./student";
