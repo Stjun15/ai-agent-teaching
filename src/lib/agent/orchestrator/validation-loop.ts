@@ -25,6 +25,8 @@
  * 不依赖措辞的三条硬条件。
  */
 
+import { readPageSync } from "@/wiki";
+import { selectSections } from "@/lib/teaching-script";
 import { lowerDifficultyInstruction, reviewerFallback } from "../fallback";
 import { runAgent } from "../runtime";
 import { moduleRubricSupplement } from "../skills/module-rubric";
@@ -41,10 +43,11 @@ export const VALIDATION_SKILLS: Record<ValidationTaskType, SkillId> = {
   prompt: "validate-prompt",
   tool: "validate-tool",
   code: "validate-code",
+  qa: "validate-qa",
 };
 
-/** 可被点评 Agent 校验的三种任务。取值与 `ValidationResult.taskType` 一致。 */
-export type ValidationTaskType = "prompt" | "tool" | "code";
+/** 可被点评 Agent 校验的四种任务。取值与 `ValidationResult.taskType` 一致。 */
+export type ValidationTaskType = "prompt" | "tool" | "code" | "qa";
 
 export interface ValidationLoopInput {
   taskType: ValidationTaskType;
@@ -125,6 +128,35 @@ export async function runValidationLoop(
   // 返回 undefined —— 不传，prompt 与无定制时逐字符一致。
   const rubricSupplement = moduleRubricSupplement(moduleId);
 
+  // 注入模块教学内容：取定义、关键点、常见误解三段 ——
+  // 点评 Agent 据此知道「这门课教了什么边界」，不把没学过的内容当扣分理由。
+  let moduleContext = "";
+  try {
+    const page = readPageSync(`concepts/${moduleId}.md`);
+    const sections = selectSections(page.body, [
+      "definition",
+      "keyPoints",
+      "misconceptions",
+    ]);
+    moduleContext = sections.join("\n\n");
+  } catch {
+    // 概念页缺失时静默降级：Skill 约束条款要求此时不编造维度。
+  }
+
+  // 注入评分标准原文：优先用模块专属 rubric，找不到才用通用 taskType rubric。
+  let rubricContext = "";
+  try {
+    const rubricPage = readPageSync(`validation/${moduleId}-rubric.md`);
+    rubricContext = rubricPage.body;
+  } catch {
+    try {
+      const rubricPage = readPageSync(`validation/${taskType}-rubric.md`);
+      rubricContext = rubricPage.body;
+    } catch {
+      // rubric 文件缺失时静默降级：模型按通用知识评分，不如有原文准但比盲评强。
+    }
+  }
+
   const result = await runAgent({
     agent: "reviewer",
     skill: VALIDATION_SKILLS[taskType],
@@ -135,6 +167,8 @@ export async function runValidationLoop(
       task_type: taskType,
       student_answer: studentAnswer,
       module_id: moduleId,
+      module_context: moduleContext,
+      rubric_context: rubricContext,
       ...(conceptId ? { concept_id: conceptId } : {}),
       ...(questionText ? { question_text: questionText } : {}),
       ...(previousAnswer ? { previous_answer: previousAnswer } : {}),

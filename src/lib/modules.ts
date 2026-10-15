@@ -52,6 +52,15 @@ export const MODULE_SCENE_IDS: Readonly<Record<string, SceneId>> = {
   "ai-safety": "scene-attack-defense",
 };
 
+export type ModuleTaskType = "code" | "qa";
+
+const QA_TASK_MODULES = new Set([
+  "ts-basics",
+  "agent-loop",
+  "ai-safety",
+  "rag",
+]);
+
 /** 概念页正文里承载「一句话定义」的小节标题（见 `wiki-schema.md` 概念页模板）。 */
 const DEFINITION_HEADING = "## 定义";
 
@@ -83,6 +92,12 @@ export interface TeachingModule {
   orderLabel: string;
   /** 模块学习页路径。 */
   href: string;
+  /**
+   * 动手环节的任务类型：
+   * - "code"：写代码/Prompt/工具定义，使用代码编辑器 + 点评 Agent；
+   * - "qa"：纯文本问答（解释、标注、类比），使用文本输入区。
+   */
+  taskType: ModuleTaskType;
 }
 
 function asString(value: unknown, fallback = ""): string {
@@ -242,6 +257,7 @@ export const loadModules = cache(async (): Promise<TeachingModule[]> => {
       order,
       orderLabel: isLanguageModule ? "0" : `${regularNo}`,
       href: `/learn/${id}`,
+      taskType: QA_TASK_MODULES.has(id) ? "qa" : "code",
     };
   });
 });
