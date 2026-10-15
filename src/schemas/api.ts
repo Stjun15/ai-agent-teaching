@@ -47,7 +47,7 @@ export const SendMessageSchema = z.object({
 export const ValidateSchema = z.object({
   studentId: z.string().uuid(),
   sessionId: z.string().uuid(),
-  taskType: z.enum(["prompt", "tool", "code"]),
+  taskType: z.enum(["prompt", "tool", "code", "qa"]),
   content: z.string().min(1).max(10000),
   moduleId: z.string().min(1),
   /**

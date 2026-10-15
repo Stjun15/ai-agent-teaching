@@ -49,6 +49,7 @@ export const AGENTS = {
       "validate-prompt",
       "validate-tool",
       "validate-code",
+      "validate-qa",
       "trigger-visualization",
     ],
   },

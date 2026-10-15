@@ -83,7 +83,7 @@ export const ValidationResultSchema = z.object({
   id: z.string(),
   studentId: z.string(),
   sessionId: z.string(),
-  taskType: z.enum(["prompt", "tool", "code"]),
+  taskType: z.enum(["prompt", "tool", "code", "qa"]),
   totalScore: z.number(),
   level: z.enum(["优秀", "良好", "及格", "不及格"]),
   isCorrect: z.boolean(),

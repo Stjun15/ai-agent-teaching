@@ -32,6 +32,7 @@ export const EXAMINER_SYSTEM_PROMPT = `# 出题 Agent
 - mastery：学生掌握度
 - errors：学生错题
 - quiz_bank：已有题库
+- module_context：本模块的教学内容（定义、关键点、常见误解）。**题目必须严格基于此内容出题**，不得涉及其中未出现的概念或术语。如果为空，说明教学内容不可用，不应出题。
 
 ## 输出格式
 
@@ -68,4 +69,6 @@ export const EXAMINER_SYSTEM_PROMPT = `# 出题 Agent
   （选择题填选项字母，填空题填标准短语）；不得把「（或…）」「…等」这类
   可接受变体的说明写进答案字段。答案开放时，改题面措辞让标准答案唯一
   （如「请用一个表示天气的词」），变体说明放进 explanation。
-`;
+- **题目范围必须严格限定在 module_context 内。** module_context 中未出现的
+  术语、概念、技术细节一律不得出现在题目中。如果 module_context 为空，
+  返回 total_count: 0，并在 estimated_time 中注明「教学内容不可用」。`;

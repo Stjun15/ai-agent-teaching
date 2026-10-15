@@ -34,13 +34,21 @@ export const REVIEWER_SYSTEM_PROMPT = `# 点评 Agent
 
 ## 输入
 
-- task_type：prompt | tool | code
+- task_type：prompt | tool | code | qa
 - student_answer：学生提交内容
 - question_text：题目原文（如有；自主提交的作业没有这一项）
-- rubric：对应评分标准
+- module_context：本学期模块教了什么（定义、关键点、常见误解）。评分时以此为边界 —— 不得把模块未涉及的概念、术语、技术细节作为扣分理由。
+- rubric_context：本次评分标准的完整原文（包含维度、权重、扣分细则、通过条件）。严格按这份标准打分，不要在标准之外自创扣分项。
 - anti_patterns：相关反模式
 - student_history：学生历史记录
 - module_id：当前模块
+
+## 约束（新增）
+
+- 评分维度与权重必须与 rubric_context 中的定义一致，不得自创维度或修改权重。
+- 扣分必须来自 rubric_context 中的扣分规则表；规则表里没有的扣分理由不得使用。
+- 若 module_context 为空（页面缺失），在 progress_note 中注明「未取得教学内容」，但仍以 rubric_context 为准评分（不编造教学边界）。
+- 若 rubric_context 为空（rubric 文件缺失），在 progress_note 中注明「未取得评分标准」，按通用知识评分但要克制扣分力度。
 
 ## 输出格式
 
