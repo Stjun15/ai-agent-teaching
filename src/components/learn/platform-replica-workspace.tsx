@@ -29,6 +29,7 @@ import { useReplicaPhase } from "@/hooks/use-replica-phase";
 
 import {
   REPLICA_PHASES,
+  type PreKnowledgeEntry,
   type ReplicaPhase,
 } from "@/lib/platform-replica-phases";
 import type { TeachingModule } from "@/lib/modules";
@@ -416,6 +417,10 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        {phase.preKnowledge && phase.preKnowledge.length > 0 ? (
+          <PreKnowledgeSection entries={phase.preKnowledge} />
+        ) : null}
+
         {hasDetailTasks ? (
           <div className="space-y-3">
             {phase.tasks.map((task, i) => (
@@ -455,6 +460,30 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                     </span>
                     {task.why}
                   </p>
+                ) : null}
+
+                {task.askAI ? (
+                  <div className="mb-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-2 dark:border-blue-800 dark:bg-blue-950/30">
+                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-400">
+                      <MessageSquare className="size-3" />
+                      试试先问 AI
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-blue-800 dark:text-blue-300">
+                      {task.askAI}
+                    </p>
+                  </div>
+                ) : null}
+
+                {task.stuckPrompt ? (
+                  <div className="mb-2 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-2 dark:border-orange-800 dark:bg-orange-950/30">
+                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-orange-700 dark:text-orange-400">
+                      <AlertTriangle className="size-3" />
+                      卡住了？
+                    </div>
+                    <p className="text-[12px] leading-relaxed text-orange-800 dark:text-orange-300">
+                      {task.stuckPrompt}
+                    </p>
+                  </div>
                 ) : null}
 
                 {task.pitfalls && task.pitfalls.length > 0 ? (
@@ -546,5 +575,54 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+/** 前置知识速查：可折叠的词条列表，零基础学生进入阶段前先扫一眼。 */
+function PreKnowledgeSection({
+  entries,
+}: {
+  entries: PreKnowledgeEntry[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left"
+      >
+        <div className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
+          <span className="text-base">📖</span>
+          前置知识速查
+          <span className="text-[11px] font-normal text-green-600 dark:text-green-500">
+            （{entries.length} 个词条，遇到不认识的先看这里）
+          </span>
+        </div>
+        <ChevronRight
+          className={`size-4 text-green-600 transition-transform ${expanded ? "rotate-90" : ""}`}
+        />
+      </button>
+      {expanded ? (
+        <div className="border-t border-green-200 px-3 py-2 dark:border-green-800">
+          <ul className="space-y-1.5">
+            {entries.map((e, i) => (
+              <li key={i} className="text-[12px] leading-relaxed">
+                <span className="font-medium text-green-800 dark:text-green-300">
+                  {e.term}
+                </span>
+                <span className="text-green-700 dark:text-green-400">
+                  {" —— "}{e.explanation}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-green-600 dark:text-green-500">
+            还有词不懂？在下方对话里直接问导师：「xxx 是什么意思？」
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }

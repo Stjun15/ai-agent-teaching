@@ -5,6 +5,7 @@ import { ArrowRight, Clock, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModuleCard } from "@/components/learn/module-card";
+import { RefreshOnMount } from "@/components/learn/refresh-on-mount";
 import { loadModules } from "@/lib/modules";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default async function LearnPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-12 sm:px-6">
+      <RefreshOnMount />
       <header className="max-w-2xl">
         <p className="text-xs font-medium tracking-[0.3em] text-primary/80 uppercase">
           Learning

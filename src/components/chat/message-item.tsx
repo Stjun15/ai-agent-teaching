@@ -53,16 +53,19 @@ export const MessageItem = memo(
         data-role={message.role}
         data-status={message.status}
         className={cn(
-          "flex gap-3",
+          "flex gap-3 animate-in fade-in duration-300 fill-mode-both",
           isStudent ? "flex-row-reverse text-right" : "flex-row",
         )}
       >
         <div
           className={cn(
-            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md transition-all duration-500",
             isStudent
               ? "bg-secondary text-secondary-foreground"
               : "bg-primary text-primary-foreground",
+            !isStudent &&
+              isStreaming &&
+              "ring-2 ring-primary/30 shadow-[0_0_6px_0] shadow-primary/20",
           )}
         >
           {isStudent ? <User className="size-4" /> : <Bot className="size-4" />}
@@ -99,8 +102,17 @@ export const MessageItem = memo(
                 ? "bg-secondary text-secondary-foreground"
                 : "border border-l-2 border-l-primary/50 bg-primary/5",
               isError && "border-destructive/40",
+              isStreaming &&
+                message.content === "" &&
+                "relative overflow-hidden",
             )}
           >
+            {isStreaming && message.content === "" ? (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 block h-0.5 animate-pulse rounded-t-lg bg-gradient-to-r from-transparent via-primary/50 to-transparent"
+              />
+            ) : null}
             {isStudent ? (
               message.content
             ) : (
@@ -134,7 +146,23 @@ export const MessageItem = memo(
               />
             ) : null}
             {isStreaming && message.content === "" ? (
-              <span className="text-muted-foreground">正在思考…</span>
+              <span className="inline-flex items-center gap-0.5 text-muted-foreground">
+                正在思考
+                <span
+                  aria-hidden
+                  className="inline-block size-1 rounded-full bg-muted-foreground/50 animate-pulse"
+                />
+                <span
+                  aria-hidden
+                  className="inline-block size-1 rounded-full bg-muted-foreground/50 animate-pulse"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <span
+                  aria-hidden
+                  className="inline-block size-1 rounded-full bg-muted-foreground/50 animate-pulse"
+                  style={{ animationDelay: "0.4s" }}
+                />
+              </span>
             ) : null}
           </div>
 

@@ -22,7 +22,13 @@ import { useSessionStore } from "@/stores";
  *
  * 两者都取不到时不渲染整卡：编辑器本身不需要等任务卡。
  */
-export function AssignmentCard({ moduleId }: { moduleId: string }) {
+export function AssignmentCard({
+  moduleId,
+  showTaskTypeFooter = true,
+}: {
+  moduleId: string;
+  showTaskTypeFooter?: boolean;
+}) {
   const messages = useSessionStore((state) => state.messages);
   const [cachedAssignment, setCachedAssignment] = useState<string | null>(null);
 
@@ -59,10 +65,12 @@ export function AssignmentCard({ moduleId }: { moduleId: string }) {
       <div className="px-3 py-2 text-sm leading-relaxed">
         <MarkdownView source={assignment} />
       </div>
-      <div className="border-t bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
-        提交前，请在上方编辑器选择与本作业相符的「交付类型」（Prompt / 工具描述
-        / 代码）—— 点评按所选类型取评分标准，选错会得到不相关的建议。
-      </div>
+      {showTaskTypeFooter ? (
+        <div className="border-t bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
+          提交前，请在上方编辑器选择与本作业相符的「交付类型」（Prompt / 工具描述
+          / 代码）—— 点评按所选类型取评分标准，选错会得到不相关的建议。
+        </div>
+      ) : null}
     </div>
   );
 }

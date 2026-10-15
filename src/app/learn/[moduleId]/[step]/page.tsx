@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
+import { RefreshOnMount } from "@/components/learn/refresh-on-mount";
 import { isStepType, LEARNING_STEPS } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
 import { readDemoCode } from "@/lib/teaching-script";
@@ -66,11 +67,14 @@ export default async function ModuleStepPage({ params }: ModuleStepPageProps) {
   const demoCode = step === "observe" ? readDemoCode(moduleId) : "";
 
   return (
-    <ModuleWorkspace
-      teachingModule={teachingModule}
-      allModules={allModules}
-      currentStepId={step}
-      demoCode={demoCode}
-    />
+    <>
+      <RefreshOnMount />
+      <ModuleWorkspace
+        teachingModule={teachingModule}
+        allModules={allModules}
+        currentStepId={step}
+        demoCode={demoCode}
+      />
+    </>
   );
 }

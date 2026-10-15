@@ -17,6 +17,7 @@ import { StepNav } from "@/components/learn/step-nav";
 import { AgentTimeline } from "@/components/chat/agent-timeline";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { CitationPanel } from "@/components/chat/citation-panel";
+import { TextAnswerArea } from "@/components/learn/text-answer-area";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
 import { ExplainColdStart } from "@/components/learn/explain-cold-start";
@@ -345,34 +346,46 @@ export function ModuleWorkspace({
 
           {showWorkspacePanels &&
           currentStepId !== "visualize" &&
-          currentStepId !== "mastery" ? (
+          currentStepId !== "mastery" &&
+          currentStepId !== "practice" ? (
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {currentStepId === "practice" ? "代码作答" : "动手模仿"}
+                  {currentStepId === "validate"
+                    ? "校验点评"
+                    : teachingModule.taskType === "qa"
+                      ? "回答问题"
+                      : "动手模仿"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {currentStepId === "imitate" ? (
                   <>
-                    <AssignmentCard moduleId={teachingModule.id} />
-                    <p className="text-xs text-muted-foreground">
-                      看不懂示范？{" "}
-                      <Link
-                        href={`/learn/${teachingModule.id}/observe`}
-                        className="underline underline-offset-2"
-                      >
-                        回到观察示范
-                      </Link>{" "}
-                      再看一遍 —— 示范代码卡就在那一步。
-                    </p>
+                    <AssignmentCard
+                      moduleId={teachingModule.id}
+                      showTaskTypeFooter={
+                        teachingModule.taskType === "code"
+                      }
+                    />
+                    {teachingModule.taskType === "code" ? (
+                      <p className="text-xs text-muted-foreground">
+                        看不懂示范？{" "}
+                        <Link
+                          href={`/learn/${teachingModule.id}/observe`}
+                          className="underline underline-offset-2"
+                        >
+                          回到观察示范
+                        </Link>{" "}
+                        再看一遍 —— 示范代码卡就在那一步。
+                      </p>
+                    ) : null}
                   </>
                 ) : null}
-                {/*
-                  接线层（身份、会话、点评请求）在这里注入，CodeEditor 本体
-                  只管编辑 —— 见 validate-submit.tsx 文件头。
-                */}
-                <ValidateSubmit moduleId={teachingModule.id} />
+                {teachingModule.taskType === "qa" ? (
+                  <TextAnswerArea moduleId={teachingModule.id} />
+                ) : (
+                  <ValidateSubmit moduleId={teachingModule.id} />
+                )}
               </CardContent>
             </Card>
           ) : null}

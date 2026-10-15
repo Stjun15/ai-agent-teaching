@@ -118,6 +118,12 @@ export function ValidateSubmit({
 
     setSubmitting(true);
     store.beginValidation();
+
+    // 先跳转，API 调用在后台继续 —— store 是全局的，validate 页会读到结果。
+    if (redirectOnComplete) {
+      router.push(`/learn/${moduleId}/validate`);
+    }
+
     try {
       const studentId = currentStudentId();
       if (studentId === "") {
@@ -143,8 +149,6 @@ export function ValidateSubmit({
         content: store.code,
       });
       setUsedFallback(result.usedFallback);
-      // 响应不含 id / createdAt（那是库行的字段），面板展示用不到，
-      // 按类型要求补上占位值 —— 不为此造第二份展示类型。
       useCodeStore.getState().resolveValidation({
         id: "",
         studentId,
@@ -158,9 +162,6 @@ export function ValidateSubmit({
         suggestions: result.suggestions.map(normalizeSuggestion),
         createdAt: new Date().toISOString(),
       });
-      if (redirectOnComplete) {
-        router.push(`/learn/${moduleId}/validate`);
-      }
     } catch (error) {
       const message =
         error instanceof ApiError ? error.message : "网络异常，请重试。";
