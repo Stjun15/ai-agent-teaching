@@ -359,12 +359,8 @@ function flushTokenBufferImpl(set: StoreApi<SessionState>["setState"]): void {
         continue;
       }
       if (streaming.id !== messageId) {
-        if (
-          streaming.content === "" &&
-          streaming.thinkingSteps !== undefined &&
-          streaming.thinkingSteps.length > 0
-        ) {
-          // 占位消息（由 appendThinking 在首个 token 到达前创建）：
+        if (streaming.content === "") {
+          // 占位消息（由 beginTurn 或 appendThinking 创建）：
           // 不关闭不重建，只把 id 更新为服务端的 messageId，
           // 思维链保持不动，内容开始写入。
           messages = replaceMessage(messages, streaming.id, (m) => ({
@@ -432,11 +428,7 @@ function drainTokenBuffer(messages: ChatMessage[]): ChatMessage[] {
         },
       ];
     } else if (streaming.id !== messageId) {
-      if (
-        streaming.content === "" &&
-        streaming.thinkingSteps !== undefined &&
-        streaming.thinkingSteps.length > 0
-      ) {
+      if (streaming.content === "") {
         // 占位消息 → 更新 id 并写入内容，不新建。
         result = replaceMessage(result, streaming.id, (m) => ({
           ...m,
@@ -516,35 +508,46 @@ export const useSessionStore = create<SessionState>()(
 
       beginTurn: (content, options) => {
         tokenBuffer.clear();
-        return set((state) => ({
-          messages:
-            options?.silent === true
-              ? state.messages
-              : [
-                  ...state.messages,
-                  {
-                    id: newId(),
-                    role: "student",
-                    content,
-                    status: "done",
-                    citations: [],
-                    createdAt: new Date().toISOString(),
-                    ...(options?.step !== undefined
-                      ? { step: options.step }
-                      : {}),
-                    ...(options?.images !== undefined &&
-                    options.images.length > 0
-                      ? { images: options.images }
-                      : {}),
-                  },
-                ],
-          // 新的一轮清掉上一轮的错误与用量，但不清消息本身 ——
-          // 对话是累积的，学生要能往上翻。
-          status: "streaming",
-          error: null,
-          tokens: null,
-          turnStep: options?.step ?? null,
-        }));
+        return set((state) => {
+          const now = new Date().toISOString();
+          const studentMessage = options?.silent === true
+            ? null
+            : {
+                id: newId(),
+                role: "student" as const,
+                content,
+                status: "done" as const,
+                citations: [] as Citation[],
+                createdAt: now,
+                ...(options?.step !== undefined ? { step: options.step } : {}),
+                ...(options?.images !== undefined &&
+                options.images.length > 0
+                  ? { images: options.images }
+                  : {}),
+              };
+
+          return {
+            messages: [
+              ...state.messages,
+              ...(studentMessage !== null ? [studentMessage] : []),
+              {
+                id: newId(),
+                role: "assistant" as const,
+                content: "",
+                status: "streaming" as const,
+                citations: [] as Citation[],
+                createdAt: now,
+                ...(options?.step !== undefined
+                  ? { step: options.step }
+                  : {}),
+              },
+            ],
+            status: "streaming",
+            error: null,
+            tokens: null,
+            turnStep: options?.step ?? null,
+          };
+        });
       },
 
       appendToken: (content, messageId) => {

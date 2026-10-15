@@ -16,6 +16,7 @@ import { GENERATE_QUESTION_SKILL } from "./generate-question";
 import { TRIGGER_VISUALIZATION_SKILL } from "./trigger-visualization";
 import { VALIDATE_CODE_SKILL } from "./validate-code";
 import { VALIDATE_PROMPT_SKILL } from "./validate-prompt";
+import { VALIDATE_QA_SKILL } from "./validate-qa";
 import { VALIDATE_TOOL_SKILL } from "./validate-tool";
 
 /** 7 个 Skill 的定义。 */
@@ -24,6 +25,7 @@ export const SKILLS = {
   "validate-prompt": VALIDATE_PROMPT_SKILL,
   "validate-tool": VALIDATE_TOOL_SKILL,
   "validate-code": VALIDATE_CODE_SKILL,
+  "validate-qa": VALIDATE_QA_SKILL,
   "generate-question": GENERATE_QUESTION_SKILL,
   "answer-question": ANSWER_QUESTION_SKILL,
   "trigger-visualization": TRIGGER_VISUALIZATION_SKILL,

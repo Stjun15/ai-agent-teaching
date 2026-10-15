@@ -83,6 +83,7 @@ export type SkillId =
   | "validate-prompt"
   | "validate-tool"
   | "validate-code"
+  | "validate-qa"
   | "generate-question"
   | "answer-question"
   | "trigger-visualization";
@@ -93,6 +94,7 @@ export const SKILL_IDS = [
   "validate-prompt",
   "validate-tool",
   "validate-code",
+  "validate-qa",
   "generate-question",
   "answer-question",
   "trigger-visualization",
