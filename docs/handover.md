@@ -6,7 +6,7 @@
 
 ## 一、项目概述
 
-「AI Native 编程教学助手」—— 一个用 AI 教学生理解 AI 的教学平台。12 个教学模块，七步掌握式学习法（讲解 → 观察 → 模仿 → 校验 → 可视化 → 练习 → 掌握），从第一行 Prompt 到完整 Agent 系统。
+「AI Native 编程教学助手」—— 一个用 AI 教学生理解 AI 的教学平台。12 个教学模块（从前置工具链到完整 Agent 系统复刻），七步掌握式学习法（讲解 → 观察 → 模仿 → 校验 → 可视化 → 练习 → 掌握），从第一行 Prompt 到完整 Agent 系统。
 
 **当前交付状态**：核心教学环路（讲解 → 对话 → 校验 → 可视化）可运行，认证登录已打通。非教学类页面（playground、report、settings）有待完善。
 
@@ -133,23 +133,28 @@ src/app/
 
 模块数据从 `llm-wiki/concepts/*.md` 的 frontmatter 实时读取，拓扑排序自动计算教学顺序。
 
-| 序号 | ID              | 名称               | 难度 | 时长    |
-| ---- | --------------- | ------------------ | ---- | ------- |
-| 1    | `llm-api`       | LLM API 调用       | 1/5  | 20min   |
-| 2    | `system-prompt` | System Prompt      | 2/5  | 25min   |
-| 3    | `agent-loop`    | Agent 控制循环     | 3/5  | 30min   |
-| 4    | `tool-calling`  | Function Calling   | 3/5  | 30min   |
-| 5    | `rag`           | RAG 检索增强生成   | 3/5  | 30min   |
-| 6    | `llm-wiki`      | LLM Wiki 知识层    | 3/5  | 35min   |
-| 7    | `multi-agent`   | 多 Agent 协作      | 4/5  | 40min   |
-| 8    | `mcp`           | MCP 工具集成       | 4/5  | 50min   |
-| 9    | `ai-safety`     | AI 安全与可控性    | 4/5  | 35min   |
+| 序号 | ID               | 名称                  | 难度 | 时长     |
+| ---- | ---------------- | --------------------- | ---- | -------- |
+| 1    | `ts-basics`      | TypeScript 基础速通   | 1/5  | 30min    |
+| 2    | `vibe-coding`    | 有纪律的 Vibe Coding  | 2/5  | 40min    |
+| 3    | `llm-api`        | LLM API 调用          | 1/5  | 20min    |
+| 4    | `system-prompt`  | System Prompt         | 2/5  | 25min    |
+| 5    | `agent-loop`     | Agent 控制循环        | 3/5  | 30min    |
+| 6    | `tool-calling`   | Function Calling      | 3/5  | 30min    |
+| 7    | `rag`            | RAG 检索增强生成      | 3/5  | 30min    |
+| 8    | `llm-wiki`       | LLM Wiki 知识层       | 3/5  | 35min    |
+| 9    | `multi-agent`    | 多 Agent 协作         | 4/5  | 40min    |
+| 10   | `mcp`            | MCP 工具集成          | 4/5  | 50min    |
+| 11   | `ai-safety`      | AI 安全与可控性       | 4/5  | 35min    |
+| 12   | `platform-replica`| 教学平台复刻         | 5/5  | 180min   |
+
+> 前两讲（TS 基础 + Vibe Coding）是工具链前置，不依赖 AI Agent；最后三讲（安全 + 复刻）难度最高。
 
 ---
 
 ## 七、可视化场景（9 个）
 
-每个教学模块对应一个可视化场景，位于 `src/scenes/`：
+仅 9 个 AI 概念模块有可视化场景（`ts-basics` / `vibe-coding` 是工具链前置，`platform-replica` 是项目实践，三讲无场景）。
 
 | 模块            | 场景文件                          | 说明             |
 | --------------- | --------------------------------- | ---------------- |

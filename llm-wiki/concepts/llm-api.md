@@ -95,6 +95,49 @@ const response = await callLLM({
 
 ---
 
+## 多轮对话：怎么让 AI"记住"
+
+把 messages 想象成一串持续在加的"聊天记录"。**每一轮你都做两件事：**
+
+1. 把你要说的 user 话 **push** 进去
+2. 把 AI 回你的 assistant 话也 **push** 进去
+
+下一轮再调用时，AI 就能看到你之前说了什么、它回了什么。
+
+### 具体步骤
+
+```typescript
+// 第 0 步：初始化——只放 system
+const messages = [
+  { role: "system", content: "你是编程助教，解释要简洁。" },
+];
+
+// 第 1 轮：问第一个问题
+messages.push({ role: "user", content: "什么是变量？" });
+const reply1 = await callLLM({ model: "deepseek-chat", messages, stream: true });
+messages.push({ role: "assistant", content: reply1 });
+// 👆 此时 messages 有 3 条：system + user1 + assistant1
+
+// 第 2 轮：追问——AI 知道上一轮在聊"变量"
+messages.push({ role: "user", content: "举个生活中的例子" });
+const reply2 = await callLLM({ model: "deepseek-chat", messages, stream: true });
+messages.push({ role: "assistant", content: reply2 });
+// 👆 此时 messages 有 5 条：system + user1 + assistant1 + user2 + assistant2
+
+// 第 3 轮：继续追问
+messages.push({ role: "user", content: "那常量又是什么？" });
+const reply3 = await callLLM({ model: "deepseek-chat", messages, stream: true });
+// 👆 AI 知道你们在聊变量，而且知道已经举过例子——它可以自然引出"常量就是不会变的变量"
+```
+
+> 🛑 **停下来想想：** 如果第 2 轮你忘了 push assistant1，AI 收到的是什么？—— 它只看到 system + user1 + user2，**不知道你上一句问什么、它回了什么**。相当于每次对话都从零开始。
+
+### 一句话记住
+
+**messages 就是一个不断 append 的数组。每次调用 API 时把整条数组传过去。AI 不会主动记——是你帮它"回顾"的。**
+
+---
+
 ## 流式输出：不要等整碗面做完
 
 想象你去面馆，师傅有两种做法：

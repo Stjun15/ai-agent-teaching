@@ -29,6 +29,8 @@ tags: [core, tool, function-calling]
 
 ## 为什么需要工具？（没工具的 AI 有多瞎）
 
+> **回顾上节：** Agent Loop 的四步是 Think → Act → Observe → Repeat。其中 **Act 就是"调工具"**——但上一讲我们把它当成黑箱，只写了 `act(decision)`。这一讲，**我们把 Act 打开**：工具是怎么定义的？怎么注册到 Agent 身上的？Agent 怎么决定用哪个工具？
+
 **场景对比：**
 
 | 没工具时 😫                        | 有工具时 😎                                     |
