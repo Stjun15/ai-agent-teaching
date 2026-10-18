@@ -118,6 +118,6 @@ export interface ScreenDescriberOptions {
   visionApiKey: string;
   /** 视觉模型 OpenAI 兼容端点。 */
   visionBaseUrl: string;
-  /** 代理端点 URL（如 /api/audit/evaluate）。设置后优先走代理，无需 visionApiKey。 */
+  /** 代理端点 URL。设置后优先走代理，无需 visionApiKey。 */
   proxyUrl?: string;
 }

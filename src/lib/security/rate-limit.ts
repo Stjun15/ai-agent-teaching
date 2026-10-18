@@ -47,12 +47,6 @@ export const RATE_LIMIT_RULES = {
   validate: { limit: 20, windowMs: 60_000 },
   answer: { limit: 20, windowMs: 60_000 },
   "answer-grade": { limit: 40, windowMs: 60_000 },
-  audit: { limit: 10, windowMs: 60_000 },
-  // 课程内容审计：一次要读完 11 讲的概念页 + 讲稿缓存并写库，是本项目里
-  // 单次最重的读操作。额度压到 3 次/分 —— 正常用法是「改完内容跑一次」，
-  // 不该允许分钟级反复触发。与上面的 audit 桶分开：那个是逐次 LLM 调用代理，
-  // 一次审计可能打十几次。
-  "curriculum-audit": { limit: 3, windowMs: 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof RATE_LIMIT_RULES;

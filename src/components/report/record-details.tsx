@@ -15,209 +15,524 @@
  *    与报告上方的掌握度 0~5 不是同一量纲，不写单位就会被读成同一个东西。
  * 3. **长文本用原生 `<details>` 折叠**，不自己造展开状态 ——
  *    这份记录只增不减，造状态就要为每个条目各存一份 `useState`。
+ *
+ * 错题本的数据获取方式（2026-10-15 改造）
+ * ---------------------------------
+ * 此前 `report-view.tsx` 在页面级一次拉取全量错题（limit=20），
+ * 传进本组件做纯展示。模块筛选与分页上线后改为组件自取：
+ * 错题本自己管理 `moduleId`/`page` 状态，按需发 `GET /api/student/errors`，
+ * 不再依赖父组件的数据注入。
  */
 
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ApiError, apiGet } from "@/lib/client-api";
+import { currentStudentId } from "@/lib/client-identity";
 import { PROMPT_SCORE_MAX } from "@/lib/scores";
-import type { ErrorRecord, PromptHistory } from "@/schemas";
+import type { ErrorRecord, PromptHistory, StudentErrorsResponse, StudentPromptsResponse } from "@/schemas";
 
-/** 错题本。空态要说清「没有记录」而不是显示 0 条。 */
-export function ErrorBookSection({ errors }: { errors: ErrorRecord[] }) {
+/** 每页条数。 */
+const PAGE_SIZE = 10;
+
+/** 错题本。数据自取，内部管理模块筛选与分页状态。 */
+export function ErrorBookSection() {
+  const [moduleId, setModuleId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<{
+    errors: ErrorRecord[];
+    total: number;
+    moduleIds: string[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const signalRef = useRef<AbortController | null>(null);
+
+  const fetchErrors = useCallback(
+    async (modId: string | null, pg: number) => {
+      signalRef.current?.abort();
+      const controller = new AbortController();
+      signalRef.current = controller;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(pg * PAGE_SIZE));
+        if (modId) params.set("moduleId", modId);
+
+        const res = await apiGet<StudentErrorsResponse>(
+          `/api/student/errors?${params.toString()}`,
+          controller.signal,
+        );
+        setData(res);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(
+          err instanceof ApiError ? err.message : "取错题失败，请稍后重试。",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (currentStudentId() === "") {
+      setError("还没有学生身份，刷新页面后再试。");
+      setLoading(false);
+      return;
+    }
+    void fetchErrors(moduleId, page);
+    return () => signalRef.current?.abort();
+  }, [moduleId, page, fetchErrors]);
+
+  const handleModuleChange = useCallback(
+    (value: string) => {
+      const modId = value === "__all__" ? null : value;
+      setModuleId(modId);
+      setPage(0);
+    },
+    [],
+  );
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
   return (
     <section aria-label="错题本" className="flex flex-col gap-3">
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-wrap items-baseline gap-2">
         <h2 className="text-sm font-semibold">错题本</h2>
         <span className="text-[11px] text-muted-foreground">
           点评判为不通过时记录，兜底输出不写
         </span>
       </div>
 
-      {errors.length === 0 ? (
+      {/* 模块筛选下拉 */}
+      {data !== null && data.moduleIds.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="error-book-module"
+            className="text-xs text-muted-foreground shrink-0"
+          >
+            模块
+          </label>
+          <select
+            id="error-book-module"
+            value={moduleId ?? "__all__"}
+            onChange={(e) => handleModuleChange(e.target.value)}
+            className="h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="__all__">全部模块</option>
+            {data.moduleIds.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
+          {data.total > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              共 {data.total} 条
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* 状态：加载中 / 出错 / 空态 / 有数据 */}
+      {loading ? (
+        <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          正在加载错题本…
+        </div>
+      ) : error ? (
+        <div className="flex flex-col gap-2">
+          <p className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs leading-relaxed">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            {error}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            onClick={() => fetchErrors(moduleId, page)}
+          >
+            <RefreshCw className="size-4" />
+            重试
+          </Button>
+        </div>
+      ) : data === null || data.errors.length === 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          还没有错题记录。这项只统计真实点评判为不通过的提交。
+          {moduleId !== null
+            ? "该模块还没有错题记录。"
+            : "还没有错题记录。这项只统计真实点评判为不通过的提交。"}
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {errors.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/learn/${item.conceptId}`}
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  {item.conceptId}
-                </Link>
-                <Badge variant="muted">{item.taskType}</Badge>
-                {item.isCorrected ? (
-                  <Badge variant="levelHigh">已订正</Badge>
-                ) : (
-                  <Badge variant="levelMid">未订正</Badge>
-                )}
-                <span className="ml-auto text-[11px] text-muted-foreground">
-                  {formatTime(item.createdAt)}
-                </span>
-              </div>
+        <>
+          <ul className="flex flex-col gap-3">
+            {data.errors.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/learn/${item.conceptId}`}
+                    className="font-medium underline-offset-2 hover:underline"
+                  >
+                    {item.conceptId}
+                  </Link>
+                  <Badge variant="muted">{item.taskType}</Badge>
+                  {item.isCorrected ? (
+                    <Badge variant="levelHigh">已订正</Badge>
+                  ) : (
+                    <Badge variant="levelMid">未订正</Badge>
+                  )}
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {formatTime(item.createdAt)}
+                  </span>
+                </div>
 
-              {item.question ? (
-                <p className="mt-2 text-muted-foreground">
-                  题面：{item.question}
-                </p>
-              ) : null}
+                {item.question ? (
+                  <p className="mt-2 text-muted-foreground">
+                    题面：{item.question}
+                  </p>
+                ) : null}
 
-              <details className="mt-2">
-                <summary className="cursor-pointer text-muted-foreground">
-                  当时的提交
-                </summary>
-                <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 font-mono text-[11px] whitespace-pre-wrap">
-                  {item.studentAnswer}
-                </pre>
-              </details>
-
-              {item.problems.length > 0 ? (
-                <ul className="mt-2 list-disc pl-4">
-                  {item.problems.map((problem) => (
-                    <li key={problem}>{problem}</li>
-                  ))}
-                </ul>
-              ) : null}
-
-              {item.correctExample ? (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-muted-foreground">
-                    参考写法
+                    当时的提交
                   </summary>
                   <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 font-mono text-[11px] whitespace-pre-wrap">
-                    {item.correctExample}
+                    {item.studentAnswer}
                   </pre>
                 </details>
-              ) : null}
 
-              {item.relatedAntiPattern ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  关联反模式：{item.relatedAntiPattern}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+                {item.problems.length > 0 ? (
+                  <ul className="mt-2 list-disc pl-4">
+                    {item.problems.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {item.correctExample ? (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-muted-foreground">
+                      参考写法
+                    </summary>
+                    <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 font-mono text-[11px] whitespace-pre-wrap">
+                      {item.correctExample}
+                    </pre>
+                  </details>
+                ) : null}
+
+                {item.relatedAntiPattern ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    关联反模式：{item.relatedAntiPattern}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+
+          {/* 分页控件 */}
+          {totalPages > 1 ? (
+            <nav
+              aria-label="错题本分页"
+              className="flex items-center justify-center gap-2 pt-1"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
+                aria-label="上一页"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(page + 1)}
+                aria-label="下一页"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </nav>
+          ) : null}
+        </>
       )}
     </section>
   );
 }
 
-/** Prompt 历史。每条是一次真实点评（非兜底）的 rubric 结果。 */
-export function PromptHistorySection({
-  history,
-}: {
-  history: PromptHistory[];
-}) {
+/** Prompt 历史。数据自取，内部管理模块筛选与分页状态。 */
+export function PromptHistorySection() {
+  const [moduleId, setModuleId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<{
+    history: PromptHistory[];
+    total: number;
+    moduleIds: string[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const signalRef = useRef<AbortController | null>(null);
+
+  const fetchPrompts = useCallback(
+    async (modId: string | null, pg: number) => {
+      signalRef.current?.abort();
+      const controller = new AbortController();
+      signalRef.current = controller;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        params.set("limit", String(PAGE_SIZE));
+        params.set("offset", String(pg * PAGE_SIZE));
+        if (modId) params.set("moduleId", modId);
+
+        const res = await apiGet<StudentPromptsResponse>(
+          `/api/student/prompts?${params.toString()}`,
+          controller.signal,
+        );
+        setData(res);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(
+          err instanceof ApiError ? err.message : "取 Prompt 历史失败，请稍后重试。",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (currentStudentId() === "") {
+      setError("还没有学生身份，刷新页面后再试。");
+      setLoading(false);
+      return;
+    }
+    void fetchPrompts(moduleId, page);
+    return () => signalRef.current?.abort();
+  }, [moduleId, page, fetchPrompts]);
+
+  const handleModuleChange = useCallback(
+    (value: string) => {
+      const modId = value === "__all__" ? null : value;
+      setModuleId(modId);
+      setPage(0);
+    },
+    [],
+  );
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
   return (
     <section aria-label="Prompt 历史" className="flex flex-col gap-3">
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-wrap items-baseline gap-2">
         <h2 className="text-sm font-semibold">Prompt 历史</h2>
         <span className="text-[11px] text-muted-foreground">
           每次真实点评一条，评分满分 {PROMPT_SCORE_MAX}
         </span>
       </div>
 
-      {history.length === 0 ? (
+      {/* 模块筛选下拉 */}
+      {data !== null && data.moduleIds.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="prompt-history-module"
+            className="text-xs text-muted-foreground shrink-0"
+          >
+            模块
+          </label>
+          <select
+            id="prompt-history-module"
+            value={moduleId ?? "__all__"}
+            onChange={(e) => handleModuleChange(e.target.value)}
+            className="h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="__all__">全部模块</option>
+            {data.moduleIds.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
+          {data.total > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              共 {data.total} 条
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* 状态：加载中 / 出错 / 空态 / 有数据 */}
+      {loading ? (
+        <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          正在加载 Prompt 历史…
+        </div>
+      ) : error ? (
+        <div className="flex flex-col gap-2">
+          <p className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs leading-relaxed">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+            {error}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            onClick={() => fetchPrompts(moduleId, page)}
+          >
+            <RefreshCw className="size-4" />
+            重试
+          </Button>
+        </div>
+      ) : data === null || data.history.length === 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          还没有 Prompt 提交记录。
+          {moduleId !== null
+            ? "该模块还没有 Prompt 提交记录。"
+            : "还没有 Prompt 提交记录。"}
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {history.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/learn/${item.moduleId}`}
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  {item.moduleId}
-                </Link>
-                <Badge variant="muted">{item.taskType}</Badge>
-                <Badge variant={item.isPassed ? "levelHigh" : "levelMid"}>
-                  {item.isPassed ? "通过" : "未通过"}
-                </Badge>
-                <span className="tabular-nums">
-                  {item.score}
-                  <span className="text-muted-foreground">
-                    {" "}
-                    / {PROMPT_SCORE_MAX}
+        <>
+          <ul className="flex flex-col gap-3">
+            {data.history.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/learn/${item.moduleId}`}
+                    className="font-medium underline-offset-2 hover:underline"
+                  >
+                    {item.moduleId}
+                  </Link>
+                  <Badge variant="muted">{item.taskType}</Badge>
+                  <Badge variant={item.isPassed ? "levelHigh" : "levelMid"}>
+                    {item.isPassed ? "通过" : "未通过"}
+                  </Badge>
+                  <span className="tabular-nums">
+                    {item.score}
+                    <span className="text-muted-foreground">
+                      {" "}
+                      / {PROMPT_SCORE_MAX}
+                    </span>
                   </span>
-                </span>
-                <span className="ml-auto text-[11px] text-muted-foreground">
-                  第 {item.attemptNumber} 次 · {formatTime(item.createdAt)}
-                </span>
-              </div>
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    第 {item.attemptNumber} 次 · {formatTime(item.createdAt)}
+                  </span>
+                </div>
 
-              <details className="mt-2">
-                <summary className="cursor-pointer text-muted-foreground">
-                  提交的 Prompt
-                </summary>
-                <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 font-mono text-[11px] whitespace-pre-wrap">
-                  {item.content}
-                </pre>
-              </details>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-muted-foreground">
+                    提交的 Prompt
+                  </summary>
+                  <pre className="mt-1 overflow-x-auto rounded bg-muted/50 p-2 font-mono text-[11px] whitespace-pre-wrap">
+                    {item.content}
+                  </pre>
+                </details>
 
-              {item.dimensions.length > 0 ? (
-                <ul className="mt-2 flex flex-col gap-1">
-                  {item.dimensions.map((dimension) => (
-                    <li key={dimension.name} className="flex gap-2">
-                      <span className="w-24 shrink-0">{dimension.name}</span>
-                      <span className="tabular-nums">
-                        {dimension.score}
-                        <span className="text-muted-foreground">
-                          {" "}
-                          / {PROMPT_SCORE_MAX}
+                {item.dimensions.length > 0 ? (
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {item.dimensions.map((dimension) => (
+                      <li key={dimension.name} className="flex gap-2">
+                        <span className="w-24 shrink-0">{dimension.name}</span>
+                        <span className="tabular-nums">
+                          {dimension.score}
+                          <span className="text-muted-foreground">
+                            {" "}
+                            / {PROMPT_SCORE_MAX}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-muted-foreground">
-                        {dimension.comment}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                        <span className="text-muted-foreground">
+                          {dimension.comment}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
 
-              {item.issues.length > 0 ? (
-                <ul className="mt-2 flex flex-col gap-1">
-                  {item.issues.map((issue) => (
-                    <li key={`${issue.type}-${issue.detail}`}>
-                      <Badge
-                        variant={
-                          issue.type === "严重错误" ? "levelLow" : "muted"
-                        }
-                      >
-                        {issue.type}
-                      </Badge>
-                      <span className="ml-2">{issue.detail}</span>
-                      <span className="ml-1 text-muted-foreground">
-                        （-{issue.deduction}）
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                {item.issues.length > 0 ? (
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {item.issues.map((issue) => (
+                      <li key={`${issue.type}-${issue.detail}`}>
+                        <Badge
+                          variant={
+                            issue.type === "严重错误" ? "levelLow" : "muted"
+                          }
+                        >
+                          {issue.type}
+                        </Badge>
+                        <span className="ml-2">{issue.detail}</span>
+                        <span className="ml-1 text-muted-foreground">
+                          （-{issue.deduction}）
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
 
-              {item.suggestions.length > 0 ? (
-                <ul className="mt-2 list-disc pl-4 text-muted-foreground">
-                  {item.suggestions.map((suggestion) => (
-                    <li key={suggestion}>{suggestion}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+                {item.suggestions.length > 0 ? (
+                  <ul className="mt-2 list-disc pl-4 text-muted-foreground">
+                    {item.suggestions.map((suggestion) => (
+                      <li key={suggestion}>{suggestion}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+
+          {/* 分页控件 */}
+          {totalPages > 1 ? (
+            <nav
+              aria-label="Prompt 历史分页"
+              className="flex items-center justify-center gap-2 pt-1"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
+                aria-label="上一页"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(page + 1)}
+                aria-label="下一页"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </nav>
+          ) : null}
+        </>
       )}
     </section>
   );

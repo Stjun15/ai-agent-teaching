@@ -95,6 +95,31 @@ node --version
 
 > **注意：** 截至 2026 年 10 月，Node.js LTS 版本为 22.x。如果你看到 24.x 或更高版本的 LTS，同样可以用——只要 ≥ 22.5 就行。
 
+#### Git 前置检查（必须！）
+
+在创建项目之前，确认 Git 已经装好了。打开终端，输入：
+
+```bash
+git --version
+```
+
+你会看到类似 `git version 2.47.0` 的输出。**任意 2.x 版本都行**——不需要最新。
+
+如果终端提示 `'git' 不是内部或外部命令`，说明你还没装 Git，按下面的步骤装：
+
+**Windows：**
+1. 打开浏览器，访问 **https://git-scm.com/download/win**，下载安装包
+2. 一路「Next」用默认选项。安装过程中看到「Adjusting your PATH environment」这一页时，确保选的是 **"Git from the command line and also from 3rd-party software"**（默认就是这一项，不用改）
+3. 安装完成后，**关掉终端重新打开**，再敲 `git --version` 确认
+
+**Mac：**
+- 终端里敲 `xcode-select --install`，按弹窗提示操作即可（这是最快的方式）
+- 如果上面的命令不行，去 **https://git-scm.com/download/mac** 下载安装包
+
+装好之后关掉终端重开，再敲 `git --version` 确认输出了版本号。
+
+*为什么要现在装？下一步创建项目之后，第五步就要 `git init` 初始化仓库。没有装 Git，后面每个存档检查点都走不通。*
+
 #### 第三步：创建项目
 
 在终端里，先 `cd` 到你放项目的文件夹。比如你想把项目放在桌面：
@@ -143,6 +168,7 @@ npm run dev
 #### 验收
 
 - [ ] 终端敲 `node --version` 输出版本号 ≥ v22.5
+- [ ] 终端敲 `git --version` 输出版本号（任意 2.x）
 - [ ] `npx create-next-app teaching-platform` 成功创建了项目文件夹
 - [ ] `npm run dev` 启动后，浏览器打开 `localhost:3000` 能看到 Next.js 欢迎页
 
@@ -151,11 +177,30 @@ npm run dev
 | 你遇到的问题                                          | 大概率是什么原因                   | 怎么解决                                                                                  |
 | ----------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
 | `'node' 不是内部或外部命令`                           | 没装 Node.js，或者装了但没重启终端 | 按上面第二步重装，装完一定要关掉终端重新打开                                              |
+| `'git' 不是内部或外部命令`                            | 没装 Git，或者装了但没重启终端     | 按上面「Git 前置检查」里的步骤装，装完关掉终端重新打开                                    |
 | `node --version` 输出版本号 < 22.5                    | 装的是旧版本                       | 去 nodejs.org 下载最新 LTS 版重新安装，新版本会覆盖旧版本                                 |
 | `npm run dev` 报错 `Error: listen EADDRINUSE :::3000` | 3000 端口被别的程序占了            | Windows：`npx kill-port 3000`。Mac：`lsof -ti:3000 \| xargs kill`。然后重新 `npm run dev` |
 | `npx create-next-app` 跑到一半卡住了                  | 网络问题，下载依赖包超时           | 按 `Ctrl + C` 终止，重新敲一次同样的命令。如果反复卡住，检查网络或换一个 npm 镜像源       |
 | 浏览器打开 `localhost:3000` 显示「无法访问此网站」    | 开发服务器没启动，或者终端被你关了 | 确认终端还在跑着 `npm run dev`，确认没有报错信息                                          |
 | `create-next-app` 问我问题但我不敢乱选                | 很正常，第一次见这些选项都会懵     | 按上面表格里的推荐选项选就行，所有选项以后都能改                                          |
+
+#### 第五步：用 Git 管起来（在写第一行代码之前）
+
+空项目跑通了。在你开始写任何代码之前，做一件事：**把当前状态存个档**。
+
+这不是「可选的」。后面你会一斧一斧地往这个项目里加代码——加着加着改崩了，你能一秒回到现在这个干净的状态。这就是 Git 的作用。
+
+打开终端，确认你在 `teaching-platform/` 目录下（`cd teaching-platform`），然后敲：
+
+```bash
+git init
+git add -A
+git commit -m "空项目跑通：Next.js 模板，npm run dev 正常"
+```
+
+`git init` 在你的项目文件夹里初始化了一个 Git 仓库。`git add -A` 把所有文件加入暂存区。`git commit -m "..."` 拍了一张快照。
+
+之后每一斧做完，你都应该再拍一张快照。我会在每斧末尾提醒你。如果你是 git 新手，回到上一讲「版本控制」看三个操作怎么用。
 
 ---
 
@@ -550,6 +595,12 @@ curl -X POST http://localhost:3000/api/chat \
 | `curl` 命令报 `curl: (7) Failed to connect`       | 开发服务器没启动                                       | 确认 `npm run dev` 在另一个终端里正在跑                                                                                                           |
 | AI 回复一次性全部显示，没有打字机效果             | `stream: true` 没设，或前端 `reader.read()` 逻辑没写对 | 检查后端 `body` 里 `stream: true`。检查前端 `while(true)` 循环和 `setMessages` 逐字追加逻辑                                                       |
 
+> 🔖 **存档检查点**：第一斧做完了。你的 AI 现在能实时聊天了。这是第一个重大里程碑——**立刻存档**：
+> ```bash
+> git add -A && git commit -m "第一斧完成：对话骨架，SSE 流式打字机"
+> ```
+> 万一第二斧改崩了 Agent Loop，`git checkout .` 一秒回到这里。后面每一斧做完都存档——你不用记，这里每次都提醒。
+
 ---
 
 ### 第二斧：多步 Agent
@@ -787,7 +838,12 @@ curl -X POST http://localhost:3000/api/chat \
 | AI 只讲概念，没有出题         | 模型没有调用工具                                  | 检查 `tools: [quizTool]` 是否正确传入。检查 `quizTool` 的 `description` 是否清晰描述了「什么时候该用」。可以在 System Prompt 里加一句「讲解结束时调用 make_quiz 出题」 |
 | Agent Loop 返回空内容         | `choice.message.tool_calls` 存在但 `content` 为空 | 这是正常的——当模型调用工具时，`content` 可能为 `null` 或空。确认你的代码里 `if (!choice.message.tool_calls)` 判断能正确处理这种情况                                    |
 | 循环只跑了一步就结束了        | 模型在一次调用中把讲解和 tool_call 一起返回了     | 检查 `if (!choice.message.tool_calls)` 的时机——确保先 push tool_call 消息和结果，再进入下一轮循环                                                                      |
-| `tool_call_id` 对不上导致报错 | 你没有把 `choice.message` push 进消息历史         | 在遍历 tool_calls 之前，必须先 `messages.push(choice.message)`——API 要求 tool_call 消息出现在对应的 tool 结果消息之前                                                  |
+| `tool_call_id` 对不上导致报错 | 你没有把 `choice.message` push 进消息历史          | 在遍历 tool_calls 之前，必须先 `messages.push(choice.message)`——API 要求 tool_call 消息出现在对应的 tool 结果消息之前                                                  |
+
+> 🔖 **存档检查点**：第二斧做完了——你的 Agent 现在是活的，能自己决定什么时候出题、什么时候讲。这才是真正的"AI 应用"：
+> ```bash
+> git add -A && git commit -m "第二斧完成：Agent Loop，工具调用 + 多步推理"
+> ```
 
 ---
 
@@ -1114,6 +1170,11 @@ node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('d
 | `fs.existsSync` 找不到讲稿文件 | 路径拼接不对               | 确认 `llm-wiki/concepts/` 文件夹存在。确认 `moduleId` 和文件名（去掉 `.md`）一致                                         |
 | 数据库文件 `dev.db` 找不到     | 文件创建在当前工作目录     | `new DatabaseSync("dev.db")` 会在 `process.cwd()` 下创建文件。确认你在项目根目录启动的 `npm run dev`                     |
 
+> 🔖 **存档检查点**：第三斧全绿——RAG 注入、掌握度存库、点评 Agent 打分。到此为止，你的单机版教学平台已经是一个完整的 AI 应用了：
+> ```bash
+> git add -A && git commit -m "第三斧完成：RAG 知识注入 + SQLite 存档 + 点评 Agent"
+> ```
+
 ---
 
 ### 龙骨：页面连线
@@ -1376,6 +1437,7 @@ export default function SettingsPage() {
 - [ ] **点评 Agent：交一段作业能拿到维度分、扣分点、改进建议，且落库**
 - [ ] SQLite 记录学习进度，刷新不丢
 - [ ] 页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置
+- [ ] `git log --oneline` 能看到从启动台到龙骨至少 5 条 commit（启动台 + 三斧 + 龙骨），message 不是"update"
 
 **提交什么给点评导师：** 回到课程页的「结算」阶段，把 `agent-loop.ts` 全文贴进「交付与检验单」编辑器，点 **「提交点评」**——点评导师按评分维度出正式检验单（维度分、扣分点、改进建议，并计入掌握度），不需要交整个工程：
 

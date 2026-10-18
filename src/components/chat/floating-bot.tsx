@@ -21,6 +21,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Bot,
+  Check,
+  Copy,
   CornerDownLeft,
   History,
   Loader2,
@@ -29,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 
+import { MarkdownView } from "@/components/chat/markdown-view";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { handleSSE, isAbortError, SSEHttpError } from "@/lib/sse";
@@ -40,6 +43,14 @@ import {
 
 const PANEL_WIDTH = 380;
 const PANEL_HEIGHT = 480;
+
+const SUGGESTED_QUESTIONS = [
+  "什么是 Vibe Coding？",
+  "MCP 和普通 API 有什么区别？",
+  "怎么开始复刻教学平台？",
+  "RAG 是怎么工作的？",
+  "System Prompt 怎么写才有效？",
+];
 
 type PanelView = "chat" | "history";
 
@@ -75,11 +86,11 @@ export function FloatingChatBot() {
     return store.getState().sessions[id]?.messages ?? [];
   }, [store]);
 
-  const handleSend = useCallback(async () => {
-    const trimmed = text.trim();
+  const handleSend = useCallback(async (contentOverride?: string) => {
+    const trimmed = (contentOverride ?? text).trim();
     if (trimmed === "" || status === "streaming") return;
 
-    setText("");
+    if (!contentOverride) setText("");
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -380,7 +391,7 @@ function ChatView({
   text: string;
   activeSession: FloatingSession | undefined;
   onTextChange: (v: string) => void;
-  onSend: () => void;
+  onSend: (contentOverride?: string) => void;
   onAbort: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onNew: () => void;
@@ -389,6 +400,28 @@ function ChatView({
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const handleAutoResize = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onTextChange(e.target.value);
+      const el = e.target;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    },
+    [onTextChange],
+  );
+
+  const handleSuggestedClick = useCallback(
+    (question: string) => {
+      onSend(question);
+    },
+    [onSend],
+  );
+
+  const showTyping =
+    status === "streaming" &&
+    messages.length > 0 &&
+    messages[messages.length - 1].role === "student";
+
   return (
     <>
       <div className="flex items-center justify-between border-b px-4 py-3">
@@ -441,13 +474,29 @@ function ChatView({
         className="flex-1 overflow-y-auto px-4 py-3 space-y-4"
       >
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            有问题随时问我
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <Bot className="size-8 text-primary/30" />
+            <p className="text-sm font-medium">有问题随时问我</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {SUGGESTED_QUESTIONS.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => handleSuggestedClick(question)}
+                  className="rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-foreground"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <FloatingMessageItem key={message.id} message={message} />
-          ))
+          <>
+            {messages.map((message) => (
+              <FloatingMessageItem key={message.id} message={message} />
+            ))}
+            {showTyping && <TypingIndicator />}
+          </>
         )}
       </div>
 
@@ -456,10 +505,10 @@ function ChatView({
           <textarea
             ref={inputRef}
             value={text}
-            onChange={(e) => onTextChange(e.target.value)}
+            onChange={handleAutoResize}
             onKeyDown={onKeyDown}
             placeholder="输入你的问题…"
-            rows={2}
+            rows={1}
             disabled={status === "streaming"}
             spellCheck={false}
             className={cn(
@@ -474,7 +523,7 @@ function ChatView({
             variant="default"
             className="size-9 shrink-0"
             disabled={text.trim() === "" || status === "streaming"}
-            onClick={onSend}
+            onClick={() => onSend()}
           >
             {status === "streaming" ? (
               <Loader2 className="size-4 animate-spin" />
@@ -483,8 +532,26 @@ function ChatView({
             )}
           </Button>
         </div>
+        <p className="mt-1.5 text-right text-[11px] text-muted-foreground/50">
+          Enter 发送 · Shift + Enter 换行
+        </p>
       </div>
     </>
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex gap-3">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+        <Bot className="size-3.5 text-primary" />
+      </div>
+      <div className="flex items-center gap-1 rounded-lg bg-muted px-3 py-2.5">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:150ms]" />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:300ms]" />
+      </div>
+    </div>
   );
 }
 
@@ -519,11 +586,26 @@ function FloatingMessageItem({ message }: { message: FloatingMessage }) {
   const isStudent = message.role === "student";
   const isStreaming = message.status === "streaming";
   const isError = message.status === "error";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 降级：选中文本
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [message.content]);
+
+  const showCopy = !isStudent && !isStreaming && !isError && message.content;
 
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "flex gap-3 group",
         isStudent ? "flex-row-reverse text-right" : "flex-row",
       )}
     >
@@ -553,13 +635,38 @@ function FloatingMessageItem({ message }: { message: FloatingMessage }) {
         >
           {isError ? (
             <span>{message.content || "回复失败，请重试"}</span>
-          ) : (
+          ) : isStudent ? (
             <span className="whitespace-pre-wrap">{message.content}</span>
+          ) : (
+            <MarkdownView source={message.content} />
           )}
           {isStreaming && (
             <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary/70 align-text-bottom" />
           )}
         </div>
+        {showCopy && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              "mt-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground/40",
+              "opacity-0 group-hover:opacity-100 transition-opacity",
+              "hover:bg-muted hover:text-muted-foreground",
+            )}
+          >
+            {copied ? (
+              <>
+                <Check className="size-3 text-emerald-500" />
+                <span>已复制</span>
+              </>
+            ) : (
+              <>
+                <Copy className="size-3" />
+                <span>复制</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

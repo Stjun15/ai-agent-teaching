@@ -36,10 +36,18 @@ export type { ErrorRecord, PromptHistory };
 export interface StudentErrorsResponse {
   /** 按 `created_at` 倒序。`?uncorrected=1` 时只含未订正的。 */
   errors: ErrorRecord[];
+  /** 满足当前筛选条件的错题总数（分页用）。 */
+  total: number;
+  /** 该学生所有错题的去重模块 id（错题本模块下拉选项）。 */
+  moduleIds: string[];
 }
 
 /** `GET /api/student/prompts` 的响应。 */
 export interface StudentPromptsResponse {
   /** 按 `created_at` 倒序。`?moduleId=` 时只含该模块的。 */
   history: PromptHistory[];
+  /** 满足当前筛选条件的记录总数（分页用）。 */
+  total: number;
+  /** 该学生所有 Prompt 历史的去重模块 id（模块下拉选项）。 */
+  moduleIds: string[];
 }

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "tunnel": "powershell -ExecutionPolicy Bypass -File scripts/dev-tunnel.ps1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

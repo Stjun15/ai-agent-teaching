@@ -78,10 +78,14 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     preKnowledge: [
       { term: "终端（Terminal）", explanation: "敲命令的黑窗口。Windows 叫 PowerShell，Mac 叫终端。你在这里敲代码让电脑干活。" },
       { term: "Node.js", explanation: "让 JavaScript 能在浏览器外面运行的东西。你后面写的所有后端代码都靠它跑。" },
+      { term: "环境变量（PATH）", explanation: "告诉终端「去哪个文件夹找命令」。装完 Node 后终端能识别 `node` 命令，就是因为安装程序把它加进了 PATH。如果装完不认，八成是 PATH 没生效——关掉终端重开就行。" },
       { term: "npm", explanation: "Node 的「应用商店」——一条命令就能下载别人写好的代码包。" },
       { term: "npx", explanation: "不安装、临时借来用一下某个工具。create-next-app 就是借来用一次就丢。" },
       { term: "localhost:3000", explanation: "你电脑上自己跑的一个小网站。localhost = 本机，3000 = 门牌号（端口）。" },
       { term: "端口（Port）", explanation: "一台电脑可以同时跑很多服务，端口号就是区分它们的门牌号。3000 是 Next.js 的默认门牌。" },
+      { term: "Git", explanation: "代码的「存档系统」——每做完一步就存个档，做错了能一键回到上一个存档。这不是可选的，是写代码的基本功。" },
+      { term: "commit（存档点）", explanation: "Git 里的一个「快照」——把当前所有文件的状态拍一张照片存起来。commit message 写清楚你这步做了什么。" },
+      { term: "git log", explanation: "查看所有存档记录。每行一条——能看到谁、什么时候、做了什么。验收时用它证明你每一步都存了档。" },
     ],
     tasks: [
       {
@@ -89,12 +93,14 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         file: "node --version",
         why: "后面每一步依赖的运行时——版本不对，后面全白搭。",
         detail:
-          "打开终端（Win：Win+R 输入 powershell；Mac：Cmd+空格 输入 Terminal），输入 `node --version`。看到 v22.5.0 或更高 → 通过。如果提示「不是内部或外部命令」→ 去 https://nodejs.org 下载 LTS 版本安装，装完关掉终端重开。如果版本 < 22.5 → 同样去下载新版本覆盖安装。",
+          "打开终端（Win：Win+R 输入 powershell；Mac：Cmd+空格 输入 Terminal），输入 `node --version`。看到 v22.5.0 或更高 → 通过。\n\n如果提示「'node' 不是内部或外部命令」：\n1. 先去 https://nodejs.org 下载 LTS 版本安装。**安装时注意勾选「Automatically install the necessary tools」**——这一步会把 Node 自动加入 PATH 环境变量，省得手动配。\n2. 装完后**关掉终端重新打开**——PATH 环境变量只在终端启动时加载一次，旧终端窗口不认识新装的命令。\n3. 重新打开终端后再跑 `node --version`。\n\n如果版本 < 22.5 → 同样去下载新版本覆盖安装。",
         askAI: "直接问导师：「我该怎么检查电脑上有没有装 Node.js？版本要 22.5 以上。」导师会告诉你对应你操作系统的具体命令。",
-        stuckPrompt: "把终端里显示的版本号贴给导师，问「这个版本够用吗？」导师会判断。",
+        stuckPrompt: "把终端里显示的版本号贴给导师，问「这个版本够用吗？」导师会判断。如果装了 Node 但终端还是不认，贴报错截图给导师，问「怎么检查 Node 有没有加入 PATH？」",
         pitfalls: [
-          "装完 Node 必须关掉终端重新打开，否则终端认不到新版本",
+          "装完 Node 必须关掉终端重新打开——PATH 环境变量只在终端启动时加载，旧窗口不认识新装的命令",
+          "Windows 安装时如果漏掉了「Add to PATH」复选框 → 卸载重装，这次记得勾上",
           "Mac 用户用 brew 装的 Node 可能版本很旧，建议去官网下 pkg 安装包",
+          "如果不确定 PATH 里有没有 Node：Win 打开「编辑系统环境变量」→「环境变量」→ 系统变量里找 Path → 双击 → 看有没有 nodejs 的路径",
         ],
       },
       {
@@ -136,8 +142,38 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
           "localhost:3000 和 127.0.0.1:3000 是同一个地址，都可以用",
         ],
       },
+      {
+        label: "检查 Git 是否安装",
+        file: "git --version",
+        moduleRef: "vibe-coding",
+        why: "后面每一步做完都要存档——Git 是代码的「Ctrl+Z」，没装等于裸奔。",
+        detail:
+          "打开终端，输入 `git --version`。看到 `git version 2.x.x` 或更高 → 通过。如果提示「'git' 不是内部或外部命令」→ 去 https://git-scm.com/downloads 下载安装。Windows 选「64-bit Git for Windows Setup」，一路下一步，安装选项全用默认值。Mac 装完 Xcode Command Line Tools 就行（终端输入 `xcode-select --install`）。装完必须关掉终端重新打开，再跑 `git --version` 验证。",
+        askAI: "问导师：「我该怎么检查电脑上有没有装 Git？没装的话怎么安装？」导师会告诉你对应你操作系统的下载地址和安装步骤。",
+        stuckPrompt: "把终端的报错贴给导师（'git' 不是内部或外部命令），问「怎么安装 Git？」",
+        pitfalls: [
+          "装完 Git 必须关掉终端重新打开——和 Node 一样，PATH 环境变量只在终端启动时加载一次",
+          "Mac 用户：`xcode-select --install` 装的是 Command Line Tools（含 Git），不需要额外下载",
+          "安装 Git 的时候如果弹 UAC（用户账户控制）窗口，点「是」允许",
+        ],
+      },
+      {
+        label: "项目初始化 + 第一次存档",
+        file: "git init && git add -A && git commit -m \"空项目跑通\"",
+        moduleRef: "vibe-coding",
+        why: "第一份存档 = 地基快照。后面改了代码跑不通，`git checkout .` 一键回到这个安全点。",
+        detail:
+          "在项目根目录（teaching-platform/）终端里依次执行三条命令：\n1. `git init` —— 初始化 Git 仓库（把当前文件夹变成一个可以存档的项目）\n2. `git add -A` —— 把当前所有文件加入存档区\n3. `git commit -m \"空项目跑通\"` —— 拍一张快照，标签写「空项目跑通」\n\n做完后跑 `git log --oneline`，看到一条 commit 记录 → 第一次存档成功。\n\n从这开始，**每完成一个阶段就 commit 一次**——存档是你做错的保险，也是你进步的痕迹。",
+        askAI: "问导师：「帮我在项目文件夹里执行 git init，然后告诉我怎么做第一次 commit。」",
+        stuckPrompt: "如果 `git init` 报错或 `git commit` 提示「please tell me who you are」→ 问导师「Git 怎么配置用户名和邮箱？」导师会告诉你 `git config --global user.name` 和 `git config --global user.email` 两条命令。",
+        pitfalls: [
+          "`git init` 只执行一次——不要在每个文件夹里都 init",
+          "commit message 要写清楚做了什么——不要写「update」「fix」这种没意义的词",
+          "如果 Git 报「please tell me who you are」：先配置 `git config --global user.name \"你的名字\"` 和 `git config --global user.email \"你的邮箱\"`",
+        ],
+      },
     ],
-    acceptanceDesc: "浏览器看到 Next.js 默认首页 → 空壳跑通",
+    acceptanceDesc: "浏览器看到 Next.js 默认首页 → 空壳跑通。终端跑 `git log --oneline` 看到一条「空项目跑通」的 commit → 起点已存档",
   },
   {
     index: 1,
@@ -231,6 +267,20 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
           "消息列表更新用 `setMessages(prev => [...])`，不要直接 push——React 不会检测到变化",
         ],
       },
+      {
+        label: "🔖 Git 存档：第一斧完成",
+        file: 'git add -A && git commit -m "第一斧完成：对话骨架，SSE 流式打字机"',
+        moduleRef: "vibe-coding",
+        why: "第一斧跑通 = 整个平台的第一步大里程碑。存档后你可以放心大胆改代码——改崩了 `git checkout .` 回到这里。",
+        detail:
+          "在 teaching-platform/ 目录终端里：`git add -A` 把新增和改动的文件都加入存档区，然后 `git commit -m \"第一斧完成：对话骨架，SSE 流式打字机\"`。做完后跑 `git log --oneline` 确认能看到新的 commit。",
+        askAI: "问导师：「我第一斧做完了，教我怎么做 Git 存档。」",
+        stuckPrompt: "如果 `git add -A` 把 node_modules 也加进去了 → 问导师「怎么创建 .gitignore 忽略 node_modules？」",
+        pitfalls: [
+          "commit message 要写清楚做完的是哪个阶段——方便以后 `git log` 一眼看到进度",
+          "如果第一次 commit 时还没创建 .gitignore，`git add -A` 会把 node_modules 也加进去——找导师要一份 .gitignore 模板",
+        ],
+      },
     ],
     acceptanceScript: `# ⚠️ PowerShell 用户注意：把每行末尾的 \\ 换成 ` + "`" + `（反引号）
 # CMD 用户：把 \\ 删掉，整条命令写成一行
@@ -301,8 +351,22 @@ curl -X POST http://localhost:3000/api/chat \\
           "如果模型返回时 content 为空但有 tool_calls → 这是正常的，模型调用工具时 content 可以为 null",
         ],
       },
+      {
+        label: "🔖 Git 存档：第二斧完成",
+        file: 'git add -A && git commit -m "第二斧完成：Agent Loop，工具调用 + 多步推理"',
+        moduleRef: "vibe-coding",
+        why: "Agent Loop 是平台的大脑——讲→示→测的完整链路跑通了。存档后再改 RAG/数据库/点评，每一步都有回头路。",
+        detail:
+          "终端：`git add -A` 然后 `git commit -m \"第二斧完成：Agent Loop，工具调用 + 多步推理\"`。`git log --oneline` 确认能看到三条 commit（空项目 + 第一斧 + 第二斧）。",
+        askAI: "问导师：「我第二斧做完了，教我存档。」",
+        stuckPrompt: "如果 `git commit` 提示 nothing to commit → 检查是不是在 teaching-platform/ 目录下、前面有没有改过文件。",
+        pitfalls: [
+          "每次存档前先用 `git status` 看看有哪些文件改动了——确认没有漏掉也没多出不该有的",
+          "`node_modules/` 不应该进 Git——如果 `git status` 里出现了它，回去建 .gitignore",
+        ],
+      },
     ],
-    acceptanceScript: `# ⚠️ PowerShell 用户：把 \\ 换成 ` + "`" + `（反引号）；CMD 用户：删掉 \\ 写成一行
+    acceptanceScript: `# ⚠️ PowerShell 用户注意：把 \\ 换成 ` + "`" + `（反引号）；CMD 用户：删掉 \\ 写成一行
 curl -X POST http://localhost:3000/api/chat \\
   -H "Content-Type: application/json" \\
   -d '{"content":"给我讲讲什么是 System Prompt，讲完出两道选择题"}'
@@ -371,6 +435,19 @@ curl -X POST http://localhost:3000/api/chat \\
           "`JSON.parse` 要包 try-catch——模型偶尔在 JSON 外面套 markdown 代码块",
           "`/api/validate` 的 route.ts 文件名不能改——Next.js 只认 `route.ts`",
           "reviewHomework 接收 moduleId 参数——前端 POST 时 body 里要传 `{ content: '...', moduleId: '...' }`",
+        ],
+      },
+      {
+        label: "🔖 Git 存档：第三斧完成",
+        file: 'git add -A && git commit -m "第三斧完成：RAG 知识注入 + SQLite 存档 + 点评 Agent"',
+        moduleRef: "vibe-coding",
+        why: "三斧全做完 = 平台的核心引擎已经就位。这是最重量级的存档——RAG、数据库、点评三条线全部接通。",
+        detail:
+          "终端：`git add -A` 然后 `git commit -m \"第三斧完成：RAG 知识注入 + SQLite 存档 + 点评 Agent\"`。`git log --oneline` 确认能看到四条 commit（空项目 + 第一斧 + 第二斧 + 第三斧）。",
+        askAI: "问导师：「我第三斧做完了，帮我确认一下没有漏掉存档。」",
+        stuckPrompt: "如果 `git log --oneline` 看不到第三条 commit → `git status` 看看是不是前面漏存了。把输出贴给导师问「是不是某一步忘了 commit？」",
+        pitfalls: [
+          "`dev.db` 是 SQLite 数据库文件，不应该进 Git——确保 .gitignore 里有 `*.db` 这一行",
         ],
       },
     ],
@@ -531,8 +608,21 @@ curl -X POST http://localhost:3000/api/validate \\
         askAI: "问导师：「帮我做一次整体 code review——把 page.tsx（首页）、learn/page.tsx、learn/[id]/page.tsx、playground/page.tsx、settings/page.tsx 五个页面的代码贴给你，帮我检查：①Link 用法是否正确 ②动态路由的 params 处理对不对 ③有没有潜在的导入路径错误。」",
         stuckPrompt: "如果某个页面白屏：贴该页面的代码 + 浏览器控制台报错给导师，问「这个页面为什么白屏？」。如果是 404：问导师「文件夹结构对吗？Next.js App Router 的路由约定是什么？」",
       },
+      {
+        label: "Git 存档完整：`git log --oneline` ≥ 5 条 commit",
+        moduleRef: "vibe-coding",
+        why: "Git 日志是你整个搭建过程的「时间轴」——每一条 commit 对应一个里程碑。缺一条说明某个阶段没存档，或做完了没留痕迹。",
+        detail:
+          "终端跑 `git log --oneline`。预期看到至少 5 条 commit：空项目跑通、三斧各一条、龙骨一条。每条 commit message 写清楚做了什么——不能出现「update」「fix」这种无意义的词。如果不够 5 条 → 回到没存档的阶段，补上 `git add -A && git commit -m \"...\"`。\n\n这就是你的交付清单：代码跑通 = 平台能用的证据，Git log = 你一步步搭出来的证据。",
+        askAI: "问导师：「帮我检查 git log——我把 `git log --oneline` 的输出贴给你，你帮我看看：①是否覆盖了所有阶段 ②commit message 是否够清晰。」",
+        stuckPrompt: "如果 `git log` 只有一两条：把输出贴给导师问「我好像漏了中间几步的存档——怎么补？」导师会告诉你 `git status` → `git add -A` → `git commit -m \"...\"` 的补救流程。",
+        pitfalls: [
+          "commit message 不能写「update」——看 git log 时完全不知道 update 了什么",
+          "如果龙骨阶段跨多个功能（5 个页面），可以不只一条 commit——每个页面做完 commit 一次更安全",
+        ],
+      },
     ],
     acceptanceDesc:
-      "在 localhost:3000 上全部跑通 → 达标。把 agent-loop.ts 全文贴进下方「交付与检验单」编辑器，点「提交点评」拿正式检验单（维度分、扣分点、建议，计入掌握度）；route.ts 用一句话说明改动点即可，清单自查在对话里与导师核对。",
+      "在 localhost:3000 上全部跑通 → 达标。终端跑 `git log --oneline`，看到 5 条以上有意义 commit → 过程留痕。把 agent-loop.ts 全文贴进下方「交付与检验单」编辑器，点「提交点评」拿正式检验单（维度分、扣分点、建议，计入掌握度）；route.ts 用一句话说明改动点即可，清单自查在对话里与导师核对。",
   },
 ];

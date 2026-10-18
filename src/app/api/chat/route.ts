@@ -38,8 +38,34 @@ import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import { runVisionReview } from "@/lib/agent/vision-review";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
-import { buildTeachingScript } from "@/lib/teaching-script";
+import { buildTeachingScript, parseSections } from "@/lib/teaching-script";
 import { ChatRequestSchema } from "@/schemas";
+import { listPages, type WikiPage } from "@/wiki";
+
+/** 从 WikiPage 取可读标题。 */
+function pageTitle(page: WikiPage): string {
+  return (
+    (page.frontmatter.name as string) ||
+    (page.frontmatter.id as string) ||
+    page.path.replace(/^concepts\//, "").replace(/\.md$/, "")
+  );
+}
+
+/** 从正文中提取指定 H2 小节。未命中时返回空串。 */
+function extractSections(body: string, headings: string[]): string {
+  const all = parseSections(body);
+  const selected = all.filter((s) => headings.includes(s.heading));
+  if (selected.length === 0) return "";
+  return selected.map((s) => `## ${s.heading}\n\n${s.content}`).join("\n\n");
+}
+
+/** 取正文首段前 N 个字符作为摘要，去掉换行。 */
+function pageTeaser(body: string, maxLen = 100): string {
+  const firstPara = body.split(/\n\n/)[0] ?? "";
+  const flat = firstPara.replace(/\n/g, " ").trim();
+  if (flat.length <= maxLen) return flat;
+  return flat.slice(0, maxLen) + "…";
+}
 
 // Agent 内核依赖 node:sqlite 与 pi SDK，不能跑在 Edge Runtime。
 export const runtime = "nodejs";
@@ -125,6 +151,54 @@ export async function POST(req: Request): Promise<Response> {
       // 页面不存在或步骤无匹配段落：静默回退到纯身份层。
     } else {
       conceptScript = result.script;
+    }
+  } else if (!parsed.data.moduleId) {
+    // 悬浮助教模式：注入课程目录 + 精简知识库。
+    // 优化策略：
+    // - platform-replica（83KB）只保留「定义」+「为什么需要」两节，
+    //   砍掉 80KB 逐步骤操作手册——学生不在复刻页面时这些内容用不上。
+    // - 其余 11 篇概念页保留全文，它们都是通用知识（单篇最大 21KB）。
+    // - 顶部加课程目录，让 AI 一眼看清自己能回答哪些领域的问题。
+    try {
+      const allPages = await listPages();
+      if (allPages.length > 0) {
+        // 课程目录：每篇标题 + 首段摘要
+        const catalogLines = allPages.map((page) => {
+          const name = pageTitle(page);
+          const teaser = pageTeaser(page.body);
+          return `- **${name}**：${teaser}`;
+        });
+
+        // 知识库正文
+        const pageTexts = allPages.map((page) => {
+          const title = pageTitle(page);
+          const isReplica = page.frontmatter.id === "platform-replica";
+          const body = isReplica
+            ? extractSections(page.body, [
+                "定义（开始前先看！）",
+                "为什么需要：最终目标",
+              ]) || page.body // 降级：小节提取失败时回退全文
+            : page.body;
+          return `## ${title}\n\n${body}`;
+        });
+
+        conceptScript =
+          [
+            "## 课程知识库",
+            "你是本课程的教学助教。以下是课程目录和全部教学文档。",
+            "请基于这些文档回答学生问题，引用时指出出自哪篇文档。",
+            "如果学生的问题与文档无关，可以用通用知识回答。",
+            "",
+            "### 课程目录",
+            ...catalogLines,
+            "",
+            "---",
+            "",
+            ...pageTexts,
+          ].join("\n");
+      }
+    } catch {
+      // listPages 失败：静默回退到纯身份层提示词。
     }
   }
 
