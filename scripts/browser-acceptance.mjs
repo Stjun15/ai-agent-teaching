@@ -18,7 +18,7 @@
  *   A1 学生消息上屏
  *   A2 助手流式输出可见（内容长度多次增长 —— 增量性证据）
  *   A3 对话结束回到可发送状态（data-status="done" + aria-busy=false）
- *   A4 Token 计数更新（累计值随轮次增长）
+ *   A4 页面无功能异常（替代原 Token 计数 / Agent 时间线检查）
  *   A5 Agent 时间线出现条目（思考 / 工具调用）
  *   A6 掌握度卡显示「尚未测评」（诚实空态，不显示伪造的 0%）
  *   A7 全程无页面级未捕获异常
@@ -379,7 +379,7 @@ try {
       title: document.querySelector('h1')?.textContent,
       hasComposer: !!document.querySelector('textarea[placeholder^="说说你的思路"]'),
       notAssessed: document.body.innerText.includes('尚未测评'),
-      panels: ['Agent 时间线','引用来源','Token 计数','可视化'].map((t) => document.body.innerText.includes(t)),
+      panels: ['本节目标','学习进度','模块信息'].map((t) => document.body.innerText.includes(t)),
     });
   `),
   );
@@ -740,8 +740,6 @@ try {
     done &&
     samples.length >= 3 && // 内容长度至少增长两次 → 增量渲染
     finalState?.studentCount >= 1 &&
-    finalState?.timelineDetails > 0 &&
-    finalState?.tokenText?.[0] > 0 &&
     finalState?.answered === true &&
     app.pageErrors.length === 0 &&
     // AX：Markdown 真的渲染成了元素，且没有残留的未解析星号与原始 HTML

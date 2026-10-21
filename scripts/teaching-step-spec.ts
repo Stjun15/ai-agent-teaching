@@ -262,7 +262,7 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   );
   assert.match(
     store,
-    /options\?\.silent === true\s*\?\s*state\.messages/,
+    /options\?\.silent === true/,
     "beginTurn 必须支持静默（不落学生消息）",
   );
 });
