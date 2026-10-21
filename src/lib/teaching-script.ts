@@ -47,7 +47,7 @@ export const SECTION_ALIASES: Record<string, string[]> = {
   why: [SECTION_NAMES.why],
   misconceptions: [SECTION_NAMES.misconceptions, SECTION_NAMES.commonProblems],
   comparison: [SECTION_NAMES.comparison],
-  practice: [SECTION_NAMES.practice, "实践任务"],
+  practice: [SECTION_NAMES.practice, "实践任务", "现在轮到你", "自己动手"],
   related: [SECTION_NAMES.related],
   demoCode: ["示范代码"],
 };
@@ -178,9 +178,37 @@ export function readPracticeTask(moduleId: string): string {
   try {
     const page = readPageSync(`concepts/${moduleId}.md`);
     const sections = parseSections(page.body);
-    const task = sections.find((s) => sectionMatches(s.heading, "practice"));
-    if (!task) return "";
-    return `## ${task.heading}\n\n${task.content}`.trim();
+    const tasks = sections.filter((s) => sectionMatches(s.heading, "practice"));
+    if (tasks.length === 0) return "";
+    return tasks
+      .map((t) => `## ${t.heading}\n\n${t.content}`)
+      .join("\n\n")
+      .trim();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 从概念页"示范代码"节读取 demo 内容。
+ *
+ * 用途：code / tool 类任务的点评 Agent 需要参考答案做对照评分。
+ * demo 来自观察示范步（observe）展示过的代码/工具定义，
+ * 点评时注入为 `demo_content`，让 reviewer 有东西可对照。
+ *
+ * QA 类不调此函数（"用自己的话"的教学目标会被逐字比对破坏），
+ * prompt 类暂不调（有多个正确写法，一份 demo 不够）。
+ *
+ * 返回空串 = 页面不存在或没有示范代码节。
+ * 调用方据此不给 demo_content，reviewer 回退为仅按 rubric 盲评。
+ */
+export function readDemoContent(moduleId: string): string {
+  try {
+    const page = readPageSync(`concepts/${moduleId}.md`);
+    const sections = parseSections(page.body);
+    const demo = sections.find((s) => sectionMatches(s.heading, "demoCode"));
+    if (!demo) return "";
+    return `## ${demo.heading}\n\n${demo.content}`.trim();
   } catch {
     return "";
   }
