@@ -7,6 +7,7 @@ import {
   Blocks,
   Compass,
   FlaskConical,
+  Home,
   LineChart,
   Settings,
 } from "lucide-react";
@@ -34,6 +35,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
+  { href: "/", label: "首页", icon: Home, status: "ready" },
   { href: "/learn", label: "学习中心", icon: Compass, status: "ready" },
   {
     href: "/playground",
