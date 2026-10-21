@@ -187,12 +187,24 @@ export async function runAssessLoop(
   }
 
   const taskType = SUBJECTIVE_TASK_TYPE[input.question.type] ?? "prompt";
+
+  // 变式练习的参考答案：与模块专属动手题的 demo_content 不同，
+  // 这里传入的是"这道具体题目的标准答案 + 解析"，交给 validate-practice
+  // Skill 作为评分锚点（不是唯一标准、不逐字比对，见该 Skill 的说明）。
+  const demoContent =
+    `【题目】${input.question.text}\n\n` +
+    `【参考答案】${input.question.correctAnswer}\n\n` +
+    `【解析】${input.question.explanation}\n\n` +
+    `（以上是评分锚点。学生用自己的话说清楚就算对，不要逐字比对文本。）`;
+
   const result = await runValidationLoop({
     taskType,
     studentAnswer: input.studentAnswer,
     moduleId: input.moduleId,
     conceptId: input.conceptId ?? input.moduleId,
     questionText: input.question.text,
+    demoContent,
+    forceSkill: "validate-practice",
     attemptNumber: 1,
     env: input.env,
     signal: input.signal,
