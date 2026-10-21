@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 import { AssignmentCard } from "@/components/learn/assignment-card";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { ExplainFullscreen } from "@/components/learn/explain-fullscreen";
-import { FeynmanReview } from "@/components/learn/feynman-review";
+import { KnowledgeCard } from "@/components/learn/knowledge-card";
 import { MasteryCard } from "@/components/learn/mastery-card";
 import { MasteryCheck } from "@/components/learn/mastery-check";
 import { ObservePanel } from "@/components/learn/observe-panel";
 import { PathAdjustmentList } from "@/components/learn/path-adjustment-list";
 import { PracticePanel } from "@/components/learn/practice-panel";
 import { StepNav } from "@/components/learn/step-nav";
-import { AgentTimeline } from "@/components/chat/agent-timeline";
 import { ChatPanel } from "@/components/chat/chat-panel";
-import { CitationPanel } from "@/components/chat/citation-panel";
+import { LearnDashboard } from "@/components/chat/learn-dashboard";
 import { TextAnswerArea } from "@/components/learn/text-answer-area";
 import { ValidateSubmit } from "@/components/code/validate-submit";
 import { Composer } from "@/components/chat/composer";
@@ -24,7 +23,6 @@ import { ExplainColdStart } from "@/components/learn/explain-cold-start";
 import { ExplainNextButton } from "@/components/learn/explain-next-button";
 import { LectureLauncher } from "@/components/chat/lecture-launcher";
 import { lectureOpenerPrompt } from "@/lib/lecture-openers";
-import { TokenCounter } from "@/components/chat/token-counter";
 import { VisualizationPanel } from "@/components/chat/visualization-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +57,38 @@ function sceneLabel(sceneId: string): string {
  */
 const INTERACTIVE_EXPLAIN_MODULES = new Set(["platform-replica"]);
 
+// ---------------------------------------------------------------------------
+// 三栏可拖拽列宽
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY_LEFT = "ai-teaching:workspace-left-width";
+const STORAGE_KEY_RIGHT = "ai-teaching:workspace-right-width";
+const STORAGE_KEY_RIGHT_COLLAPSED = "ai-teaching:workspace-right-collapsed";
+const DEFAULT_LEFT = 220;
+const DEFAULT_RIGHT = 320;
+const MIN_LEFT = 160;
+const MAX_LEFT = 400;
+const MIN_RIGHT = 240;
+const MAX_RIGHT = 500;
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.min(Math.max(v, lo), hi);
+}
+
+function readPersistedWidth(key: string, fallback: number): number {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) {
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+  } catch {
+    // 隐私模式
+  }
+  return fallback;
+}
+
 /**
  * 模块学习工作区 —— 三栏布局本体（`04-frontend.md`「模块学习页（三栏）」）。
  *
@@ -72,16 +102,13 @@ const INTERACTIVE_EXPLAIN_MODULES = new Set(["platform-replica"]);
  * -------
  * - 左：步骤导航 + 掌握度 + 学习路径缩略图
  * - 中：对话区（底部输入区在对话卡片内）+ 代码编辑区 + 可视化区
- * - 右：Agent 时间线 + 引用来源 + Token 计数
+ * - 右：学习仪表盘（本节目标 / 学习进度 / 模块信息）
  *
  * 响应式：`xl`（≥1280px）三栏铺开；`lg` 收右栏到下方；更窄单栏。
  * 文档要求 <1024px 用抽屉、<768px 用底部 Tab —— 属于 Phase 6
  * 「响应式适配正常」验收项，本阶段先保证各断点可读、不破版。
  *
- * 本组件是**服务端组件**：它只负责结构与排布，不需要交互状态。
- * 真正要订阅 Store 与 SSE 的面板各自是客户端组件，边界在面板处
- * （`ChatPanel` / `Composer` / `AgentTimeline` / `CitationPanel` /
- * `TokenCounter` / `VisualizationPanel` / `MasteryCard`）。
+ * 本组件是客户端组件：\"use client\"。
  */
 export function ModuleWorkspace({
   teachingModule,
@@ -95,6 +122,105 @@ export function ModuleWorkspace({
   demoCode?: string;
 }) {
   const [explainChatStarted, setExplainChatStarted] = useState(false);
+
+  // 三栏列宽（xl+ 拖拽可调，localStorage 持久化）
+  const [leftWidth, setLeftWidth] = useState(() =>
+    readPersistedWidth(STORAGE_KEY_LEFT, DEFAULT_LEFT),
+  );
+  const [rightWidth, setRightWidth] = useState(() =>
+    readPersistedWidth(STORAGE_KEY_RIGHT, DEFAULT_RIGHT),
+  );
+  const [rightCollapsed, setRightCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(STORAGE_KEY_RIGHT_COLLAPSED) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleRight = useCallback(() => {
+    setRightCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY_RIGHT_COLLAPSED, next ? "1" : "0");
+      } catch {
+        // 隐私模式
+      }
+      return next;
+    });
+  }, []);
+
+  // 拖拽期间用 ref 避免闭包拿到旧值
+  const leftWidthRef = useRef(leftWidth);
+  useEffect(() => {
+    leftWidthRef.current = leftWidth;
+  }, [leftWidth]);
+  const rightWidthRef = useRef(rightWidth);
+  useEffect(() => {
+    rightWidthRef.current = rightWidth;
+  }, [rightWidth]);
+
+  const dragRef = useRef<{
+    side: "left" | "right";
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  const beginDrag = useCallback(
+    (side: "left" | "right") => (e: React.MouseEvent) => {
+      e.preventDefault();
+      dragRef.current = {
+        side,
+        startX: e.clientX,
+        startWidth:
+          side === "left" ? leftWidthRef.current : rightWidthRef.current,
+      };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const delta = e.clientX - d.startX;
+      if (d.side === "left") {
+        setLeftWidth(clamp(d.startWidth + delta, MIN_LEFT, MAX_LEFT));
+      } else {
+        setRightWidth(clamp(d.startWidth - delta, MIN_RIGHT, MAX_RIGHT));
+      }
+    };
+    const onUp = () => {
+      if (dragRef.current) {
+        try {
+          localStorage.setItem(
+            STORAGE_KEY_LEFT,
+            String(leftWidthRef.current),
+          );
+          localStorage.setItem(
+            STORAGE_KEY_RIGHT,
+            String(rightWidthRef.current),
+          );
+        } catch {
+          // 隐私模式
+        }
+      }
+      dragRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
   );
@@ -185,15 +311,29 @@ export function ModuleWorkspace({
       ) : null}
 
       {/* ---------- 三栏 ---------- */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_320px]">
+      <div className="mt-6 flex flex-wrap xl:flex-nowrap">
         {/* 左栏 */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
+        <aside
+          className="flex shrink-0 flex-col gap-4 lg:sticky lg:top-20 lg:self-start"
+          style={{ width: leftWidth }}
+        >
           <StepNav moduleId={teachingModule.id} currentStepId={currentStepId} />
           <PathAdjustmentList />
         </aside>
 
+        {/* 左拖拽手柄（xl+ 可见） */}
+        <div
+          className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
+          onMouseDown={beginDrag("left")}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="拖拽调整左栏宽度"
+        >
+          <div className="h-10 w-0.5 rounded-full bg-border" />
+        </div>
+
         {/* 中栏 */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           {/*
             当前步横幅：七步共用同一工作区，切步只换左栏高亮 —— 零基础
             走查实测学生感知不到「切步发生了」。在中栏顶部常驻一条横幅，
@@ -326,21 +466,12 @@ export function ModuleWorkspace({
                 </CardContent>
               </Card>
 
-              <Card className="mt-4">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
-                    费曼复习卡 —— 用自己的话讲一遍
-                  </CardTitle>
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                    费曼说：
-                    <em>「如果你不能简单地解释它，你就没有真正理解它。」</em>
-                    用四步把你的理解说出来——输出是最好的输入。
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <FeynmanReview />
-                </CardContent>
-              </Card>
+              <div className="mt-4">
+                <KnowledgeCard
+                  moduleId={teachingModule.id}
+                  moduleName={teachingModule.name}
+                />
+              </div>
             </>
           ) : null}
 
@@ -407,41 +538,52 @@ export function ModuleWorkspace({
           ) : null}
         </div>
 
+        {/* 右拖拽手柄（xl+ 可见，折叠时隐藏） */}
+        {!rightCollapsed ? (
+          <div
+            className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
+            onMouseDown={beginDrag("right")}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="拖拽调整右栏宽度"
+          >
+            <div className="h-10 w-0.5 rounded-full bg-border" />
+          </div>
+        ) : null}
+
         {/* 右栏 */}
-        <aside className="flex flex-col gap-4 lg:col-span-2 xl:sticky xl:top-20 xl:col-span-1 xl:self-start">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent 时间线</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/*
-                时间线限高 + 内部滚动：右栏在 xl 断点是 sticky，若时间线不限高，
-                整栏会比视口还高，底部两个面板会被顶出视口且再也看不见。
-              */}
-              <div className="max-h-[420px] overflow-y-auto">
-                <AgentTimeline />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>引用来源</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CitationPanel />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Token 计数</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TokenCounter />
-            </CardContent>
-          </Card>
-        </aside>
+        {rightCollapsed ? (
+          <aside className="hidden shrink-0 xl:flex xl:sticky xl:top-20 xl:self-start">
+            <div className="w-fit rounded-md border bg-card p-2">
+              <button
+                type="button"
+                onClick={toggleRight}
+                aria-label="展开本节目标"
+                title="展开本节目标"
+                aria-expanded={false}
+                className="flex flex-col items-center gap-3 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ChevronLeft className="size-4" aria-hidden />
+                <span className="text-xs [writing-mode:vertical-rl]">
+                  本节目标
+                </span>
+              </button>
+            </div>
+          </aside>
+        ) : (
+          <aside
+            className="flex shrink-0 flex-col gap-4 w-full xl:sticky xl:top-20 xl:self-start"
+            style={{ width: rightWidth, maxWidth: "100%" }}
+          >
+            <LearnDashboard
+              teachingModule={teachingModule}
+              currentStepIndex={stepIndex(currentStepId)}
+              totalSteps={LEARNING_STEPS.length}
+              currentStepLabel={currentStep?.label ?? ""}
+              onToggleCollapse={toggleRight}
+            />
+          </aside>
+        )}
       </div>
     </main>
   );
