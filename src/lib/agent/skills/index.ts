@@ -18,8 +18,20 @@ import { VALIDATE_CODE_SKILL } from "./validate-code";
 import { VALIDATE_PROMPT_SKILL } from "./validate-prompt";
 import { VALIDATE_QA_SKILL } from "./validate-qa";
 import { VALIDATE_TOOL_SKILL } from "./validate-tool";
+import { VALIDATE_TS_BASICS_SKILL } from "./validate-ts-basics";
+import { VALIDATE_VIBE_CODING_SKILL } from "./validate-vibe-coding";
+import { VALIDATE_LLM_API_SKILL } from "./validate-llm-api";
+import { VALIDATE_SYSTEM_PROMPT_SKILL } from "./validate-system-prompt";
+import { VALIDATE_TOOL_CALLING_SKILL } from "./validate-tool-calling";
+import { VALIDATE_AGENT_LOOP_SKILL } from "./validate-agent-loop";
+import { VALIDATE_RAG_SKILL } from "./validate-rag";
+import { VALIDATE_LLM_WIKI_SKILL } from "./validate-llm-wiki";
+import { VALIDATE_MULTI_AGENT_SKILL } from "./validate-multi-agent";
+import { VALIDATE_MCP_SKILL } from "./validate-mcp";
+import { VALIDATE_AI_SAFETY_SKILL } from "./validate-ai-safety";
+import { VALIDATE_PRACTICE_SKILL } from "./validate-practice";
 
-/** 7 个 Skill 的定义。 */
+/** 全部 Skill 的定义。模块专属校验 Skill 与通用 Skill 平级注册。 */
 export const SKILLS = {
   "explain-concept": EXPLAIN_CONCEPT_SKILL,
   "validate-prompt": VALIDATE_PROMPT_SKILL,
@@ -29,6 +41,18 @@ export const SKILLS = {
   "generate-question": GENERATE_QUESTION_SKILL,
   "answer-question": ANSWER_QUESTION_SKILL,
   "trigger-visualization": TRIGGER_VISUALIZATION_SKILL,
+  "validate-ts-basics": VALIDATE_TS_BASICS_SKILL,
+  "validate-vibe-coding": VALIDATE_VIBE_CODING_SKILL,
+  "validate-llm-api": VALIDATE_LLM_API_SKILL,
+  "validate-system-prompt": VALIDATE_SYSTEM_PROMPT_SKILL,
+  "validate-tool-calling": VALIDATE_TOOL_CALLING_SKILL,
+  "validate-agent-loop": VALIDATE_AGENT_LOOP_SKILL,
+  "validate-rag": VALIDATE_RAG_SKILL,
+  "validate-llm-wiki": VALIDATE_LLM_WIKI_SKILL,
+  "validate-multi-agent": VALIDATE_MULTI_AGENT_SKILL,
+  "validate-mcp": VALIDATE_MCP_SKILL,
+  "validate-ai-safety": VALIDATE_AI_SAFETY_SKILL,
+  "validate-practice": VALIDATE_PRACTICE_SKILL,
 } as const satisfies Record<SkillId, SkillDefinition>;
 
 /** 取一个 Skill 的定义。 */

@@ -86,7 +86,19 @@ export type SkillId =
   | "validate-qa"
   | "generate-question"
   | "answer-question"
-  | "trigger-visualization";
+  | "trigger-visualization"
+  | "validate-ts-basics"
+  | "validate-vibe-coding"
+  | "validate-llm-api"
+  | "validate-system-prompt"
+  | "validate-tool-calling"
+  | "validate-agent-loop"
+  | "validate-rag"
+  | "validate-llm-wiki"
+  | "validate-multi-agent"
+  | "validate-mcp"
+  | "validate-ai-safety"
+  | "validate-practice";
 
 /** 全部 Skill ID。顺序即 `02-agent-system.md` Skill 表格的顺序。 */
 export const SKILL_IDS = [
@@ -98,6 +110,18 @@ export const SKILL_IDS = [
   "generate-question",
   "answer-question",
   "trigger-visualization",
+  "validate-ts-basics",
+  "validate-vibe-coding",
+  "validate-llm-api",
+  "validate-system-prompt",
+  "validate-tool-calling",
+  "validate-agent-loop",
+  "validate-rag",
+  "validate-llm-wiki",
+  "validate-multi-agent",
+  "validate-mcp",
+  "validate-ai-safety",
+  "validate-practice",
 ] as const satisfies readonly SkillId[];
 
 export type __AssertSkillIdsMatchUnion = Expect<
