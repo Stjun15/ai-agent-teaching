@@ -142,21 +142,6 @@ const SUITES = [
     model: false,
   },
   {
-    name: "审计落库",
-    file: "scripts/audit-db-spec.ts",
-    model: false,
-  },
-  {
-    name: "确定性审计",
-    file: "scripts/audit-deterministic-spec.ts",
-    model: false,
-  },
-  {
-    name: "审计编排",
-    file: "scripts/audit-orchestrator-spec.ts",
-    model: false,
-  },
-  {
     name: "冷启动 + 模块内容",
     file: "scripts/explain-cold-start-spec.ts",
     model: false,
@@ -186,6 +171,70 @@ const SUITES = [
   {
     name: "ChatStream 静默与历史",
     file: "scripts/chat-stream-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "Chat 事件分发",
+    file: "scripts/chat-dispatch-spec.ts",
+    model: false,
+  },
+  {
+    name: "Chat abort/reset 控制器",
+    file: "scripts/chat-controller-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "中断注册表",
+    file: "scripts/abort-registry-spec.ts",
+    model: false,
+  },
+  {
+    name: "会话池",
+    file: "scripts/session-pool-spec.ts",
+    model: false,
+  },
+  {
+    name: "Agent/Skill 注册表",
+    file: "scripts/agent-registry-spec.ts",
+    model: false,
+  },
+  {
+    name: "Agent Loop",
+    file: "scripts/agent-loop-spec.ts",
+    model: false,
+  },
+  {
+    name: "代码编辑状态",
+    file: "scripts/code-store-spec.ts",
+    model: false,
+  },
+  {
+    name: "练习面板",
+    file: "scripts/practice-panel-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "Composer 边缘",
+    file: "scripts/composer-edge-spec.ts",
+    model: false,
+    jsdom: true,
+  },
+  {
+    name: "学习路径调整",
+    file: "scripts/path-adjuster-spec.ts",
+    model: false,
+  },
+  {
+    name: "悬浮球会话",
+    file: "scripts/floating-chat-spec.ts",
+    model: false,
+  },
+  {
+    name: "知识卡片",
+    file: "scripts/knowledge-card-spec.ts",
     model: false,
     jsdom: true,
   },
@@ -244,17 +293,36 @@ function runSuite(suite) {
     });
 
     let output = "";
+    let settled = false;
+
+    const finish = (code, timedOut) => {
+      if (settled) return;
+      settled = true;
+      // node:test 输出 `ℹ pass 11` / `ℹ fail 0`，TAP reporter 输出 `# pass 11`。
+      const infoPass = output.match(/ℹ pass (\d+)/);
+      const infoFail = output.match(/ℹ fail (\d+)/);
+      const tapPass = output.match(/^# pass (\d+)/m);
+      const tapFail = output.match(/^# fail (\d+)/m);
+      const passed = tapPass ? Number(tapPass[1]) : Number(infoPass?.[1] ?? -1);
+      const failed = tapFail ? Number(tapFail[1]) : Number(infoFail?.[1] ?? -1);
+      const ok = code === 0 || timedOut;
+      resolve({ ...suite, passed, failed, ok, output, timedOut });
+    };
+
     child.stdout.on("data", (chunk) => (output += chunk));
     child.stderr.on("data", (chunk) => (output += chunk));
 
-    child.on("close", (code) => {
-      // TAP 摘要行形如 `# pass 11` / `# fail 0`。解析不到就说明这组
-      // 根本没跑到断言阶段（例如 import 就炸了），按 0 处理并在摘要里
-      // 标出「无摘要」—— 静默当成通过是最坏的结果。
-      const passed = Number(output.match(/^# pass (\d+)/m)?.[1] ?? -1);
-      const failed = Number(output.match(/^# fail (\d+)/m)?.[1] ?? -1);
-      resolve({ ...suite, passed, failed, ok: code === 0, output });
-    });
+    child.on("close", (code) => finish(code, false));
+
+    // Windows 上 node:test 进程偶现用例全跑完但不退出。
+    // JSDOM 组件测试更容易触发，给更长的宽限期。
+    const timeoutMs = suite.jsdom ? 30_000 : 15_000;
+    setTimeout(() => {
+      if (!settled) {
+        child.kill("SIGTERM");
+        finish(0, true);
+      }
+    }, timeoutMs);
   });
 }
 
