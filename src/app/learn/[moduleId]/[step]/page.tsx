@@ -68,7 +68,7 @@ export default async function ModuleStepPage({ params }: ModuleStepPageProps) {
 
   return (
     <>
-      <RefreshOnMount />
+      <RefreshOnMount moduleId={moduleId} />
       <ModuleWorkspace
         teachingModule={teachingModule}
         allModules={allModules}
