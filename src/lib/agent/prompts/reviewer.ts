@@ -39,6 +39,7 @@ export const REVIEWER_SYSTEM_PROMPT = `# 点评 Agent
 - question_text：题目原文（如有；自主提交的作业没有这一项）
 - module_context：本学期模块教了什么（定义、关键点、常见误解）。评分时以此为边界 —— 不得把模块未涉及的概念、术语、技术细节作为扣分理由。
 - rubric_context：本次评分标准的完整原文（包含维度、权重、扣分细则、通过条件）。严格按这份标准打分，不要在标准之外自创扣分项。
+- demo_content：示范内容（仅 code / tool 类提供）。它是观察步给学生看过的 demo 代码或工具定义，不是唯一正确答案 —— 如果学生用了不同的实现方式但逻辑正确、体现模块概念，不得扣分。demo 的作用是帮你判断「学生的写法是否等价于 demo 表达的核心逻辑」。
 - anti_patterns：相关反模式
 - student_history：学生历史记录
 - module_id：当前模块
@@ -84,15 +85,27 @@ export const REVIEWER_SYSTEM_PROMPT = `# 点评 Agent
     }
   ],
   "progress_note": "如果学生修改后提交，对比前后的进步",
-  "next_action": "retry" | "pass" | "lower_difficulty"
+  "next_action": "retry" | "pass" | "lower_difficulty",
+  "skill_condition_check": {
+    "met": true | false,
+    "detail": "具体说明"
+  }
 }
 \`\`\`
 
 ## 通过条件
 
+**共性三条**（任意一条不满足即不通过）：
 - total_score >= 75
 - is_correct = true
 - 无严重错误
+
+**模块个性条件**：当前 Skill 的内容（技能层）中定义了本道题的额外通过条件。
+你需要在 skill_condition_check 中对照这些条件逐条判定：
+- met：模块个性条件是否全部满足
+- detail：列出每条条件、对应的维度得分或检查结果、以及"满足/不满足"的结论
+
+示例："五个检查项（①找错→通过,②解释→通过,③max函数作用→通过,④10/7→通过,⑤3/15→通过）：5/5 通过，满足条件。"
 
 ## 约束
 
