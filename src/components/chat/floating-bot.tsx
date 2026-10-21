@@ -24,6 +24,7 @@ import {
   Check,
   Copy,
   CornerDownLeft,
+  GripVertical,
   History,
   Loader2,
   MessageSquarePlus,
@@ -54,6 +55,8 @@ const SUGGESTED_QUESTIONS = [
 
 type PanelView = "chat" | "history";
 
+const BUBBLE_SIZE = 56;
+
 export function FloatingChatBot() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<PanelView>("chat");
@@ -62,6 +65,58 @@ export function FloatingChatBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
+
+  // --- 拖动 ----
+  const [hydrated, setHydrated] = useState(false);
+
+  const [pos, setPos] = useState(() => {
+    if (typeof window !== "undefined") {
+      return {
+        x: window.innerWidth - BUBBLE_SIZE - 24,
+        y: window.innerHeight - BUBBLE_SIZE - 24,
+      };
+    }
+    return { x: 0, y: 0 };
+  });
+
+  useEffect(() => {
+    setPos({
+      x: window.innerWidth - BUBBLE_SIZE - 24,
+      y: window.innerHeight - BUBBLE_SIZE - 24,
+    });
+    setHydrated(true);
+  }, []);
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, startPosX: 0, startPosY: 0, moved: false });
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    dragRef.current = {
+      dragging: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosX: pos.x,
+      startPosY: pos.y,
+      moved: false,
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [pos]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragRef.current.dragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      dragRef.current.moved = true;
+    }
+    setPos({
+      x: Math.min(Math.max(0, dragRef.current.startPosX + dx), window.innerWidth - BUBBLE_SIZE),
+      y: Math.min(Math.max(0, dragRef.current.startPosY + dy), window.innerHeight - BUBBLE_SIZE),
+    });
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    dragRef.current.dragging = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
 
   const store = useFloatingChatStore;
   const activeSessionId = useFloatingChatStore((s) => s.activeSessionId);
@@ -184,6 +239,7 @@ export function FloatingChatBot() {
   );
 
   const handleOpen = useCallback(() => {
+    if (dragRef.current.moved) return;
     setOpen((prev) => {
       const next = !prev;
       if (next) {
@@ -210,15 +266,21 @@ export function FloatingChatBot() {
         type="button"
         aria-label={open ? "关闭对话" : "打开 AI 对话"}
         onClick={handleOpen}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex size-14 items-center justify-center",
+          "fixed z-50 flex size-14 select-none items-center justify-center",
           "rounded-full border border-input bg-background shadow-lg",
-          "transition-all duration-300 hover:scale-105 hover:shadow-xl",
+          "transition-shadow duration-200 hover:shadow-xl",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "touch-none",
           open && "scale-0 opacity-0 pointer-events-none",
         )}
+        style={hydrated ? { left: pos.x, top: pos.y } : { left: 0, top: 0, visibility: "hidden" }}
       >
-        <Bot className="size-6 text-primary" />
+        <GripVertical className="absolute -top-1 left-1/2 size-3 -translate-x-1/2 text-muted-foreground/30 pointer-events-none" />
+        <Bot className="size-6 text-primary pointer-events-none" />
       </button>
 
       {open && (
@@ -324,12 +386,19 @@ function HistoryView({
               const date = formatDate(session.createdAt);
 
               return (
-                <button
+                <div
                   key={session.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSwitch(session.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSwitch(session.id);
+                    }
+                  }}
                   className={cn(
-                    "w-full px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                    "w-full px-4 py-3 text-left transition-colors hover:bg-muted/50 cursor-pointer",
                     isActive && "bg-muted/30",
                   )}
                 >
@@ -361,7 +430,7 @@ function HistoryView({
                   {isActive && (
                     <div className="mt-1.5 h-0.5 w-8 rounded-full bg-primary/40" />
                   )}
-                </button>
+                </div>
               );
             })}
           </div>

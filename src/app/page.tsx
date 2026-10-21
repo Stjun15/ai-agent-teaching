@@ -132,6 +132,18 @@ export default function HomePage() {
             >
               <Link href="#modules">查看课程大纲</Link>
             </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="border-amber-500/30 bg-amber-50 text-amber-900 shadow-lg shadow-amber-500/10 transition-all hover:border-amber-500/60 hover:bg-amber-100 hover:shadow-xl hover:shadow-amber-500/20 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+              <Link href="/learn/system-prompt/explain">
+                <span className="mr-1.5 text-sm">🏆</span>
+                评委演示
+                <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </Link>
+            </Button>
           </div>
 
           {/* 统计数据 —— 异步加载，先占位 */}

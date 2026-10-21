@@ -112,10 +112,34 @@ export function PlatformReplicaWorkspace({
     }
   }, [teachingModule.id]);
 
+  const loadedPhaseRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 页面挂载时加载 wiki 内容是标准模式
     fetchWikiContent();
   }, [fetchWikiContent]);
+
+  useEffect(() => {
+    if (wikiContent === null) return;
+    const loadPhase = async (phaseIdx: number) => {
+      if (loadedPhaseRef.current.has(phaseIdx)) return;
+      loadedPhaseRef.current = new Set(loadedPhaseRef.current).add(phaseIdx);
+      const phaseId = String(phaseIdx).padStart(2, "0");
+      try {
+        const res = await fetch(
+          `/api/module-content?moduleId=platform-replica-${phaseId}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { content: string };
+        setWikiContent((prev) => `${prev ?? ""}\n\n${data.content}`);
+      } catch {
+        loadedPhaseRef.current.delete(phaseIdx);
+      }
+    };
+
+    for (let i = 0; i <= activePhaseIndex; i++) {
+      loadPhase(i);
+    }
+  }, [activePhaseIndex, wikiContent === null]);
 
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
@@ -242,7 +266,7 @@ export function PlatformReplicaWorkspace({
               className="prose prose-sm dark:prose-invert max-w-none min-w-0 flex-1 overflow-y-auto px-6 py-4 [&_li]:text-[clamp(12px,1.8vw,16px)] [&_p]:text-[clamp(12px,1.8vw,16px)] [&_pre]:text-[clamp(11px,1.6vw,14px)] [&_table]:text-[clamp(11px,1.6vw,14px)]"
               style={{ maxHeight: "60vh" }}
             >
-              <MarkdownView source={wikiContent} />
+              <MarkdownView source={wikiContent ?? ""} />
             </div>
           </CardContent>
         </Card>

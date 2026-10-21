@@ -32,6 +32,7 @@ import {
   rememberStudentId,
 } from "@/lib/client-identity";
 import { useSessionStore } from "@/stores/session";
+import { useFloatingChatStore } from "@/stores/floating-chat";
 
 type Tab = "login" | "register";
 
@@ -106,6 +107,7 @@ export default function AuthPage() {
     browserStorage()?.setItem("ai-teaching:currentUsername", username);
     // 清空前一个身份的对话缓存，避免账号切换后看到旧对话
     useSessionStore.getState().reset();
+    useFloatingChatStore.getState().reset();
     // 直接读 URL 参数（不依赖 React 钩子，useEffect 在 Turbopack 下不触发）
     const redirect = readRedirectDestination();
     const dest = redirect ?? "/";
@@ -202,6 +204,7 @@ export default function AuthPage() {
     browserStorage()?.removeItem?.("ai-teaching:currentUsername");
     // 清空对话缓存，退出后不再显示前一个身份的对话
     useSessionStore.getState().reset();
+    useFloatingChatStore.getState().reset();
     window.location.href = "/";
   }
 

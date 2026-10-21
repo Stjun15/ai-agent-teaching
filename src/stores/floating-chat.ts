@@ -11,7 +11,9 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, type PersistStorage } from "zustand/middleware";
+
+import { currentStudentId } from "@/lib/client-identity";
 
 export interface FloatingMessage {
   id: string;
@@ -47,6 +49,7 @@ export interface FloatingChatState {
   completeTurn: (messageId: string) => void;
   failTurn: (errorMessage: string) => void;
   abortTurn: () => void;
+  reset: () => void;
 }
 
 function newId(): string {
@@ -308,10 +311,46 @@ export const useFloatingChatStore = create<FloatingChatState>()(
             return { status: "idle" as const };
           });
         },
+
+        reset: () =>
+          set({
+            sessions: {},
+            sessionOrder: [],
+            activeSessionId: null,
+            status: "idle",
+            errorMessage: null,
+          }),
       };
     },
     {
       name: "ai-teaching:floating-chat",
+      storage: {
+        getItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            const raw = localStorage.getItem(key);
+            return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch {
+            // silently ignore
+          }
+        },
+        removeItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.removeItem(key);
+          } catch {
+            // silently ignore
+          }
+        },
+      } as PersistStorage<FloatingChatState>,
       partialize: (state) => ({
         sessions: settleSessions(state.sessions),
         sessionOrder: state.sessionOrder,
