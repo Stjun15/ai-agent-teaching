@@ -8,16 +8,23 @@
  *
  * 这个端点把「学生交作业 → 点评 → 判定是否通过」暴露成 HTTP 接口。
  * 返回的是**点评结果 + 编排层判定**（success / nextAction），而不仅仅是
- * 模型原样输出 —— 通过线是代码里写死的三条硬条件（见 validation-loop 的
+ * 模型原样输出 —— 通过线是代码里写死的硬条件（见 validation-loop 的
  * `isPassing`），不依赖模型措辞，避免「其实没过却被判过」。
  *
- * attemptNumber 取自哪
- * -------------------
- * ValidateSchema 没有这个字段（只给 taskType / content / moduleId）。
- * 编排层的 retry / lower_difficulty 决策依赖它，但「这是第几次提交」是会话
- * 状态，不该由客户端自报（学生可以随便填 1）。这里统一按 1 处理：
- * 真正的尝试计数由教学状态机在跨请求时维护，单端点调用视为「首次提交」。
- * 等教学状态机接入后，这里改为从会话状态读。
+ * attemptNumber 取自哪（2026-10-21 修正）
+ * ----------------------------------
+ * 此前硬编码为 1（注释说"等教学状态机接入后改"）。现在改从当前会话的
+ * 校验结果记录数反推：listBySession 的 length 就是历史提交次数，
+ * 当前提交的 attemptNumber = length + 1。会话重置 = 计数归零，
+ * 与 reviewer prompt「连续 3 次未通过 → 降难度」的语义一致。
+ *
+ * questionText 来自哪（2026-10-21 修正）
+ * -----------------------------------
+ * 此前只在复刻模块注入题面（`readPracticeTask` 仅对 platform-replica 调用）。
+ * 普通模块的 reviewer 收不到题面 → rubric 扣分规则里的"核对题面要求了什么
+ * 产出"条款不起作用 → 实测会把「答自己组织语言」误判成跑题。
+ * 现在对所有模块调用 readPracticeTask：概念页有「实践任务」节时注入题面，
+ * 没有时传 undefined（reviewer prompt 的诚实条款会让它按通用 rubric 评）。
  *
  * 副作用（都是「点评之后」的记录，写入裁定见各仓库文件头）
  * ----
@@ -47,8 +54,7 @@ import { analyzePath, writeAdjustments } from "@/lib/agent/path-adjuster";
 import { findModule } from "@/lib/modules";
 import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runValidationLoop } from "@/lib/agent/orchestrator/validation-loop";
-import { REPLICA_ACCEPTANCE_MODULE } from "@/lib/agent/skills/module-rubric";
-import { readPracticeTask } from "@/lib/teaching-script";
+import { readPracticeTask, readDemoContent } from "@/lib/teaching-script";
 import { ValidateSchema, type ValidateInput } from "@/schemas";
 
 export const runtime = "nodejs";
@@ -93,13 +99,25 @@ export async function POST(request: Request): Promise<Response> {
       return jsonError("NOT_FOUND", `模块 ${body.moduleId} 不存在。`);
     }
 
-    // 复刻模块的最终交付：题面 = 概念页「动手任务：最终验收」的七条清单
-    // （wiki 唯一事实源，现读）。点评 Agent 收到题面后按清单组织检验单；
-    // 读不到（页面缺失）就传 undefined，rubric 追加段里的诚实条款会让它
-    // 按通用维度评并注明「未取得验收清单」，不装作评过清单。
-    const questionText =
-      body.moduleId === REPLICA_ACCEPTANCE_MODULE
-        ? readPracticeTask(body.moduleId) || undefined
+    // 题面：从概念页「实践任务」节现读（wiki 唯一事实源）。
+    // 所有模块均尝试读取 —— 有则注入题面供 reviewer 按清单评分，
+    // 无则传 undefined（reviewer prompt 的诚实条款会注明"未取得题面"）。
+    const taskText = readPracticeTask(body.moduleId);
+    const questionText = taskText || undefined;
+
+    // 尝试次数：从当前会话的校验结果记录数反推。
+    // 会话 = 一次连续的学习过程，同一题在同一会话里的第 N 次提交
+    // 就是第 N 次尝试。会话重置 → 计数归零，与 reviewer prompt
+    // 「连续 3 次未通过 → 降难度」的语义一致。
+    const existingResults = await validationResultDb.listBySession(body.sessionId);
+    const attemptNumber = existingResults.length + 1;
+
+    // 示范代码：code / tool 类任务注入 demo（来自概念页"示范代码"节）。
+    // 让 reviewer 有参考答案可对照，而不是仅靠 module_context 盲评。
+    // qa 类不注入（逐字比对会破坏"用自己的话"的教学目标）。
+    const demoText =
+      body.taskType === "code" || body.taskType === "tool"
+        ? readDemoContent(body.moduleId) || undefined
         : undefined;
 
     const result = await runValidationLoop({
@@ -108,7 +126,8 @@ export async function POST(request: Request): Promise<Response> {
       moduleId: body.moduleId,
       conceptId: body.moduleId,
       ...(questionText === undefined ? {} : { questionText }),
-      attemptNumber: 1,
+      ...(demoText === undefined ? {} : { demoContent: demoText }),
+      attemptNumber,
       trace: { studentId: auth.student.id, sessionId: body.sessionId },
     });
 
@@ -154,7 +173,7 @@ export async function POST(request: Request): Promise<Response> {
             relatedAntiPattern: i.related_anti_pattern,
           })),
           suggestions: review.suggestions.map((s) => s.action),
-          attemptNumber: 1,
+          attemptNumber,
           isPassed: result.success,
         });
       } catch (dbError) {

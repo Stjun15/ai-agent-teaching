@@ -21,7 +21,9 @@ export async function getOrCreateHandle(
   sessionId: string,
   options: Omit<CreateSessionOptions, "onEvent" | "signal">,
   onEvent: (event: AgentSessionEvent) => void,
+  _createSession?: (opts: Omit<CreateSessionOptions, "onEvent" | "signal">) => Promise<AgentSessionHandle>,
 ): Promise<AgentSessionHandle> {
+  const factory = _createSession ?? createSession;
   const toolDigest = [...(options.tools ?? [])].sort().join(",");
   const existing = pool.get(sessionId);
 
@@ -41,7 +43,7 @@ export async function getOrCreateHandle(
     existing.handle.dispose();
   }
 
-  const handle = await createSession({
+  const handle = await factory({
     ...options,
     onEvent: undefined,
     signal: undefined,
@@ -69,6 +71,30 @@ export function evictSession(sessionId: string): void {
 
 export function poolSize(): number {
   return pool.size;
+}
+
+/** 清空会话池。仅用于测试与诊断。 */
+export function resetPool(): void {
+  for (const entry of pool.values()) {
+    entry.unsubscribe?.();
+    entry.handle.dispose();
+  }
+  pool.clear();
+}
+
+/** 池中有条目则返回其 systemPrompt 与 tools 摘要。仅用于测试。 */
+export function dumpPool(): Array<{
+  sessionId: string;
+  systemPrompt: string;
+  toolNames: string;
+  lastUsed: number;
+}> {
+  return Array.from(pool.entries()).map(([id, e]) => ({
+    sessionId: id,
+    systemPrompt: e.systemPrompt,
+    toolNames: e.toolNames,
+    lastUsed: e.lastUsed,
+  }));
 }
 
 const cleanupTimer = setInterval(() => {

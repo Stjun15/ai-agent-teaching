@@ -62,6 +62,10 @@ export function reviewerFallback(reason: string): ReviewerOutput {
     ],
     progress_note: FALLBACK_NOTE,
     next_action: "retry",
+    skill_condition_check: {
+      met: false,
+      detail: "兜底输出，未执行真实评分",
+    },
   };
 }
 
