@@ -59,6 +59,7 @@ const QA_TASK_MODULES = new Set([
   "agent-loop",
   "ai-safety",
   "rag",
+  "vibe-coding",
 ]);
 
 /** 概念页正文里承载「一句话定义」的小节标题（见 `wiki-schema.md` 概念页模板）。 */
@@ -237,7 +238,13 @@ function sortByPrerequisites(pages: WikiPage[]): WikiPage[] {
 /** 读取全部概念页并组装成教学模块列表（按依赖顺序）。 */
 export const loadModules = cache(async (): Promise<TeachingModule[]> => {
   const pages = await listPages();
-  const concepts = pages.filter((page) => page.type === "concept");
+  const concepts = pages
+    .filter((page) => page.type === "concept")
+    .filter(
+      (page) =>
+        typeof page.frontmatter.id === "string" &&
+        page.frontmatter.id.length > 0,
+    );
 
   let regularNo = 0;
   return sortByPrerequisites(concepts).map((page, order) => {
