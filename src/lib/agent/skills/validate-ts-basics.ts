@@ -1,0 +1,73 @@
+/**
+ * Skill: 校验 TypeScript 基础
+ *
+ * ts-basics 模块的动手环节点评。
+ * 学生提交的是纯文本回答：找出代码错误 + 解释 + 读函数输出结果。
+ * 维度来自 rubric_context；本 Skill 提供该道题专属的执行步骤和通过条件。
+ */
+
+import type { SkillDefinition } from "../types";
+
+export const VALIDATE_TS_BASICS_SKILL: SkillDefinition = {
+  id: "validate-ts-basics",
+  label: "校验 TypeScript 基础",
+  content: [
+    "# Skill: 校验 TypeScript 基础",
+    "",
+    "## 触发条件",
+    "",
+    "学生提交 ts-basics 模块的动手作业。",
+    "",
+    "## 这道题要做什么",
+    "",
+    "学生拿到两段代码：",
+    "",
+    "第一段——找错：",
+    "```typescript",
+    "const name: string = 123;",
+    "if (name === \"小明\") { console.log(\"你好\"); }",
+    "```",
+    "",
+    "第二段——读代码说行为：",
+    "```typescript",
+    "function max(a: number, b: number): number {",
+    "  if (a > b) { return a; }",
+    "  return b;",
+    "}",
+    "max(10, 7);",
+    "max(3, 15);",
+    "```",
+    "",
+    "## 执行步骤",
+    "",
+    "1. 阅读 rubric_context（评分标准的完整原文）。维度、权重、扣分细则、通过条件均以此为准。",
+    "2. 对第一段代码——逐项检查 student_answer 是否：",
+    "   - 指出了 const name: string = 123 这个错误（数字不能赋给 string）",
+    "   - 解释了对为什么错——类型注解承诺了 string 但实际给了 number",
+    "3. 对第二段代码——逐项检查 student_answer 是否：",
+    "   - 说对了 max 函数的作用：接收两个数字参数，返回较大的那个",
+    "   - 说对了 max(10, 7) 返回 10",
+    "   - 说对了 max(3, 15) 返回 15",
+    "4. 如果学生额外提到了\"相等时返回 b\"——这是加分项，不是必须。",
+    "5. 按 rubric_context 逐维度打分，扣分依据引用 rubric_context 中的具体规则。",
+    "6. 生成 issues 和 suggestions。",
+    "7. 计算 total_score，判定 is_correct。",
+    "",
+    "## 通过条件（本模块专用）",
+    "",
+    "以下条件全部满足才判 is_correct = true：",
+    "",
+    "- total_score >= 75",
+    "- 理解准确度维度得分 >= 该维度权重分的 60%",
+    "- 五个检查项至少正确解释四个（找错 x1 + max 函数解释 + 两个调用结果）",
+    "",
+    "## skill_condition_check",
+    "",
+    "请显式判定上一节的通过条件，输出：",
+    "",
+    "- met：是否满足「五个检查项至少正确解释四个」",
+    "- detail：列出五个检查项各自的通过/不通过状态，最后给出结论。",
+    "",
+    '示例："五个检查项（①找错→通过,②解释→通过,③max函数作用→通过,④10/7→通过,⑤3/15→通过）：5/5 通过，满足条件。"',
+  ].join("\n"),
+};
