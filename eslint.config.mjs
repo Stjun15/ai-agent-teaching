@@ -14,6 +14,8 @@ export default defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Vitest 覆盖率产物（不入库）。HTML 报告里的内联 JS 会被当成源码扫。
+    "coverage/**",
     "next-env.d.ts",
     "_backup/**",
     "_day0_test/**",

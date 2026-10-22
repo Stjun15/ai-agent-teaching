@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: ["dev", "main"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 暂不把 eslint / tsc 放进 CI：仓库里有 10 个历史 eslint error（React
+      # hooks 规则）与 50 个类型错误，先让流水线守住「新增测试必须绿」，
+      # 修完历史问题后再补静态门禁（见 docs/handover.md §12）。
+      - name: 标准测试框架（Vitest + 覆盖率）
+        run: pnpm test:coverage
