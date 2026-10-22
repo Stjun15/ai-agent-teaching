@@ -13,12 +13,7 @@ import {
   PROMPT_SCORE_MAX,
   masteryToPercent,
 } from "@/lib/scores";
-import {
-  SUB_ABILITY_KEYS,
-  SUB_ABILITY_LABELS,
-  type PathAdjustment,
-  type ReportResponse,
-} from "@/schemas";
+import type { PathAdjustment, ReportResponse } from "@/schemas";
 import {
   AlertTriangle,
   ArrowRight,
@@ -55,10 +50,9 @@ const TrendChart = dynamic(
 export function ReportSections({ report }: { report: ReportResponse }) {
   const hasMastery = report.masteryTrend.length > 0;
   const masteryPercent = masteryToPercent(report.overview.averageMastery);
-  // 六项子能力当前是占位（接口用总体平均分填的）。全等就说明它是占位数据 ——
-  // 不说出来的话，「六项一模一样」看起来像一个测出来的结论。
-  const subAbilityPlaceholder =
-    new Set(SUB_ABILITY_KEYS.map((key) => report.subAbilities[key])).size === 1;
+  const measuredAbilities = report.subAbilityEvidence.filter(
+    (ability) => ability.score !== null,
+  ).length;
 
   return (
     <div className="flex flex-col gap-8">
@@ -96,33 +90,38 @@ export function ReportSections({ report }: { report: ReportResponse }) {
 
       {/* ---------- 子能力 ---------- */}
       <section aria-label="子能力">
-        <h2 className="text-sm font-semibold">六项子能力</h2>
-        {subAbilityPlaceholder ? (
-          /* 占位时不画六根一模一样的进度条 —— 那看起来像一个测出来的结论，
-             实际是同一个数字复制了六遍。改成一句话 + 指向下面的真实维度。 */
-          <p className="mt-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-            这六项目前还没有分项建模：掌握度表是「概念 → 分数」，不是「能力 →
-            分数」。所以这里不画六根进度条 —— 画出来只会是同一个数字复制六遍，
-            看起来像测出来的结论。下面「评分维度」是真实数据。
-          </p>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {SUB_ABILITY_KEYS.map((key) => (
-              <li key={key} className="flex items-center gap-3">
-                <span className="w-32 shrink-0 text-xs">
-                  {SUB_ABILITY_LABELS[key]}
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-sm font-semibold">六项子能力</h2>
+          <span className="text-[11px] text-muted-foreground">
+            由对应教学模块的真实掌握度聚合，{measuredAbilities} / 6 项有证据
+          </span>
+        </div>
+        <ul className="mt-3 flex flex-col gap-2">
+          {report.subAbilityEvidence.map((ability) => (
+            <li key={ability.key} className="flex items-center gap-3">
+              <span className="w-32 shrink-0 text-xs">{ability.label}</span>
+              {ability.score === null ? (
+                <span className="flex-1 text-[11px] leading-relaxed text-muted-foreground">
+                  未测评 —— 学完 {ability.modules.join(" / ")}{" "}
+                  中任意一讲并留下掌握度记录后出现
                 </span>
-                <Progress
-                  value={masteryToPercent(report.subAbilities[key])}
-                  label={`${SUB_ABILITY_LABELS[key]} ${report.subAbilities[key]} / ${MASTERY_MAX_SCORE}`}
-                />
-                <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                  {report.subAbilities[key]}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+              ) : (
+                <>
+                  <Progress
+                    value={masteryToPercent(ability.score)}
+                    label={`${ability.label} ${ability.score} / ${MASTERY_MAX_SCORE}`}
+                  />
+                  <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                    {ability.score}
+                  </span>
+                  <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
+                    {ability.samples} 条
+                  </span>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* ---------- 评分维度（真实） ---------- */}
