@@ -212,13 +212,22 @@ export async function POST(req: Request) {
 
 #### 验收
 
+> 🤖 **Agent 自查**：不用贴 prompt——给你的 Agent 装一个校验工具。打开右侧「工具箱 → Agent 自查」，按步骤把 `check_agent_loop` 工具的 Schema 和执行函数装到你的 Agent 里。装好后在对话框说「检查 Agent Loop」，Agent 自己审查自己的循环结构和 tool_calls 逻辑。
+
+**🔍 自助验证：**
+
 ```bash
-curl -X POST http://localhost:3000/api/chat \
+# ① Agent Loop + 出题工具
+curl -s -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"content":"给我讲讲什么是 System Prompt，讲完出两道选择题"}'
+# → 预期：AI 先讲概念，然后两道选择题（选项 + 答案 + 解析）
+
+# ② 看服务端日志
+# → 终端里应该能看到：模型请求工具 → 工具被执行 → 结果喂回 → 模型继续讲
 ```
 
-预期结果：
+**预期结果：**
 
 - [ ] AI 先讲清楚概念（类比 + 定义 + 例子）
 - [ ] 结尾有两道选择题，带选项和答案

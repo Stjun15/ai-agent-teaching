@@ -582,7 +582,9 @@ export async function POST(req: Request) {
 
 #### 验收
 
-**验证知识点注入 + 向量索引 + 数据库 + 引用：**
+> 🤖 **Agent 自查**：不用贴 prompt——给你的 Agent 装一个校验工具。打开右侧「工具箱 → Agent 自查」，按步骤把 `check_knowledge` 工具的 Schema 和执行函数装到你的 Agent 里。装好后在对话框说「检查知识引擎」，Agent 自动扫描 RAG/向量/检索/citation/数据库。
+
+**🔍 自助验证：知识点注入 + 向量索引 + 数据库 + 引用：**
 
 ```bash
 # ① 验证数据库能读写

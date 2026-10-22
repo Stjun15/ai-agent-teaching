@@ -194,6 +194,30 @@ export default function SettingsPage() {
 
 #### 验收
 
+> 🤖 **Agent 自查**：不用贴 prompt——给你的 Agent 装一个校验工具。打开右侧「工具箱 → Agent 自查」，按步骤把 `check_pages` 工具的 Schema 和执行函数装到你的 Agent 里。装好后在对话框说「检查页面」，Agent 自动扫描四大页面路由。
+
+**🔍 自助验证：浏览器手动走通四大页面：**
+
+```bash
+# ① 首页
+curl -s http://localhost:3000 | grep -o "开始学习\|查看报告\|教学平台"
+# → 预期：输出包含 "开始学习" 和 "查看报告"
+
+# ② 学习中心（模块列表）
+curl -s http://localhost:3000/learn | grep -o "LLM\|Agent"
+# → 预期：输出包含模块名称（如 "LLM"、"Agent"）
+
+# ③ 工作区（概念区 + 聊天区）
+curl -s http://localhost:3000/learn/llm-api | head -c 200
+# → 预期：返回 HTML（非 404），包含页面结构
+
+# ④ 设置页
+curl -s http://localhost:3000/settings | head -c 200
+# → 预期：返回 HTML（非 404）
+```
+
+**预期结果：**
+
 - [ ] 浏览器访问 `/` → 看到首页，有「开始学习」和「查看报告」两个入口
 - [ ] 点击「开始学习」→ 跳转到 `/learn`，看到 11 个模块卡片
 - [ ] 点击任意模块 → 跳转到 `/learn/llm-api`（或对应模块），看到左侧概念区 + 右侧聊天区

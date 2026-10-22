@@ -361,15 +361,28 @@ export default function Home() {
 
 #### 验收
 
-在终端运行（**另开一个终端窗口**，不要关掉 `npm run dev` 那个）：
+> 🤖 **自查脚本**：打开右侧「工具箱 → 自查脚本」，看到一段 TypeScript 脚本。复制整段代码，粘贴到 `teaching-platform/` 目录下新建的 `check-chat.ts` 文件中。然后在终端运行 `npx tsx check-chat.ts`——它会自动读取你的 `route.ts` 和 `chat-panel.tsx`，用 14 个正则模式检查 SSE 流式、打字机、System Prompt 和 API Key 配置。你还没到 Agent Loop 阶段（那是第二斧的事），这段脚本你自己在终端里跑。
+
+**🔍 自助验证：在终端运行（新开终端，不要关 `npm run dev` 那个）：**
 
 ```bash
-curl -X POST http://localhost:3000/api/chat \
+# ① SSE 流式对话
+curl -s -N -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"content":"你好，请介绍一下你自己"}'
+# → 预期：一行行 "data:" 开头的 SSE 流，AI 以教学导师身份回复
+
+# ② System Prompt 约束（问无关话题，应被拒绝或纠正）
+curl -s -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"content":"帮我写一封辞职信"}'
+# → 预期：AI 拒绝或纠正回教学话题
+
+# ③ 前端手动验证
+# → 浏览器打开 http://localhost:3000，输入消息，看是否有打字机逐字效果
 ```
 
-预期结果：
+**预期结果：**
 
 - [ ] HTTP 状态码 200
 - [ ] 返回的是 SSE 流式数据（一行一行的 `data: {...}`）

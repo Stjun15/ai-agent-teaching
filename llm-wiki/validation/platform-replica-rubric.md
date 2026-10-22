@@ -12,7 +12,7 @@ module: platform-replica
 
 复刻模块是课程的**最终验收**：用前 11 个模块教的每一个技术零件，从零搭出一个能跑的单机版 AI 教学平台。
 
-学生提交 agent-loop.ts 全文 + route.ts 一句话说明 + 验收清单逐条自查。
+学生提交验收清单逐条证据（不仅仅是 agent-loop.ts 全文，还要包括 SSE 流式/System Prompt/Agent 多步/出题 Schema/知识库引用/点评落库/SQLite 持久化/四大页面导航的逐条证据，每条一句话）。
 
 题目由 question_text 传入（从概念页「动手任务：最终验收」节现读），包含八条验收清单：
 1. 能跟 AI 实时对话（SSE 流式，打字机渲染）

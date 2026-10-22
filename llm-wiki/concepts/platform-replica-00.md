@@ -110,10 +110,39 @@ npm run dev
 
 #### 验收
 
-- [ ] 终端敲 `node --version` 输出版本号 ≥ v22.5
-- [ ] 终端敲 `git --version` 输出版本号（任意 2.x）
-- [ ] `npx create-next-app teaching-platform` 成功创建了项目文件夹
-- [ ] `npm run dev` 启动后，浏览器打开 `localhost:3000` 能看到 Next.js 欢迎页
+> 🤖 **自查脚本**：打开右侧「工具箱 → 自查脚本」，看到一段 TypeScript 脚本。复制整段代码，粘贴到 `teaching-platform/` 目录下新建的 `check-startup.ts` 文件中。然后在终端运行 `npx tsx check-startup.ts`——它会自动扫描 Node 版本、Git 版本、项目目录、.env.local 和 Git 存档，逐项输出 ✓/✗。你还没到 Agent Loop 阶段（那是第二斧的事），这段脚本你自己在终端里跑。
+
+**🔍 自助验证：在终端逐条跑：**
+
+```bash
+# ① Node 版本
+node --version
+# → 预期：v22.5.0 或更高
+
+# ② Git 版本
+git --version
+# → 预期：git version 2.x.x
+
+# ③ 项目目录
+ls teaching-platform/package.json
+# → 预期：文件存在（无报错）
+
+# ④ Next.js 启动
+cd teaching-platform && npm run dev
+# → 浏览器打开 http://localhost:3000，看到 Next.js 欢迎页
+
+# ⑤ Git 存档
+cd teaching-platform && git log --oneline
+# → 预期：至少 1 条 commit（"空项目跑通"）
+```
+
+**预期结果：**
+
+- [ ] Node ≥ v22.5
+- [ ] Git ≥ 2.x
+- [ ] `teaching-platform/` 项目目录已创建
+- [ ] `npm run dev` → `localhost:3000` 能看到 Next.js 欢迎页
+- [ ] Git 已 `init`，第一条 commit 已完成
 
 #### 常见问题排查
 
