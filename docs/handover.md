@@ -316,8 +316,8 @@ Skill 机制的作用：在回答学生问题时，先判定问题属于哪个�
 | 测试文件数 | 60+ 个 `*-spec.ts` / `*-spec.mjs` |
 | 运行时框架 | `node:test` + `node:assert/strict` |
 | 运行时通过率 | ✅ 全部通过（纯函数秒级，真模型依赖 ARK_API_KEY） |
-| TypeScript 类型检查 | ❌ 57 个类型错误（见 §12 已知问题） |
-| 标准测试框架 | ✅ Vitest 5 已落地最小闭环：`tests/` 8 个用例 + `pnpm test:unit` / `test:coverage`；旧 `node:test` 并存不迁 |
+| TypeScript 类型检查 | ❌ 54 个类型错误（见 §12 已知问题） |
+| 标准测试框架 | ✅ Vitest 5 已落地最小闭环：`tests/` 7 个文件 26 个用例 + `pnpm test:unit` / `test:coverage`；旧 `node:test` 并存不迁 |
 
 ### 10.2 运行方式
 
@@ -366,10 +366,10 @@ pnpm vitest run                    # Vitest 入口（新）
 | `package.json` → `vitest ^5.0.5` | 测试框架 |
 | `package.json` → `@vitejs/plugin-react ^6.1.2` | JSX 支持 |
 | `package.json` → `@vitest/coverage-v8 ^5.0.5` | 覆盖率 |
-| `tests/` | 8 个标准用例文件（分数/安全/鉴权/维度聚合/Agent 输出校验/子能力/MCP 端到端） |
-| `.github/workflows/ci.yml` | CI：eslint + prettier + `pnpm test:unit` |
+| `tests/` | 7 个标准用例文件（分数/安全/鉴权/维度聚合/Agent 输出校验/子能力/MCP 端到端，26 个用例） |
+| `.github/workflows/ci.yml` | CI：`pnpm test:coverage`（Vitest + V8 覆盖率；暂不含 eslint/tsc） |
 
-**当前状态**：`scripts/` 下 57 个 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。⚠️ CI 暂不跑 `tsc` / `pnpm build`：已知的 57 个类型错误会让流水线假红，先修类型错误再补这两步。
+**当前状态**：`scripts/` 下 57 个 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。⚠️ CI 暂不跑 `tsc` / `pnpm build`：已知的 54 个类型错误会让流水线假红，先修类型错误再补这两步。
 
 ### 11.3 大赛技术文档
 
@@ -383,8 +383,8 @@ pnpm vitest run                    # Vitest 入口（新）
 
 | # | 问题 | 详情 | 验证命令 |
 |---|------|------|----------|
-| 1 | **57 个 TypeScript 类型错误** | `scripts/` 中 17 个测试文件有类型错误（类型漂移：`"python"` vs `"typescript"`、`ValidationResult` 缺少字段、未使用变量等）。运行时全部通过，但 tsc 门禁报红。 | `pnpm typecheck` |
-| 2 | ~~**无 CI 流水线**~~（2026-10-23 已补 `/.github/workflows/ci.yml`：eslint + prettier + `pnpm test:unit`） | 因未修的 57 个类型错误，CI 暂不跑 `tsc` / build | `gh run list` |
+| 1 | **54 个 TypeScript 类型错误** | `scripts/` 中 15 个测试文件有类型错误（类型漂移：`"python"` vs `"typescript"`、`ValidationResult` 缺少字段、未使用变量等），另有 4 个组件/store 的未使用导入与泛型不匹配。运行时全部通过，但 tsc 门禁报红。 | `pnpm typecheck` |
+| 2 | ~~**无 CI 流水线**~~（2026-10-23 已补 `/.github/workflows/ci.yml`：跑 `pnpm test:coverage`） | 因未修的 54 个类型错误 + 10 个 eslint error，CI 暂不跑 eslint / `tsc` / build | `gh run list` |
 | 3 | **Windows 会话池测试进程不退出** | `node:test` 跑完后 CPU 不释放，`run-tests.mjs` 已加 15s 超时兜底 kill | `pnpm test` |
 
 ### 🟡 警告级

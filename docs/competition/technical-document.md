@@ -471,15 +471,15 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### 6.1 质量门禁
 
-四级门禁，全绿通过：
+四级门禁（tsc 尚有历史类型错误，未绿；其余已绿）：
 
 | 级别 | 命令 | 当前结果 |
 |---|---|---|
-| TypeScript | `tsc --noEmit` | 50 个类型错误，集中在 `scripts/` 测试的类型漂移与 3 个组件的未使用导入；运行时测试全绿，修复工作已列入 HANDOVER §12 |
+| TypeScript | `tsc --noEmit` | 54 个类型错误，集中在 `scripts/` 测试的类型漂移与 4 个组件/store 的未使用导入；运行时测试全绿，修复工作已列入 HANDOVER §12 |
 | ESLint | `eslint` | 7条warning(历史遗留，非阻塞) |
 | Prettier | `prettier --check .` | **全部通过** |
 | 全量测试 | `node scripts/run-tests.mjs` | **57 组全绿** (含3组真模型) |
-| 标准测试框架 | `pnpm test:unit`（Vitest） | **8 个用例文件全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
+| 标准测试框架 | `pnpm test:unit`（Vitest） | **7 个用例文件 / 26 条用例全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
 
 组合命令：`pnpm check` = eslint + prettier + tsc。
 
