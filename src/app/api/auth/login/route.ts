@@ -8,6 +8,7 @@ import { z } from "zod";
 import { jsonError } from "@/lib/api-error";
 import { createToken, verifyPassword } from "@/lib/auth";
 import { studentDb } from "@/lib/db";
+import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,11 @@ const LoginSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  // 先限流再解析请求体：解析不消耗数据库资源，但统一放在最前面才能让
+  // 「爆破脚本连请求体都不改」也计入窗口。
+  const limited = enforceRateLimit(clientKeyFrom(request), "auth-login");
+  if (limited) return limited;
+
   let raw: unknown;
   try {
     raw = await request.json();

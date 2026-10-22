@@ -48,10 +48,14 @@ export const RATE_LIMIT_RULES = {
   answer: { limit: 20, windowMs: 60_000 },
   "answer-grade": { limit: 40, windowMs: 60_000 },
   // 课程审计评估代理（/api/audit/evaluate，本地审计工具用）。
-  "audit": { limit: 20, windowMs: 60_000 },
+  audit: { limit: 20, windowMs: 60_000 },
   // 触发课程审计（/api/audit 的 POST）。额度刻意压得比 audit 低：
   // 一次审计要扫全 wiki + 全部讲稿缓存，是重活，不是轻量查询。
   "curriculum-audit": { limit: 5, windowMs: 120_000 },
+  // 认证端点：按客户端 IP 计数，防口令爆破。登录 10 次/分钟对真人够宽，
+  // 对脚本字典攻击足够慢；注册更紧（20 次/小时），挡住批量造号。
+  "auth-login": { limit: 10, windowMs: 60_000 },
+  "auth-register": { limit: 20, windowMs: 60 * 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof RATE_LIMIT_RULES;

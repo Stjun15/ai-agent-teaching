@@ -9,6 +9,7 @@ import { z } from "zod";
 import { jsonError } from "@/lib/api-error";
 import { createToken, hashPassword } from "@/lib/auth";
 import { studentDb } from "@/lib/db";
+import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,9 @@ const RegisterSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<Response> {
+  const limited = enforceRateLimit(clientKeyFrom(request), "auth-register");
+  if (limited) return limited;
+
   let raw: unknown;
   try {
     raw = await request.json();
