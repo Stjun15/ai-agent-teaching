@@ -19,12 +19,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChatPanel } from "@/components/chat/chat-panel";
-import { Composer } from "@/components/chat/composer";
 import { MarkdownView } from "@/components/chat/markdown-view";
 
-import { ValidateSubmit } from "@/components/code/validate-submit";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import { ReplicaToolbox } from "@/components/learn/replica-toolbox";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
 
 import {
@@ -43,8 +41,6 @@ export function PlatformReplicaWorkspace({
 }) {
   const { phaseIndex: activePhaseIndex, setPhaseIndex: setActivePhaseIndex } =
     useReplicaPhase(REPLICA_PHASES.length);
-  const [chatOpen, setChatOpen] = useState(false);
-
   const [wikiContent, setWikiContent] = useState<string | null>(null);
   const [wikiLoading, setWikiLoading] = useState(true);
   const [wikiError, setWikiError] = useState<string | null>(null);
@@ -147,8 +143,6 @@ export function PlatformReplicaWorkspace({
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
   );
   const phase = REPLICA_PHASES[activePhaseIndex];
-  // 导师的「位置感」：随每条消息告诉导师学生停在哪一阶段（见 Composer → /api/chat）。
-  const phaseContext = `阶段 ${phase.index + 1}/${REPLICA_PHASES.length}「${phase.title}」——本阶段目标：${phase.goal}`;
 
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
@@ -195,6 +189,107 @@ export function PlatformReplicaWorkspace({
         <b>你自己的项目</b>
         里。这个页面是你的任务卡、验收速查和导师——卡住了随时问。
       </p>
+
+      {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <nav aria-label="搭建阶段" className="flex flex-col gap-1">
+          {REPLICA_PHASES.map((p, i) => {
+            const isActive = i === activePhaseIndex;
+            const isDone = i < activePhaseIndex;
+            const isLast = i === REPLICA_PHASES.length - 1;
+
+            return (
+              <div key={p.index} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  {isDone ? (
+                    <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
+                  ) : isActive ? (
+                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                      {i + 1}
+                    </div>
+                  ) : (
+                    <Circle className="size-5 shrink-0 text-muted-foreground/40" />
+                  )}
+                  {!isLast ? (
+                    <div
+                      className={
+                        isDone
+                          ? "my-0.5 w-px flex-1 bg-emerald-500/30"
+                          : "my-0.5 w-px flex-1 bg-muted"
+                      }
+                    />
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActivePhaseIndex(i)}
+                  className={
+                    "flex-1 pb-5 text-left text-sm transition-colors " +
+                    (isActive
+                      ? "font-semibold text-foreground"
+                      : isDone
+                        ? "text-muted-foreground hover:text-foreground"
+                        : "text-muted-foreground/60 hover:text-muted-foreground")
+                  }
+                >
+                  <div>{p.title}</div>
+                  <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
+                    {isDone
+                      ? "已完成"
+                      : p.goal.length > 28
+                        ? p.goal.slice(0, 28) + "..."
+                        : p.goal}
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="flex flex-col gap-4">
+          {phase ? (
+            <PhaseDetailCard phase={phase} />
+          ) : (
+            <p className="text-sm text-muted-foreground">阶段数据缺失</p>
+          )}
+
+          {/* ---- 工具箱：验收脚本 / Skill 自查 / 交付与检验单 ---- */}
+          <ReplicaToolbox
+            phase={phase!}
+            moduleId={teachingModule.id}
+          />
+
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={activePhaseIndex === 0}
+              onClick={() =>
+                setActivePhaseIndex(Math.max(0, activePhaseIndex - 1))
+              }
+            >
+              上一阶段
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {activePhaseIndex + 1} / {REPLICA_PHASES.length}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={activePhaseIndex === REPLICA_PHASES.length - 1}
+              onClick={() =>
+                setActivePhaseIndex(
+                  Math.min(REPLICA_PHASES.length - 1, activePhaseIndex + 1),
+                )
+              }
+            >
+              下一阶段
+              <ArrowRight className="ml-1.5 size-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* ---- 教案 ---- */}
       {wikiLoading ? (
@@ -273,153 +368,6 @@ export function PlatformReplicaWorkspace({
           </CardContent>
         </Card>
       ) : null}
-
-      {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <nav aria-label="搭建阶段" className="flex flex-col gap-1">
-          {REPLICA_PHASES.map((p, i) => {
-            const isActive = i === activePhaseIndex;
-            const isDone = i < activePhaseIndex;
-            const isLast = i === REPLICA_PHASES.length - 1;
-
-            return (
-              <div key={p.index} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  {isDone ? (
-                    <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
-                  ) : isActive ? (
-                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                      {i + 1}
-                    </div>
-                  ) : (
-                    <Circle className="size-5 shrink-0 text-muted-foreground/40" />
-                  )}
-                  {!isLast ? (
-                    <div
-                      className={
-                        isDone
-                          ? "my-0.5 w-px flex-1 bg-emerald-500/30"
-                          : "my-0.5 w-px flex-1 bg-muted"
-                      }
-                    />
-                  ) : null}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActivePhaseIndex(i)}
-                  className={
-                    "flex-1 pb-5 text-left text-sm transition-colors " +
-                    (isActive
-                      ? "font-semibold text-foreground"
-                      : isDone
-                        ? "text-muted-foreground hover:text-foreground"
-                        : "text-muted-foreground/60 hover:text-muted-foreground")
-                  }
-                >
-                  <div>{p.title}</div>
-                  <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
-                    {isDone
-                      ? "已完成"
-                      : p.goal.length > 28
-                        ? p.goal.slice(0, 28) + "..."
-                        : p.goal}
-                  </div>
-                </button>
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="flex flex-col gap-4">
-          {phase ? (
-            <PhaseDetailCard phase={phase} />
-          ) : (
-            <p className="text-sm text-muted-foreground">阶段数据缺失</p>
-          )}
-
-          {phase !== undefined && phase.index === REPLICA_PHASES.length - 1 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>交付与检验单</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  把 agent-loop.ts 全文贴进编辑器，点「提交点评」——点评导师按
-                  评分维度出正式检验单（维度分、扣分点、改进建议，并计入掌握度）。
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ValidateSubmit
-                  moduleId={teachingModule.id}
-                  redirectOnComplete={false}
-                />
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={activePhaseIndex === 0}
-              onClick={() =>
-                setActivePhaseIndex(Math.max(0, activePhaseIndex - 1))
-              }
-            >
-              上一阶段
-            </Button>
-            <span className="text-xs text-muted-foreground">
-              {activePhaseIndex + 1} / {REPLICA_PHASES.length}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={activePhaseIndex === REPLICA_PHASES.length - 1}
-              onClick={() =>
-                setActivePhaseIndex(
-                  Math.min(REPLICA_PHASES.length - 1, activePhaseIndex + 1),
-                )
-              }
-            >
-              下一阶段
-              <ArrowRight className="ml-1.5 size-3.5" />
-            </Button>
-          </div>
-
-          <Card className="flex min-h-0 flex-1 flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">对话</CardTitle>
-                {!chatOpen ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setChatOpen(true)}
-                  >
-                    <MessageSquare className="mr-1.5 size-4" />
-                    开始对聊
-                  </Button>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    遇到问题随时问导师，按模块、按步骤、按报错都行。报错就把报错信息
-                    <span className="font-medium">原样</span>
-                    贴上来（现象 / 期望 / 实际 / 已尝试），别翻译别删
-                  </p>
-                )}
-              </div>
-            </CardHeader>
-            {chatOpen ? (
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                <ChatPanel moduleId={teachingModule.id} />
-                <Composer
-                  moduleId={teachingModule.id}
-                  step="explain"
-                  phaseContext={phaseContext}
-                />
-              </CardContent>
-            ) : null}
-          </Card>
-        </div>
-      </div>
     </main>
   );
 }
@@ -439,7 +387,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
           </span>
         </div>
         <CardTitle className="text-lg">{phase.title}</CardTitle>
-        <p className="text-sm text-muted-foreground">{phase.goal}</p>
+        <p className="text-base text-muted-foreground">{phase.goal}</p>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
@@ -452,12 +400,12 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
             {phase.tasks.map((task, i) => (
               <div key={i} className="rounded-lg border bg-background p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-medium text-primary">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-medium text-primary">
                     {i + 1}
                   </span>
-                  <span className="text-sm font-medium">{task.label}</span>
+                  <span className="text-base font-medium">{task.label}</span>
                   {task.file ? (
-                    <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-base text-muted-foreground">
                       <FileText className="size-3" />
                       {task.file}
                     </span>
@@ -465,7 +413,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                   {task.moduleRef ? (
                     <Link
                       href={"/learn/" + task.moduleRef}
-                      className="inline-flex items-center gap-1 text-[11px] text-primary underline-offset-4 hover:underline"
+                      className="inline-flex items-center gap-1 text-base text-primary underline-offset-4 hover:underline"
                     >
                       <FolderOpen className="size-3" />
                       {task.moduleRef}
@@ -474,13 +422,13 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                 </div>
 
                 {task.detail ? (
-                  <p className="mb-2 text-[13px] leading-relaxed whitespace-pre-line text-muted-foreground">
+                  <p className="mb-2 text-base leading-relaxed whitespace-pre-line text-muted-foreground">
                     {task.detail}
                   </p>
                 ) : null}
 
                 {task.why ? (
-                  <p className="mb-2 rounded-md bg-primary/5 px-2.5 py-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                  <p className="mb-2 rounded-md bg-primary/5 px-2.5 py-1.5 text-base leading-relaxed text-muted-foreground">
                     <span className="font-medium text-primary">
                       为什么有这步：
                     </span>
@@ -490,11 +438,11 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
 
                 {task.askAI ? (
                   <div className="mb-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-2 dark:border-blue-800 dark:bg-blue-950/30">
-                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-blue-700 dark:text-blue-400">
+                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-blue-700 dark:text-blue-400">
                       <MessageSquare className="size-3" />
                       试试先问 AI
                     </div>
-                    <p className="text-[12px] leading-relaxed text-blue-800 dark:text-blue-300">
+                    <p className="text-base leading-relaxed text-blue-800 dark:text-blue-300">
                       {task.askAI}
                     </p>
                   </div>
@@ -502,11 +450,11 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
 
                 {task.stuckPrompt ? (
                   <div className="mb-2 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-2 dark:border-orange-800 dark:bg-orange-950/30">
-                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-orange-700 dark:text-orange-400">
+                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-orange-700 dark:text-orange-400">
                       <AlertTriangle className="size-3" />
                       卡住了？
                     </div>
-                    <p className="text-[12px] leading-relaxed text-orange-800 dark:text-orange-300">
+                    <p className="text-base leading-relaxed text-orange-800 dark:text-orange-300">
                       {task.stuckPrompt}
                     </p>
                   </div>
@@ -514,7 +462,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
 
                 {task.pitfalls && task.pitfalls.length > 0 ? (
                   <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 dark:border-amber-800 dark:bg-amber-950/30">
-                    <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-amber-700 dark:text-amber-400">
                       <AlertTriangle className="size-3" />
                       常见坑
                     </div>
@@ -522,7 +470,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                       {task.pitfalls.map((p, j) => (
                         <li
                           key={j}
-                          className="text-[12px] leading-relaxed text-amber-800 dark:text-amber-300"
+                          className="text-base leading-relaxed text-amber-800 dark:text-amber-300"
                         >
                           {p}
                         </li>
@@ -535,7 +483,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="px-3 py-2 text-left font-medium text-muted-foreground">
@@ -582,21 +530,10 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
         )}
 
         {phase.acceptanceScript || phase.acceptanceDesc ? (
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Terminal className="size-3.5" />
-              验收
-            </div>
-            {phase.acceptanceScript ? (
-              <pre className="overflow-x-auto rounded bg-muted px-3 py-2 font-mono text-[11px] leading-relaxed">
-                {phase.acceptanceScript}
-              </pre>
-            ) : null}
-            {phase.acceptanceDesc ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {phase.acceptanceDesc}
-              </p>
-            ) : null}
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-800 dark:bg-blue-950/30">
+            <p className="text-xs text-blue-700 dark:text-blue-400">
+              验收脚本和 Skill 自查清单已移至下方「工具箱」面板——一键复制、一键发送给导师。
+            </p>
           </div>
         ) : null}
       </CardContent>
@@ -619,10 +556,10 @@ function PreKnowledgeSection({
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between px-3 py-2 text-left"
       >
-        <div className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
+        <div className="flex items-center gap-1.5 text-base font-medium text-green-700 dark:text-green-400">
           <span className="text-base">📖</span>
           前置知识速查
-          <span className="text-[11px] font-normal text-green-600 dark:text-green-500">
+          <span className="text-base font-normal text-green-600 dark:text-green-500">
             （{entries.length} 个词条，遇到不认识的先看这里）
           </span>
         </div>
@@ -634,7 +571,7 @@ function PreKnowledgeSection({
         <div className="border-t border-green-200 px-3 py-2 dark:border-green-800">
           <ul className="space-y-1.5">
             {entries.map((e, i) => (
-              <li key={i} className="text-[12px] leading-relaxed">
+              <li key={i} className="text-base leading-relaxed">
                 <span className="font-medium text-green-800 dark:text-green-300">
                   {e.term}
                 </span>
@@ -644,7 +581,7 @@ function PreKnowledgeSection({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-green-600 dark:text-green-500">
+          <p className="mt-2 text-base text-green-600 dark:text-green-500">
             还有词不懂？在下方对话里直接问导师：「xxx 是什么意思？」
           </p>
         </div>
