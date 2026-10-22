@@ -173,6 +173,25 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
         ],
       },
     ],
+    acceptanceScript: `# ① Node 版本
+node --version
+# → 预期：v22.5.0 或更高
+
+# ② Git 版本
+git --version
+# → 预期：git version 2.x.x
+
+# ③ 项目目录
+ls teaching-platform/package.json
+# → 预期：文件存在，无报错
+
+# ④ Next.js 启动
+cd teaching-platform && npm run dev
+# → 浏览器打开 http://localhost:3000，看到 Next.js 欢迎页
+
+# ⑤ Git 存档
+cd teaching-platform && git log --oneline
+# → 预期：至少 1 条 commit（"空项目跑通"）`,
     acceptanceDesc: "浏览器看到 Next.js 默认首页 → 空壳跑通。终端跑 `git log --oneline` 看到一条「空项目跑通」的 commit → 起点已存档",
   },
   {
@@ -284,13 +303,15 @@ export const REPLICA_PHASES: readonly ReplicaPhase[] = [
     ],
     acceptanceScript: `# ⚠️ PowerShell 用户注意：把每行末尾的 \\ 换成 ` + "`" + `（反引号）
 # CMD 用户：把 \\ 删掉，整条命令写成一行
-curl -X POST http://localhost:3000/api/chat \\
+curl -s -N -X POST http://localhost:3000/api/chat \\
   -H "Content-Type: application/json" \\
   -d '{"content":"你好，请介绍一下你自己"}'
 # → 200 + SSE 流式响应
 # → 角色是"教学导师"
 # → 前端打字机正常渲染
 # （完整可抄版见 wiki「示范代码」节）`,
+    acceptanceDesc:
+      "200 + SSE 流式响应，AI 角色是教学导师，前端打字机逐字渲染。如果前端还没搭好，用 curl 先验证后端管线通了。",
   },
   {
     index: 2,
@@ -506,6 +527,7 @@ curl -X POST http://localhost:3000/api/validate \\
   -H "Content-Type: application/json" \\
   -d '{"moduleId":"platform-replica","content":"const name = (void 0).name"}'
 # → JSON 返回维度分、扣分点、改进建议，并且落库`,
+    acceptanceDesc: "四条全绿 → 第三斧通过：向量索引有数据、引用卡片在回答前出现、掌握度落库、点评 Agent 返回维度分。跑完这四条，你的平台已经从「聊天机器人」升级为「有记忆、有知识、能评分的教学系统」。",
   },
   {
     index: 4,
@@ -576,7 +598,40 @@ curl -X POST http://localhost:3000/api/validate \\
           "`process.env` 只在服务端可用——要在服务端组件里读，通过 props 传给客户端组件",
         ],
       },
+      {
+        label: "学习报告 `/report`",
+        file: "src/app/report/page.tsx",
+        why: "学生自己的「成绩单」——花了时间学了东西，需要一个地方看到自己的进步。这是平台闭环的最后一环。",
+        detail:
+          "新建 `src/app/report/page.tsx`。用 `node:sqlite` 的 `DatabaseSync` 读取 `dev.db` 里 `mastery` 表的数据，显示各模块的掌握度分数——用列表或简单的条形图（纯 CSS 就行，不用图表库）。\n\n**进阶（龙骨连线）**：①按分数从高到低排序，高分的模块标绿色、低分的标橙色 ②每个模块名做成 `<Link>`，点进去直接跳到对应工作区 ③如果 mastery 表为空，显示「还没有学习记录，去学习中心开始学习吧」的引导语，带一个跳转到 `/learn` 的按钮。",
+        askAI: "问导师：「帮我在 Next.js 里写一个学习报告页 /report——用 node:sqlite 的 DatabaseSync 读取 dev.db 的 mastery 表，按模块显示掌握度分数。纯 CSS 展示，不用图表库。」",
+        stuckPrompt: "贴代码 + 报错给导师。常见问题：①DatabaseSync 找不到 → 确认 import 是 `node:sqlite` 而不是 `better-sqlite3` ②dev.db 路径不对 → `process.cwd()` 返回的是项目根目录 ③表格为空 → SQL 查询语法是否正确，mastery 表里是否有数据。",
+        pitfalls: [
+          "`node:sqlite` 的 DatabaseSync 是同步 API，可以直接在服务端组件里用（不用 async/await）",
+          "报告页是服务端组件——`'use client'` 会阻止服务端直接调 node:sqlite",
+          "如果 dev.db 不存在（还没建过数据），页面不要白屏——显示引导语 + 跳转按钮",
+        ],
+      },
     ],
+    acceptanceScript: `# ① 首页
+curl -s http://localhost:3000 | grep -o "开始学习\\|查看报告\\|教学平台"
+# → 预期：输出包含 "开始学习" 和 "查看报告"
+
+# ② 学习中心（模块列表）
+curl -s http://localhost:3000/learn | grep -o "LLM\\|Agent"
+# → 预期：输出包含模块名称
+
+# ③ 工作区（概念区 + 聊天区）
+curl -s http://localhost:3000/learn/llm-api | head -c 200
+# → 预期：返回 HTML，非 404
+
+# ④ 报告页
+curl -s http://localhost:3000/report | head -c 200
+# → 预期：返回 HTML，非 404
+
+# ⑤ 设置页
+curl -s http://localhost:3000/settings | head -c 200
+# → 预期：返回 HTML，非 404`,
     acceptanceDesc:
       "五条路由都能访问，导航完整，页面不白屏。用浏览器手动点一遍：首页 → 学习中心 → 任意模块工作区 → 报告 → 设置，每个页面都有内容。",
   },
@@ -660,7 +715,17 @@ curl -X POST http://localhost:3000/api/validate \\
         ],
       },
     ],
+    acceptanceScript: `# ① Git 日志完整性
+git log --oneline
+# → 预期：≥ 5 条 commit（启动台 + 三斧 + 龙骨）
+
+# ② 全链路 curl 验证
+# 对话
+curl -s -X POST http://localhost:3000/api/chat -H "Content-Type: application/json" -d '{"content":"你好"}' | head -1
+# 点评
+curl -s -X POST http://localhost:3000/api/validate -H "Content-Type: application/json" -d '{"moduleId":"platform-replica","content":"const x=1"}' | head -c 100
+# → 两条均返回 200`,
     acceptanceDesc:
-      "在 localhost:3000 上全部跑通 → 达标。终端跑 `git log --oneline`，看到 5 条以上有意义 commit → 过程留痕。把 agent-loop.ts 全文贴进下方「交付与检验单」编辑器，点「提交点评」拿正式检验单（维度分、扣分点、建议，计入掌握度）；route.ts 用一句话说明改动点即可，清单自查在对话里与导师核对。",
+      "在 localhost:3000 上全部跑通 → 达标。终端跑 `git log --oneline`，看到 5 条以上有意义 commit → 过程留痕。逐条对照 8 条验收清单，每条写一句话证据贴进下方「交付与检验单」编辑器，点「提交点评」拿正式检验单（维度分、扣分点、建议，计入掌握度）。",
   },
 ];

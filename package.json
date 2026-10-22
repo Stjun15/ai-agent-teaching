@@ -43,6 +43,7 @@
     "test:editor-focus": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/editor-focus-spec.ts",
     "test:cold-start": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/explain-cold-start-spec.ts",
     "test:validate-wiring": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/validate-wiring-spec.ts",
+    "test:replica-check": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/replica-check-spec.ts",
     "test:cross-browser": "node scripts/cross-browser-spec.mjs",
     "test:report-details": "node scripts/report-details-spec.mjs",
     "simulate:module": "node --experimental-strip-types --import ./scripts/ts-loader.mjs scripts/student-agent/run.ts",
