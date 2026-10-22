@@ -130,16 +130,18 @@ export function PlatformReplicaWorkspace({
         );
         if (!res.ok) return;
         const data = (await res.json()) as { content: string };
-        setWikiContent((prev) => `${prev ?? ""}\n\n${data.content}`);
+        setWikiContent(data.content);
       } catch {
         loadedPhaseRef.current.delete(phaseIdx);
       }
     };
 
-    for (let i = 0; i <= activePhaseIndex; i++) {
-      loadPhase(i);
-    }
+    loadPhase(activePhaseIndex);
   }, [activePhaseIndex, wikiContent === null]);
+
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, [activePhaseIndex]);
 
   const prerequisiteNames = teachingModule.prerequisites.map(
     (id) => allModules.find((m) => m.id === id)?.name ?? id,
