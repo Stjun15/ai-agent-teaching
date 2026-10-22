@@ -120,7 +120,7 @@ pnpm dev          # → http://localhost:3000
 ### 4.3 质量门禁
 
 ```bash
-pnpm typecheck    # tsc --noEmit（当前有 57 个类型错误，见 §12 已知问题）
+pnpm typecheck    # tsc --noEmit（当前有 54 个类型错误，见 §12 已知问题）
 pnpm lint         # ESLint
 pnpm check        # eslint + prettier --check + tsc --noEmit（提交前必跑）
 pnpm test         # 55 组测试（scripts/run-tests.mjs 编排）
@@ -369,7 +369,7 @@ pnpm vitest run                    # Vitest 入口（新）
 | `tests/` | 7 个标准用例文件（分数/安全/鉴权/维度聚合/Agent 输出校验/子能力/MCP 端到端，26 个用例） |
 | `.github/workflows/ci.yml` | CI：`pnpm test:coverage`（Vitest + V8 覆盖率；暂不含 eslint/tsc） |
 
-**当前状态**：`scripts/` 下 57 个 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。⚠️ CI 暂不跑 `tsc` / `pnpm build`：已知的 54 个类型错误会让流水线假红，先修类型错误再补这两步。
+**当前状态**：`scripts/` 下 55 组 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。⚠️ CI 暂不跑 `tsc` / `pnpm build`：已知的 54 个类型错误会让流水线假红，先修类型错误再补这两步。
 
 ### 11.3 大赛技术文档
 
@@ -401,7 +401,7 @@ pnpm vitest run                    # Vitest 入口（新）
 
 | # | 问题 | 详情 |
 |---|------|------|
-| 9 | **Vitest 与旧运行器并存** | `pnpm test` 仍走 `node:test`（57 组）；新增测试写 `tests/*.test.ts`，用 `pnpm test:unit`。不强制迁移，避免一次性改动 60+ 文件 |
+| 9 | **Vitest 与旧运行器并存** | `pnpm test` 仍走 `node:test`（55 组）；新增测试写 `tests/*.test.ts`，用 `pnpm test:unit`。不强制迁移，避免一次性改动 60+ 文件 |
 | 10 | **MCP Server 作为子进程启动** | 每次对话需启动 Node 子进程，首次有数百毫秒延迟（`globalThis` 缓存 5 分钟缓解） |
 | 11 | **`useSpeechRecognition` 实验特性** | 浏览器兼容性有限 |
 
@@ -477,10 +477,10 @@ pnpm typecheck 2>&1 | Select-String "error TS" | Measure-Object | Select-Object 
 ## 十四、接手后建议的前 5 步
 
 1. **跑通质量门禁**：`pnpm install → pnpm typecheck → pnpm test`，确认基线状态
-2. **修 57 个类型错误**：`pnpm typecheck` 输出里的 17 个文件，逐一修复（主要是测试 mock 类型漂移）
+2. **修 54 个类型错误**：`pnpm typecheck` 输出里的 15 个文件，逐一修复（主要是测试 mock 类型漂移）
 3. **启动 dev server**：`pnpm dev`，登录 `test/test1234`，走一遍 `/learn/llm-api/0` 看教学流程
 4. **读核心文件**：`src/app/api/chat/route.ts`（入口）→ `src/lib/agent/loop.ts`（循环）→ `src/lib/agent/session.ts`（工具白名单）
-5. **决定 Vitest 迁移策略**：全部迁移 vs 新测试用 Vitest，选定后更新 `vitest.config.ts`
+5. **Vitest 策略已定**：新测试一律写 `tests/*.test.ts`（`pnpm test:unit`），旧 `node:test` 保持不动，不强制迁移
 
 ---
 
