@@ -38,9 +38,10 @@
  */
 
 import { create, type StoreApi } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, type PersistStorage } from "zustand/middleware";
 
 import type { StepType } from "@/lib/db";
+import { currentStudentId } from "@/lib/client-identity";
 import { TEACHING_AGENT_ID } from "@/lib/agent/prompts/teaching-chat";
 import type { ErrorCode, JsonObject } from "@/schemas";
 
@@ -801,6 +802,35 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "sso.conversations",
+      storage: {
+        getItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            const raw = localStorage.getItem(key);
+            return raw
+              ? (JSON.parse(raw) as Record<string, unknown>)
+              : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch {
+            // silently ignore
+          }
+        },
+        removeItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.removeItem(key);
+          } catch {
+            // silently ignore
+          }
+        },
+      } as PersistStorage<SessionState>,
       // 只持久化对话数据，函数与瞬时态（status/error）不落盘。
       // 一次性把「当前激活桶 + 各模块缓存桶」都存在 localStorage：
       // 刷新后 rehydrate 回内存，切回来还能看到上次对话。
