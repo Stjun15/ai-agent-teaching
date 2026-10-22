@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   Bot,
@@ -58,6 +59,9 @@ type PanelView = "chat" | "history";
 const BUBBLE_SIZE = 56;
 
 export function FloatingChatBot() {
+  const pathname = usePathname();
+  const isReplicaPage = pathname.startsWith("/learn/platform-replica");
+
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<PanelView>("chat");
   const [text, setText] = useState("");
@@ -259,6 +263,8 @@ export function FloatingChatBot() {
   useEffect(() => {
     if (open && view === "chat") inputRef.current?.focus();
   }, [open, view]);
+
+  if (!isReplicaPage) return null;
 
   return (
     <>
