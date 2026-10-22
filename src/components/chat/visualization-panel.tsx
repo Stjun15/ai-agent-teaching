@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Code2,
   Film,
+  Lightbulb,
   Maximize,
   Minimize,
   Pause,
@@ -16,6 +18,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PLAYBACK_SPEEDS,
   useVisualizationStore,
@@ -64,7 +67,13 @@ import { cn } from "@/lib/utils";
  * 「速度」是播放器的控制维度，与场景内容无关。若让每个场景各自实现，
  * 9 个场景会有 9 种对速度的处理，学生切换场景时手感会不一致。
  */
-export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
+export function VisualizationPanel({
+  sceneId,
+  moduleId,
+}: {
+  sceneId: string | null;
+  moduleId?: string;
+}) {
   const activeId = useVisualizationStore((state) => state.sceneId);
   const stepIndex = useVisualizationStore((state) => state.stepIndex);
   const status = useVisualizationStore((state) => state.status);
@@ -111,10 +120,61 @@ export function VisualizationPanel({ sceneId }: { sceneId: string | null }) {
   }, [sceneId, selectScene]);
 
   if (sceneId === null && activeId === null) {
+    const isCodeModule = moduleId === "ts-basics";
+    const isMethodModule = moduleId === "vibe-coding";
+    const Icon = isCodeModule ? Code2 : isMethodModule ? Lightbulb : Film;
+
     return (
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        本讲没有配置可视化场景。
-      </p>
+      <Card className="border-2 border-dashed border-border bg-muted/20">
+        <CardHeader className="flex flex-row items-start gap-3 pb-2">
+          <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="size-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base">
+              {isCodeModule
+                ? "本讲无需可视化动画"
+                : isMethodModule
+                  ? "本讲无需流程动画"
+                  : "本讲没有配置可视化场景"}
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          {isCodeModule ? (
+            <>
+              <p>
+                TypeScript 基础是工具链前置模块——你要学的是
+                <strong className="text-foreground">类型系统怎么帮你拦 bug</strong>，
+                不是盯着流程图看。
+              </p>
+              <p>
+                去右边「动手模仿」写代码 → 提交到「校验点评」看 AI 的改进建议 →
+                「变式练习」换一个场景再写一遍。这三步才是这讲的核心。
+              </p>
+            </>
+          ) : isMethodModule ? (
+            <>
+              <p>
+                Vibe Coding 是方法论模块——核心是
+                <strong className="text-foreground">
+                  说清楚 → 定宪法 → 写规格 → 拆任务 → 审清单
+                </strong>
+                ，一个循环飞轮，不是一条单向流水线。
+              </p>
+              <p>
+                回「观察示范」看四步法的完整演示 → 在「动手模仿」里把自己的项目
+                套进这个飞轮 → 提交验收，让 AI 帮你找飞轮里的缺口。
+              </p>
+            </>
+          ) : (
+            <p>
+              本讲侧重动手实践与代码验收，不依赖动画演示。请在「动手模仿」与
+              「校验点评」中完成学习闭环。
+            </p>
+          )}
+        </CardContent>
+      </Card>
     );
   }
 

@@ -326,7 +326,26 @@ function ValidationReport({
         >
           演示代码执行过程
         </Button>
-      ) : null}
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              const ta = document.querySelector(
+                'textarea[aria-label="代码编辑区"]',
+              );
+              ta?.scrollIntoView({ behavior: "smooth", block: "center" });
+              ta?.focus();
+            }}
+          >
+            根据点评修改代码，重新提交
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            编辑器在上方，修改后点击"提交点评"即可再评一次
+          </span>
+        </div>
+      )}
     </div>
   );
 }
