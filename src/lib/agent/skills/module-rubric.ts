@@ -3,8 +3,8 @@
  *
  * 为什么在 skills 层、为什么是「追加」而不是新 Skill
  * ------------------------------------------------
- * 复刻模块（platform-replica）的点评对象是最终交付（agent-loop.ts 全文 +
- * route.ts 一句话说明），评价标准应该是概念页「动手任务：最终验收」的七条
+ * 复刻模块（platform-replica）的点评对象是最终交付（验收清单八条逐条证据），
+ * 评价标准应该是概念页「动手任务：最终验收」的八条
  * 清单，而不是 validate-code 的通用四维 —— 通用四维评不出「这台车能不能跑」。
  *
  * 但运行时对 Skill 有编译期注册表（`./index.ts` 的 `satisfies`）与运行期
@@ -25,7 +25,7 @@ export const REPLICA_ACCEPTANCE_MODULE = "platform-replica";
 const REPLICA_RUBRIC_SUPPLEMENT = `## 模块定制：教学平台复刻（最终交付检验单）
 
 module_id 为 platform-replica 时，这次点评是复刻模块的**最终验收**，题面是
-question_text 里的「动手任务：最终验收」（七条验收清单与交付要求），不是普通的
+question_text 里的「动手任务：最终验收」（八条验收清单与交付要求），不是普通的
 核心代码校验。评分方式改为：
 
 1. 维度跟着验收清单走：从提交文本里能找到证据的清单条目，各设一个维度（维度名用
