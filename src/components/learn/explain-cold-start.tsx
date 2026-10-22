@@ -196,21 +196,21 @@ export function ExplainColdStart({
             </div>
 
             {/* 开始按钮 */}
-            <div className="mt-5 flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                看完结构了？跟 AI 聊聊，问清楚再动手。
+            <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border-2 border-primary/20 bg-primary/5 px-6 py-5">
+              <p className="text-sm font-medium">准备开始了吗？</p>
+              <p className="text-xs text-muted-foreground">
+                阅读完结构后，点击下方按钮启动 AI 导师进行互动教学
               </p>
               <Button
                 variant="default"
-                size="sm"
+                size="lg"
                 onClick={handleStartChat}
                 disabled={prompting}
-                className="shrink-0"
               >
                 {prompting ? (
-                  <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  <Loader2 className="mr-2 size-5 animate-spin" />
                 ) : (
-                  <MessageSquare className="mr-1.5 size-4" />
+                  <MessageSquare className="mr-2 size-5" />
                 )}
                 {prompting ? "正在启动…" : "开始对聊"}
               </Button>

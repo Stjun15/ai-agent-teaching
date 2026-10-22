@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MessageSquare, X } from "lucide-react";
 
 import { AssignmentCard } from "@/components/learn/assignment-card";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
@@ -122,22 +122,26 @@ export function ModuleWorkspace({
   demoCode?: string;
 }) {
   const [explainChatStarted, setExplainChatStarted] = useState(false);
+  const [observeChatOpen, setObserveChatOpen] = useState(false);
 
-  // 三栏列宽（xl+ 拖拽可调，localStorage 持久化）
-  const [leftWidth, setLeftWidth] = useState(() =>
-    readPersistedWidth(STORAGE_KEY_LEFT, DEFAULT_LEFT),
-  );
-  const [rightWidth, setRightWidth] = useState(() =>
-    readPersistedWidth(STORAGE_KEY_RIGHT, DEFAULT_RIGHT),
-  );
-  const [rightCollapsed, setRightCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem(STORAGE_KEY_RIGHT_COLLAPSED) === "1";
-    } catch {
-      return false;
-    }
-  });
+  // 三栏列宽（xl+ 拖拽可调，localStorage 持久化）。
+  // 初始值用常量避免 hydration mismatch：服务端不读 localStorage，
+  // 挂载后在 useEffect 里从 localStorage 同步真实宽度。
+  const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT);
+  const [rightWidth, setRightWidth] = useState(DEFAULT_RIGHT);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+
+  useEffect(() => {
+    setLeftWidth(readPersistedWidth(STORAGE_KEY_LEFT, DEFAULT_LEFT));
+    setRightWidth(readPersistedWidth(STORAGE_KEY_RIGHT, DEFAULT_RIGHT));
+    setRightCollapsed(() => {
+      try {
+        return localStorage.getItem(STORAGE_KEY_RIGHT_COLLAPSED) === "1";
+      } catch {
+        return false;
+      }
+    });
+  }, []);
 
   const toggleRight = useCallback(() => {
     setRightCollapsed((prev) => {
@@ -421,16 +425,41 @@ export function ModuleWorkspace({
               )}
             </>
           ) : currentStepId === "observe" ? (
-            <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                <ChatPanel
-                  moduleId={teachingModule.id}
-                  {...chatStepProps}
-                  hasCachedTask
-                />
-                <Composer step={currentStepId} moduleId={teachingModule.id} />
-              </CardContent>
-            </Card>
+            observeChatOpen ? (
+              <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
+                <CardHeader className="flex flex-row items-center justify-between py-3">
+                  <CardTitle className="text-sm">对示范代码的疑问</CardTitle>
+                  <button
+                    type="button"
+                    onClick={() => setObserveChatOpen(false)}
+                    aria-label="收起对话"
+                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </CardHeader>
+                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                  <ChatPanel
+                    moduleId={teachingModule.id}
+                    {...chatStepProps}
+                    hasCachedTask
+                  />
+                  <Composer
+                    step={currentStepId}
+                    moduleId={teachingModule.id}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setObserveChatOpen(true)}
+                className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <MessageSquare className="size-4" />
+                对示范代码有疑问？点这里问导师
+              </button>
+            )
           ) : null}
 
           {/*
@@ -522,7 +551,6 @@ export function ModuleWorkspace({
           ) : null}
 
           {showWorkspacePanels &&
-          teachingModule.sceneId !== null &&
           currentStepId !== "practice" &&
           currentStepId !== "imitate" &&
           currentStepId !== "validate" &&
@@ -532,7 +560,7 @@ export function ModuleWorkspace({
                 <CardTitle>可视化</CardTitle>
               </CardHeader>
               <CardContent>
-                <VisualizationPanel sceneId={teachingModule.sceneId} />
+                <VisualizationPanel sceneId={teachingModule.sceneId} moduleId={teachingModule.id} />
               </CardContent>
             </Card>
           ) : null}
