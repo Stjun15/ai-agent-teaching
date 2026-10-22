@@ -389,10 +389,9 @@ curl -X POST http://localhost:3000/api/chat \
 | `curl` 命令报 `curl: (7) Failed to connect`       | 开发服务器没启动                                       | 确认 `npm run dev` 在另一个终端里正在跑                                                                                                           |
 | AI 回复一次性全部显示，没有打字机效果             | `stream: true` 没设，或前端 `reader.read()` 逻辑没写对 | 检查后端 `body` 里 `stream: true`。检查前端 `while(true)` 循环和 `setMessages` 逐字追加逻辑                                                       |
 
-> 🔖 **存档检查点**：第一斧做完了。你的 AI 现在能实时聊天了。这是第一个重大里程碑——**立刻存档**：
+> 🔖 **存档检查点**：第一斧做完了。你的 AI 现在能实时聊天了——**立刻存档**：
 > ```bash
 > git add -A && git commit -m "第一斧完成：对话骨架，SSE 流式打字机"
 > ```
-> 万一第二斧改崩了 Agent Loop，`git checkout .` 一秒回到这里。后面每一斧做完都存档——你不用记，这里每次都提醒。
 
 ---
