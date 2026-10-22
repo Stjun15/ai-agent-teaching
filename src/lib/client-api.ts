@@ -18,16 +18,9 @@
  * 可以重试；输入格式错重试多少次都一样）。界面据此决定要不要给「重试」按钮 ——
  * 把重试按钮给到 `INVALID_INPUT` 上是纯粹的误导，所以这个信息必须一路上浮到这里。
  *
- * 计时为什么在这一层
- * ----------------
- * 沙箱要显示「这次调用花了多久」，而 `performance.now()` 是**不纯函数**：
- * 在组件体内调用会被 `react-hooks/purity` 拦下（已实测）。这不是规则找麻烦 ——
- * 渲染期读时钟确实会让渲染结果不可预测。计时属于「这次请求发生了什么」，
- * 与 HTTP 调用同层，所以放在这里，组件只消费结果。
- *
  * 为什么不是 Server Action
  * ----------------------
- * 这些调用发生在客户端组件的 effect / 事件里（沙箱点「运行」、报告进页面拉数据），
+ * 这些调用发生在客户端组件的 effect / 事件里（报告进页面拉数据），
  * 用 Server Action 会把数据请求和渲染生命周期绑在一起，且拿不到 `AbortSignal`。
  */
 
@@ -173,18 +166,4 @@ export async function apiPut<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   return (await request<T>("PUT", path, body, signal)).data;
-}
-
-/**
- * 同 `apiPost`，但把耗时一并返回。
- *
- * 只有需要向学生展示「这次调用花了多久」的地方用它（沙箱实验室）。
- * 其余调用方拿一个数字也没处用，反而多一层解构。
- */
-export function apiPostTimed<T>(
-  path: string,
-  body: unknown,
-  signal?: AbortSignal,
-): Promise<TimedResult<T>> {
-  return request<T>("POST", path, body, signal);
 }

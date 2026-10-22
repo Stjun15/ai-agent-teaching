@@ -6,7 +6,7 @@
  * 依据
  * ----
  * `04-frontend.md`「核心页面布局 → 模块学习页（三栏）」中栏含「代码编辑区」，
- * 「组件树」里叫 `<CodeEditor>`，技术选型见 `00-MASTER.md`（Monaco Editor）。
+ * 「组件树」里叫 `<CodeEditor>`。
  *
  * 内容活在 CodeStore 里，不是组件 state
  * ---------------------------------
@@ -22,69 +22,47 @@
  * `onSubmit` 不传时按钮禁用并说明原因 —— 与可视化面板「场景待交付」
  * 同一种做法：明确说还没接，好过给一个点了没反应的按钮。
  *
- * CDN 失败时降级成纯文本
- * -------------------
- * monaco 从 CDN 加载（理由见 `monaco-surface.tsx`），所以**必须**假设它
- * 可能加载不到。降级后除了没有语法高亮，编辑与提交照常 —— 练习仍然能
- * 完成。留一块空白则连字都敲不进去。
+ * 为什么是纯文本 textarea
+ * ---------------------
+ * 点评 Agent 读的是裸字符串，不过编辑器内核。Monaco 的语法高亮与类型
+ * 检查对 prompt/工具描述任务是一堆红波浪（编辑器不认识非代码格式），
+ * 对代码任务也没进校验管道。换成 textarea 消除这些干扰，编辑与提交通
+ * 常 —— 点评照样跑。
  */
 
-import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Check, Loader2, Send } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CodeToolbar } from "@/components/code/code-toolbar";
-import {
-  resolveDark,
-  selectIsPassed,
-  useCodeStore,
-  useSettingsStore,
-} from "@/stores";
+import { selectIsPassed, useCodeStore } from "@/stores";
 
-/**
- * 编辑器本体只在浏览器里加载。
- *
- * `ssr: false`：monaco 需要真实 DOM 与 worker，服务端渲染它没有意义，
- * 硬渲染只会在 hydration 时报错。`loading` 给**同尺寸**占位 —— 尺寸不一的
- * 占位会让下面的面板在加载完成时跳一下。
- */
-const MonacoSurface = dynamic(
-  () => import("./monaco-surface").then((mod) => mod.MonacoSurface),
-  { ssr: false, loading: () => <SurfacePlaceholder /> },
-);
+const HINT_BY_TASK: Record<string, string> = {
+  code: "在这里写 TypeScript 代码",
+  prompt: "在这里写 System Prompt",
+  tool: "在这里写工具描述",
+};
 
 export interface CodeEditorProps {
-  /**
-   * 提交校验。由接线层注入（它负责带学生身份与会话）。
-   * 不传表示「校验链路还没接上」，按钮禁用并说明。
-   */
   onSubmit?: () => void;
-  /** 校验请求在飞。此时按钮禁用，避免连点产生多次计费调用。 */
   submitting?: boolean;
 }
 
 export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
   const code = useCodeStore((state) => state.code);
-  const language = useCodeStore((state) => state.language);
+  const taskType = useCodeStore((state) => state.taskType);
   const attempt = useCodeStore((state) => state.attempt);
   const passed = useCodeStore(selectIsPassed);
   const setCode = useCodeStore((state) => state.setCode);
-  const theme = useSettingsStore((state) => state.theme);
 
-  /**
-   * 编辑器形态：先按「可加载」渲染，`onUnavailable` 报回来才降级。
-   *
-   * 初值取 `"monaco"` 而不是 `"loading"`：首次渲染时 CDN 还没开始加载，
-   * 此时显示 monaco 的加载占位，比先渲染一个纯文本框再换掉更顺 ——
-   * 否则每次进页面都会闪一下 textarea。
-   */
-  const [surface, setSurface] = useState<"monaco" | "fallback">("monaco");
-  const handleUnavailable = useCallback(() => setSurface("fallback"), []);
+  const [focused, setFocused] = useState(false);
 
   const empty = code.trim() === "";
   const canSubmit = onSubmit !== undefined && !submitting && !empty;
+
+  const displayedValue =
+    focused || code !== "" ? code : HINT_BY_TASK[taskType] ?? HINT_BY_TASK.code;
 
   return (
     <div className="flex flex-col gap-3">
@@ -94,9 +72,6 @@ export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
           <Badge variant="muted">第 {attempt} 次提交</Badge>
         ) : null}
         {passed ? (
-          // 刻意用中性的 `secondary`：Badge 的三档语义色（levelLow/Mid/High）
-          // 在这套设计里表示**难度/掌握度**高低，拿来标「已通过」会被读成
-          // 「这一项难度低」。通过与否由校验结果面板详细表达。
           <Badge variant="secondary">
             <Check aria-hidden />
             已通过
@@ -104,30 +79,19 @@ export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
         ) : null}
       </div>
 
-      {/*
-        编辑器容器用**定高**：monaco 需要父元素有确定高度才能算出可视区域
-        （`automaticLayout` 只是观察这个尺寸），auto 高度下它会塌成 0 高。
-        降级用的 textarea 共用同一尺寸，切换时布局不跳。
-      */}
       <div className="h-[260px] overflow-hidden rounded-md border bg-muted/20">
-        {surface === "monaco" ? (
-          <MonacoSurface
-            value={code}
-            language={language}
-            theme={resolveDark(theme) ? "vs-dark" : "vs"}
-            onChange={setCode}
-            onUnavailable={handleUnavailable}
-          />
-        ) : (
-          <textarea
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            spellCheck={false}
-            aria-label="代码编辑区（纯文本降级）"
-            placeholder="在这里写下你的 Prompt / 工具描述 / 代码…"
-            className="h-full w-full resize-none bg-transparent p-3 font-mono text-[13px] leading-relaxed outline-none"
-          />
-        )}
+        <textarea
+          value={displayedValue}
+          onChange={(event) => setCode(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          spellCheck={false}
+          aria-label="代码编辑区"
+          className={
+            "h-full w-full resize-none bg-transparent p-3 font-mono text-[13px] leading-relaxed outline-none" +
+            (focused || code !== "" ? "" : " text-muted-foreground/50")
+          }
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -153,22 +117,7 @@ export function CodeEditor({ onSubmit, submitting = false }: CodeEditorProps) {
               ? "先写下点什么，再提交点评。"
               : "提交后点评 Agent 按评分维度逐项给分，并给出改进建议。"}
         </span>
-
-        {surface === "fallback" ? (
-          <span className="text-xs text-muted-foreground">
-            编辑器已降级为纯文本（无法从 CDN 加载 Monaco），编辑不受影响。
-          </span>
-        ) : null}
       </div>
-    </div>
-  );
-}
-
-/** 编辑器加载中的占位。尺寸与真实容器一致，避免加载完成时布局跳动。 */
-function SurfacePlaceholder() {
-  return (
-    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-      正在加载编辑器…
     </div>
   );
 }

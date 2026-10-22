@@ -557,7 +557,7 @@ try {
   );
 
   // ---------------------------------------------------------------------------
-  // B 系列：代码编辑区（Phase 6 首个提交点）
+  // B 系列：代码编辑区
   // ---------------------------------------------------------------------------
   // 2026-09-19/20 分屏改版后，编辑区只在 imitate 及之后的步骤展开
   // （explain/observe 收起工作面板）。A-AX 系列在 explain 步跑对话断言，
@@ -570,7 +570,7 @@ try {
   for (let i = 0; i < 20; i++) {
     const has = await app
       .evaluate(
-        `return !!(document.querySelector('.monaco-editor') || document.querySelector('textarea[aria-label^="代码编辑区"]'))`,
+        `return !!document.querySelector('textarea[aria-label="代码编辑区"]')`,
       )
       .catch(() => false);
     if (has) break;
@@ -581,94 +581,25 @@ try {
     await app.evaluate(`
       const group = (label) => document.querySelector('[role="group"][aria-label="' + label + '"]');
       return JSON.stringify({
-        monaco: !!document.querySelector('.monaco-editor'),
-        fallback: !!document.querySelector('textarea[aria-label^="代码编辑区"]'),
+        visible: !!document.querySelector('textarea[aria-label="代码编辑区"]'),
         taskTypeButtons: (group('任务类型')?.querySelectorAll('button') ?? []).length,
-        languageButtons: (group('语言')?.querySelectorAll('button') ?? []).length,
-        // 诊断用：monaco 的隐藏输入区在不同版本里 class 不一样，
-        // 把这个列表打出来，换 monaco 版本时一眼能看出该改哪个选择器。
-        inputAreas: [...document.querySelectorAll('.monaco-editor textarea, .monaco-editor [class*=input]')]
-          .map((el) => el.tagName.toLowerCase() + '.' + el.className),
       });
     `),
   );
   console.log(
     "B1 代码编辑区:",
-    editor.monaco
-      ? "PASS（Monaco 已从 CDN 加载）"
-      : editor.fallback
-        ? "PASS（已降级为纯文本）"
-        : "FAIL（既无编辑器也无降级）",
-    `任务类型按钮=${editor.taskTypeButtons} 语言按钮=${editor.languageButtons}`,
+    editor.visible
+      ? "PASS（textarea 已渲染）"
+      : "FAIL（找不到代码编辑区）",
+    `任务类型按钮=${editor.taskTypeButtons}`,
   );
-  if (editor.monaco)
-    console.log("   输入区候选:", JSON.stringify(editor.inputAreas));
 
-  // 往编辑器里真的敲一段字，再从**另一个消费方**（输入区的「附带代码」）
-  // 读回来。这才是「输入进了 CodeStore」的证据 —— 只断言编辑器里显示出来
-  // 不够：那是 monaco 自己的模型，与 store 是否收到是两件事。
+  // 往编辑器里敲一段字，再从输入区读回，验证 CodeStore 连通。
   const PROBE_CODE = "const answer = 42; // editor probe";
   let typedVia = null;
-  if (editor.monaco) {
-    /*
-      两条路径，按可靠性排序：
-
-      1) 真实按键。monaco 的键盘事件挂在它自己的容器上，只 focus 隐藏 textarea
-         不足以让它收到输入 —— 得先在编辑区里点一下。
-      2) 直接改模型。本版 monaco（0.56）里唯一的 textarea 是 `ime-text-area`
-         （输入法辅助元素），`Input.insertText` 打进去的内容不会进入它的输入
-         管线。这种情况下退回 `model.setValue()`：`@monaco-editor/react` 监听
-         的正是**模型内容变更**，所以这条路径同样证明「编辑器改动 → onChange
-         → CodeStore」这一段是通的，只是少了「键盘事件被接收」那一环。
-         实际走的是哪条会打印出来，不猜。
-    */
-    const box = JSON.parse(
-      await app.evaluate(`
-        const el = document.querySelector('.monaco-editor .view-lines') ?? document.querySelector('.monaco-editor');
-        if (!el) return JSON.stringify(null);
-        const r = el.getBoundingClientRect();
-        return JSON.stringify({ x: Math.round(r.left + 40), y: Math.round(r.top + 20) });
-      `),
-    );
-    if (box) {
-      await app.send("Input.dispatchMouseEvent", {
-        type: "mousePressed",
-        x: box.x,
-        y: box.y,
-        button: "left",
-        clickCount: 1,
-      });
-      await app.send("Input.dispatchMouseEvent", {
-        type: "mouseReleased",
-        x: box.x,
-        y: box.y,
-        button: "left",
-        clickCount: 1,
-      });
-      await app.send("Input.insertText", { text: PROBE_CODE });
-      await sleep(400);
-    }
-
-    const afterKeys = await app
-      .evaluate(
-        `return String(window.monaco?.editor?.getModels?.()[0]?.getValue?.() ?? '')`,
-      )
-      .catch(() => "");
-    if (afterKeys.includes("editor probe")) {
-      typedVia = "keyboard";
-    } else {
-      await app.evaluate(`
-        const models = window.monaco?.editor?.getModels?.() ?? [];
-        if (models.length === 0) throw new Error('页面里没有 monaco 模型');
-        models[0].setValue(${JSON.stringify(PROBE_CODE)});
-        return 'set';
-      `);
-      await sleep(400);
-      typedVia = "model";
-    }
-  } else if (editor.fallback) {
+  if (editor.visible) {
     await app.evaluate(`
-      const ta = document.querySelector('textarea[aria-label^="代码编辑区"]');
+      const ta = document.querySelector('textarea[aria-label="代码编辑区"]');
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
       setter.call(ta, ${JSON.stringify(PROBE_CODE)});
       ta.dispatchEvent(new Event('input', { bubbles: true }));
@@ -678,36 +609,8 @@ try {
     typedVia = "textarea";
   }
 
-  // B3 语言切换：必须在仍在 imitate 步时做 —— B2 的回读会 SPA 导航到
-  // observe 步，那边没有编辑器工具栏。
-  const languageSwitch = JSON.parse(
-    await app.evaluate(`
-      const group = document.querySelector('[role="group"][aria-label="语言"]');
-      const python = [...(group?.querySelectorAll('button') ?? [])].find((b) => b.textContent === 'Python');
-      if (!python) return JSON.stringify({ ok: false, pressed: [] });
-      python.click();
-      await new Promise((r) => setTimeout(r, 200));
-      return JSON.stringify({
-        ok: true,
-        pressed: [...group.querySelectorAll('button')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.textContent),
-      });
-    `),
-  );
-  const languageOk =
-    languageSwitch.ok &&
-    JSON.stringify(languageSwitch.pressed) === JSON.stringify(["Python"]);
-  console.log(
-    "B3 切换语言为 Python:",
-    languageOk ? "PASS" : "FAIL",
-    JSON.stringify(languageSwitch.pressed),
-  );
-
   const storeCode = JSON.parse(
     await app.evaluate(`
-      // 2026-09-19/20 分屏改版后 imitate 步没有输入区（提交走点评面板），
-      // 「附带代码」开关在 observe 步的 Composer 里。CodeStore 是全局
-      // zustand：点「回到观察示范」（next/link，SPA 导航，store 不重置）
-      // 后回读 —— 这正是「编辑器改动进入 CodeStore」原本要证明的链路。
       const backLink = [...document.querySelectorAll('a')].find((a) => /回到观察示范/.test(a.textContent));
       if (backLink) {
         backLink.click();
@@ -749,12 +652,10 @@ try {
     md?.strongs > 0 &&
     md?.rawStars === 0 &&
     md?.injectedTags === 0 &&
-    // B：编辑区真的能用 —— 加载出来（或如实降级）、输入进了 store、语言能切
-    (editor.monaco || editor.fallback) &&
+    // B：编辑区真的能用 —— textarea 渲染、任务类型可选、输入进了 store
+    editor.visible &&
     editor.taskTypeButtons === 3 &&
-    editor.languageButtons === 2 &&
-    codeReachedStore &&
-    languageOk;
+    codeReachedStore;
   console.log(ok ? "\n=== 浏览器验收 PASS ===" : "\n=== 浏览器验收 FAIL ===");
 
   app.close();

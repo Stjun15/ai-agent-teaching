@@ -11,14 +11,14 @@
  * 1. DOM 文本提取（轻量、零 token 消耗）：直接从元素提取可见文本——
  *    chat 消息、导航标签、按钮文案等。
  * 2. VLM 视觉分析（仅在需要时调用）：代码编辑器里的文本若 DOM 提取
- *    不完整（如 Monaco 的虚拟滚动），或页面包含图表/示意图时，把截图
+ *    不完整，或页面包含图表/示意图时，把截图
  *    发给视觉模型获取更精确的描述。
  *
  * 区域识别
  * -------
  * 教学平台的 DOM 结构约定（与 `module-workspace.tsx` 等组件对应）：
  * - 导师/学生消息：`[data-role="assistant"]`、`[data-role="user"]`
- * - 代码编辑器：`.monaco-editor .view-lines` 或 `[data-slot="code-editor"]`
+ * - 代码编辑器：`textarea[aria-label="代码编辑区"]`
  * - 输入框：`[data-slot="composer"] textarea`
  * - 步骤导航：`[data-slot="step-nav"]`
  * - 侧栏：`[data-slot="sidebar"]`
@@ -248,9 +248,9 @@ async function extractCodeRegion(
   screenshotBase64: string,
   options: ScreenDescriberOptions,
 ): Promise<ScreenRegion | null> {
-  // 策略 1：DOM 提取（Monaco 的 .view-lines node）
+  // 策略 1：DOM 提取（textarea 的文本内容）
   const lines = page.locator(
-    ".monaco-editor .view-lines .view-line, [data-slot='code-editor'] .view-line, .cm-line",
+    "[data-slot='code-editor'] .view-line, .cm-line, textarea[aria-label='代码编辑区']",
   );
   const lineCount = await lines.count();
 
@@ -274,7 +274,7 @@ async function extractCodeRegion(
   // 策略 2：如果 DOM 提取不到内容，用 VLM 分析截图中的代码区域
   if (content === "" && screenshotBase64) {
     const editorBounds = await getBounds(
-      page.locator(".monaco-editor, [data-slot='code-editor'], .cm-editor"),
+      page.locator("[data-slot='code-editor'], .cm-editor, textarea[aria-label='代码编辑区']"),
     );
     if (editorBounds.width > 0) {
       content = await describeRegionWithVLM(
@@ -287,16 +287,16 @@ async function extractCodeRegion(
 
   if (content === "") return null;
 
-  // 检测代码中的错误标记
+  // 检测代码中的错误标记（通用诊断选择器）
   const errorLines = page.locator(
-    ".monaco-editor .squiggly-error, .monaco-editor .squiggly-warning, .cm-diagnostic",
+    ".squiggly-error, .squiggly-warning, .cm-diagnostic",
   );
   const errorCount = await errorLines.count();
   const errorNote =
     errorCount > 0 ? `（代码中有 ${errorCount} 个错误/警告标记）` : "";
 
   const bounds = await getBounds(
-    page.locator(".monaco-editor, [data-slot='code-editor'], .cm-editor"),
+    page.locator("[data-slot='code-editor'], .cm-editor, textarea[aria-label='代码编辑区']"),
   );
 
   return {
@@ -529,7 +529,7 @@ export async function openTeachingPage(
   // 等待教学页面核心元素渲染
   await page
     .waitForSelector(
-      '[data-role="assistant"], .monaco-editor, [data-slot="composer"], [data-slot="step-nav"]',
+      '[data-role="assistant"], textarea[aria-label="代码编辑区"], [data-slot="composer"], [data-slot="step-nav"]',
       { timeout: 8000 },
     )
     .catch(() => {

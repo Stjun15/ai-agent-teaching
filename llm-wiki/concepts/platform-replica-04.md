@@ -2,7 +2,7 @@
 
 #### 这一节的目标
 
-把前三斧的功能连成一条完整的用户路径：学生打开网站 → 看到模块列表 → 进入某个模块学习 → 自由对话 → 设置 API Key。
+把前三斧的功能连成一条完整的用户路径：学生打开网站 → 看到模块列表 → 进入某个模块学习 → 查看学习报告 → 设置 API Key。
 
 #### 前置知识速查
 
@@ -21,7 +21,7 @@
 首页     → /               模块列表 + 进入学习
 学习中心  → /learn          按拓扑顺序排列的模块卡片
 工作区    → /learn/[id]     概念讲解 + 观察示范（分屏）
-沙箱     → /playground     自由对话
+报告     → /report         学习报告 + 错题本
 设置     → /settings       API Key + 模型选择
 ```
 
@@ -47,10 +47,10 @@ export default function Home() {
           开始学习
         </Link>
         <Link
-          href="/playground"
+          href="/report"
           className="rounded-lg border px-6 py-3 hover:bg-gray-50"
         >
-          自由对话
+          查看报告
         </Link>
       </div>
     </main>
@@ -69,15 +69,17 @@ import Link from "next/link";
 
 // 模块列表——后续可以从文件系统动态读取
 const MODULES = [
+  { id: "ts-basics", name: "TypeScript 基础", desc: "给 JS 装上类型安全带" },
+  { id: "vibe-coding", name: "有纪律的 Vibe Coding", desc: "跟 AI 结对编程的正确姿势" },
   { id: "llm-api", name: "LLM API 入门", desc: "第一次调通大模型" },
   { id: "system-prompt", name: "System Prompt", desc: "让模型按角色说话" },
   { id: "agent-loop", name: "Agent Loop", desc: "模型不止说一句" },
   { id: "tool-calling", name: "Tool Calling", desc: "给模型装上手" },
   { id: "rag", name: "RAG 检索增强", desc: "让模型读教材" },
   { id: "llm-wiki", name: "LLM Wiki", desc: "结构化你的教材库" },
-  { id: "sqlite", name: "SQLite 存储", desc: "学习进度不丢失" },
+  { id: "multi-agent", name: "多 Agent 协作", desc: "让多个 Agent 分工干活" },
+  { id: "mcp", name: "MCP 工具集成", desc: "给 Agent 接上外部工具" },
   { id: "ai-safety", name: "AI 安全", desc: "可控的 AI" },
-  { id: "platform-replica", name: "教学平台复刻", desc: "从零搭一个平台" },
 ];
 
 export default function LearnPage() {
@@ -154,23 +156,7 @@ export default async function LearnModulePage({
 }
 ```
 
-#### 第四步：沙箱 `/playground` 和设置 `/settings`
-
-```typescript
-// src/app/playground/page.tsx
-import { ChatPanel } from "@/components/chat/chat-panel";
-
-export default function PlaygroundPage() {
-  return (
-    <main className="flex h-screen flex-col">
-      <header className="border-b px-6 py-3">
-        <h1 className="text-lg font-semibold">自由对话</h1>
-      </header>
-      <ChatPanel />
-    </main>
-  );
-}
-```
+#### 第四步：设置 `/settings`
 
 ```typescript
 // src/app/settings/page.tsx
@@ -208,10 +194,9 @@ export default function SettingsPage() {
 
 #### 验收
 
-- [ ] 浏览器访问 `/` → 看到首页，有「开始学习」和「自由对话」两个入口
-- [ ] 点击「开始学习」→ 跳转到 `/learn`，看到 9 个模块卡片
+- [ ] 浏览器访问 `/` → 看到首页，有「开始学习」和「查看报告」两个入口
+- [ ] 点击「开始学习」→ 跳转到 `/learn`，看到 11 个模块卡片
 - [ ] 点击任意模块 → 跳转到 `/learn/llm-api`（或对应模块），看到左侧概念区 + 右侧聊天区
-- [ ] 访问 `/playground` → 看到自由对话页面
 - [ ] 访问 `/settings` → 看到设置页面
 
 ---

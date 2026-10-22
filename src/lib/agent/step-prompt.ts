@@ -56,7 +56,7 @@ const GENERAL_SPEC: StepAgentSpec = {
 /**
  * 按当前学习步骤取对话身份层。
  *
- * `step` 缺省（`/api/chat` 不带 `step`，即演练场自由对话）时走通用答疑口径。
+ * `step` 缺省（`/api/chat` 不带 `step`）时走通用答疑口径。
  * `systemPrompt` 为空串时调用方应**不传**该参数，让 `runAgentLoop` 用
  * 它自己的默认提示词 —— 返回空串而不是把 loop 的默认值抄一份过来，
  * 是为了守住「同一句文案只有一处定义」。

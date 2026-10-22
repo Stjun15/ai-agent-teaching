@@ -83,3 +83,57 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 }
+
+/**
+ * PUT /api/student/errors —— 订正错题
+ *
+ * 请求体：{ id: string, correctedAnswer: string }
+ * 将该错题标记为 is_corrected=1，同时保存订正后的答案。
+ * 幂等：重复调用不产生副作用。
+ */
+export async function PUT(request: Request): Promise<Response> {
+  const auth = await resolveStudent(request);
+  if (!auth.ok) return auth.response;
+
+  let body: { id?: string; correctedAnswer?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("INVALID_INPUT", "请求体不是合法 JSON。");
+  }
+
+  const { id, correctedAnswer } = body;
+
+  if (!id || typeof id !== "string") {
+    return jsonError("INVALID_INPUT", "缺少 id。");
+  }
+  if (
+    !correctedAnswer ||
+    typeof correctedAnswer !== "string" ||
+    correctedAnswer.trim().length === 0
+  ) {
+    return jsonError("INVALID_INPUT", "订正答案不能为空。");
+  }
+
+  try {
+    const trimmed = correctedAnswer.trim();
+    const error = errorDb.getById(id.trim());
+    if (!error) {
+      return jsonError("NOT_FOUND", "该错题不存在。");
+    }
+    if (trimmed === error.studentAnswer.trim()) {
+      return jsonError(
+        "INVALID_INPUT",
+        "订正答案不能和原来的错误答案一模一样。",
+      );
+    }
+
+    errorDb.markCorrected(id.trim(), trimmed);
+    return Response.json({ ok: true });
+  } catch (error) {
+    return jsonError(
+      "DB_ERROR",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}

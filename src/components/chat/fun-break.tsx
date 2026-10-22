@@ -33,8 +33,8 @@ const FUN_ITEMS: FunItem[] = [
   { emoji: "😂", text: "为什么程序员喜欢用深色模式？因为光会吸引 bug。" },
   { emoji: "😂", text: "键盘上最悲伤的键是什么？—— Ctrl + Z，因为回不去了。" },
   { emoji: "😂", text: "Git commit message 写「fix bug」的真正含义：我不知道怎么修，但试试这次。" },
-  { emoji: "😂", text: "如果编程语言是交通工具，Python 是电动车，Rust 是坦克，JavaScript 是共享单车。" },
-  { emoji: "😂", text: "程序员去面试，面试官问：你有几年经验？答：五年。面试官：可 Python 才出来三年…" },
+  { emoji: "😂", text: "如果编程语言是交通工具，Rust 是坦克，JavaScript 是共享单车，TypeScript 是带导航的共享单车。" },
+  { emoji: "😂", text: "程序员去面试，面试官问：你有几年经验？答：五年。面试官：可 TypeScript 严格模式才出来没几年…" },
 
   // ── 科技冷知识 ──────────────────────────────────────────
   { emoji: "💡", text: "第一只电脑鼠标是木头做的，1964 年由 Douglas Engelbart 发明。" },

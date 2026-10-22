@@ -2,7 +2,7 @@
  * 教学平台复刻 —— 专属六阶段，从零搭建教学平台
  *
  * 与通用七步教学法（explain/observe/imitate/…）完全不同的教学路径：
- * 这不是"学概念"模块，而是"做项目"模块。学生用前面 9 讲学的每个零件，
+ * 这不是"学概念"模块，而是"做项目"模块。学生用前面 11 讲学的每个零件，
  * 亲手搭出一个能用的教学平台。**每一步都先引导你跟 AI 导师对话，再自己动手。**
  *
  * 阶段的权威来源：`llm-wiki/concepts/platform-replica.md`
@@ -427,8 +427,8 @@ curl -X POST http://localhost:3000/api/chat \\
         file: "src/lib/review.ts",
         why: "这是教学的闭环——学生交作业 → AI 按维度打分+给建议 → 落库记录进度，和数据库串成一条线。",
         detail:
-          "分两步：\n\n**① 写点评 Agent**（`src/lib/review.ts`）：定义 `REVIEW_SYSTEM_PROMPT`——4 个评分维度（正确性/可读性/完整性/规范性，每个 1-5 分），严格按 JSON 格式输出 `{ dimensions: {...}, deductions: [...], suggestions: '...', overall: 4 }`。函数 `reviewHomework(moduleId, homework)` 调模型拿评分 JSON，解析后调用 `upsertMastery` 落库。temperature 设 0.3 让评分稳定。\n\n**② 创建点评入口**（`src/app/api/validate/route.ts`）：export 一个 POST 函数，从 req 取 content 和 moduleId，调 `reviewHomework`，返回结果。这是点评的 API 端点——前端聊天页会通过它提交作业。",
-        askAI: "问导师：「帮我写一个 REVIEW_SYSTEM_PROMPT——AI 作为代码评审老师，按 4 个维度打分（正确性/可读性/完整性/规范性，每个 1-5 分），必须输出严格 JSON，格式为 { dimensions: {...}, deductions: [...], suggestions: \"...\", overall: 数字 }。temperature 设 0.3。」写完后再问：「再帮我写一个 /api/validate 的 route.ts，接收 POST 调 reviewHomework 返回结果。」",
+          "分两步：\n\n**① 写点评 Agent**（`src/lib/review.ts`）：定义 `REVIEW_SYSTEM_PROMPT`——评分维度不写死 4 个，改成**从验收清单动态读取**。System Prompt 要求模型先扫描提交文本，找到对应清单条目的证据后设维度打 1-5 分，没找到证据的条目不设维度（宁可少一维，不编一个分）。输出严格 JSON：`{ dimensions: { \"条目1\": 4, ... }, deductions: [...], suggestions: '...', overall: 数字 }`。函数 `reviewHomework(moduleId, homework)` 调模型拿评分 JSON，解析后调用 `upsertMastery` 落库。temperature 设 0.3 让评分稳定。\n\n**② 创建点评入口**（`src/app/api/validate/route.ts`）：export 一个 POST 函数，从 req 取 content 和 moduleId，调 `reviewHomework`，返回结果。这是点评的 API 端点——前端聊天页会通过它提交作业。",
+        askAI: "问导师：「帮我写一个 REVIEW_SYSTEM_PROMPT——AI 作为代码评审老师，从验收清单里找证据设维度打分。不写死 4 个维度，而是根据提交内容里实际找到的清单证据动态设维度（1-5 分），没证据的不设维度。必须输出严格 JSON。」写完后再问：「再帮我写一个 /api/validate 的 route.ts，接收 POST 调 reviewHomework 返回结果。」",
         stuckPrompt: "贴 review.ts 代码 + 模型返回的内容给导师。常见问题：①AI 在 JSON 外面套了 markdown 代码块 → 问「怎么从模型回复里提取纯 JSON？」②JSON.parse 报错 → 问「模型返回的 JSON 格式不标准怎么办？」③upsertMastery 没落库 → 问「reviewHomework 到 upsertMastery 的数据流对吗？」④POST /api/validate 返回 404 → 检查文件是否放在 src/app/api/validate/route.ts，文件名必须叫 route.ts。",
         pitfalls: [
           "System Prompt 里的 JSON 示例就是模型的「模板」——它大概率会照抄格式",
@@ -456,7 +456,7 @@ curl -X POST http://localhost:3000/api/chat \\
 
 curl -X POST http://localhost:3000/api/validate \\
   -H "Content-Type: application/json" \\
-  -d '{"content":"const name = (void 0).name"}'
+  -d '{"moduleId":"platform-replica","content":"const name = (void 0).name"}'
 # → JSON 返回维度分、扣分点、改进建议，并且落库`,
   },
   {
@@ -477,8 +477,8 @@ curl -X POST http://localhost:3000/api/validate \\
         file: "src/app/page.tsx",
         why: "所有学习路径的起点——没有首页，学生不知道从哪进。",
         detail:
-          "修改 `src/app/page.tsx`。用 Next.js 的 `<Link href='/learn'>` 和 `<Link href='/playground'>` 做两个入口按钮。标题写「AI 教学平台」+ 一句话介绍。用 Tailwind CSS 居中布局（`flex min-h-screen items-center justify-center`）。\n\n**进阶（龙骨连线）**：首页是整个平台的「大门」——确保两个 Link 都指向正确的路由。写完首页后把第一斧的 ChatPanel import 进来试一下：在首页底部加一个「快速体验」折叠区，里面放 ChatPanel。这样首页既是大门又是快速试用入口。问导师：「怎么在首页加一个可折叠的 ChatPanel？」",
-        askAI: "问导师：「帮我用 Next.js + Tailwind CSS 写一个首页——居中布局，标题是『AI 教学平台』，下面两个按钮分别跳转到 /learn 和 /playground。用 Link 组件，不要用 a 标签。」",
+          "修改 `src/app/page.tsx`。用 Next.js 的 `<Link href='/learn'>` 和 `<Link href='/report'>` 做两个入口按钮。标题写「AI 教学平台」+ 一句话介绍。用 Tailwind CSS 居中布局（`flex min-h-screen items-center justify-center`）。\n\n**进阶（龙骨连线）**：首页是整个平台的「大门」——确保两个 Link 都指向正确的路由。写完首页后把第一斧的 ChatPanel import 进来试一下：在首页底部加一个「快速体验」折叠区，里面放 ChatPanel。这样首页既是大门又是快速试用入口。问导师：「怎么在首页加一个可折叠的 ChatPanel？」",
+        askAI: "问导师：「帮我用 Next.js + Tailwind CSS 写一个首页——居中布局，标题是『AI 教学平台』，下面两个按钮分别跳转到 /learn 和 /report。用 Link 组件，不要用 a 标签。」",
         stuckPrompt: "贴 page.tsx 代码给导师，问「页面能渲染，但点击按钮没反应——是不是 Link 的用法不对？」",
         pitfalls: [
           "用 `<Link>` 而不是 `<a>`——Next.js 的 Link 做客户端路由跳转，不会整页刷新",
@@ -491,11 +491,11 @@ curl -X POST http://localhost:3000/api/validate \\
         why: "课程目录——学生从这里选模块、看进度，是整个教学平台的导航枢纽。",
         detail:
           "新建 `src/app/learn/page.tsx`。定义一个模块列表数组（id + name + desc），用 `map` 渲染成卡片列表。每个卡片是 `<Link href={/learn/\${mod.id}}>`，点击跳转到对应模块的工作区。卡片上显示序号、模块名、一句话描述。\n\n**进阶（龙骨连线）**：静态数组能跑就行。学完第三斧的 RAG + node:fs 后，把静态数组替换成动态读取：用 `node:fs` 的 `readdirSync` 读取 `llm-wiki/concepts/` 目录下所有 .md 文件，解析每个文件的 YAML front matter 拿 id/name/description，按拓扑序排列。问导师：「怎么用 node:fs 动态读取文件夹、解析 front matter 生成模块列表？」",
-        askAI: "问导师：「帮我在 Next.js 的 src/app/learn/page.tsx 写一个课程目录页——用一个模块数组（9 个模块，每个有 id/name/desc），map 渲染成卡片，点击卡片跳转到 /learn/模块ID。用 Tailwind 做卡片布局。」",
+        askAI: "问导师：「帮我在 Next.js 的 src/app/learn/page.tsx 写一个课程目录页——用一个模块数组（11 个模块，每个有 id/name/desc），map 渲染成卡片，点击卡片跳转到 /learn/模块ID。用 Tailwind 做卡片布局。」",
         stuckPrompt: "贴代码给导师，问「卡片渲染出来了但路由不对——Next.js 的动态路由 [id] 文件夹应该建在哪？Link 的 href 怎么写才对？」",
         pitfalls: [
           "Next.js 的 App Router：`src/app/learn/page.tsx` → 自动匹配 `/learn` 路由",
-          "模块列表可以先写死（9 个模块的数组），后续再改动态读取",
+          "模块列表可以先写死（11 个模块的数组），后续再改动态读取",
           "动态读取进阶：`readdirSync` 返回的是文件名数组，需要 filter 出 .md 结尾的，再去掉扩展名",
         ],
       },
@@ -515,16 +515,6 @@ curl -X POST http://localhost:3000/api/validate \\
         ],
       },
       {
-        label: "沙箱 `/playground`",
-        file: "src/app/playground/page.tsx",
-        why: "给学生一个不受课程约束的自由空间——学到的概念可以在这里随意尝试、自由提问。",
-        detail:
-          "新建 `src/app/playground/page.tsx`。极简页面——标题「自由对话」+ `ChatPanel` 组件。学生在这里不跟课程内容绑定，纯粹跟 AI 聊天、测试想法。\n\n**进阶（龙骨连线）**：沙箱是测试 Agent Loop 的好地方。把 ChatPanel 升级走 `runAgentLoop`——在沙箱里问「给我出三道关于闭包的选择题」，验证出题工具是否正常工作。问导师：「怎么让沙箱的 ChatPanel 也走 runAgentLoop？」",
-        askAI: "问导师：「帮我写一个最简单的 playground 页面——只有一个标题加 ChatPanel 聊天组件。ChatPanel 在第一斧已经写好了，教我正确 import 进来。」",
-        stuckPrompt: "贴 playground/page.tsx 代码 + 报错给导师。最可能的错误是 import 路径不对——让导师帮你检查 @/ 别名是否正确配置、文件是否在正确的位置。",
-        pitfalls: ["ChatPanel 在第一斧已经写好了，这里直接 import 复用即可", "如果想走 Agent Loop，在沙箱里 import runAgentLoop 单独测试——和 ChatPanel 的 SSE 流式分开测，逐个排查"],
-      },
-      {
         label: "设置 `/settings`",
         file: "src/app/settings/page.tsx",
         why: "让学生确认平台配置是否正确——看不到设置页，出问题时连「是不是 Key 没配」都排查不了。",
@@ -540,7 +530,7 @@ curl -X POST http://localhost:3000/api/validate \\
       },
     ],
     acceptanceDesc:
-      "五条路由都能访问，导航完整，页面不白屏。用浏览器手动点一遍：首页 → 学习中心 → 任意模块工作区 → 沙箱 → 设置，每个页面都有内容。",
+      "五条路由都能访问，导航完整，页面不白屏。用浏览器手动点一遍：首页 → 学习中心 → 任意模块工作区 → 报告 → 设置，每个页面都有内容。",
   },
   {
     index: 5,
@@ -588,7 +578,7 @@ curl -X POST http://localhost:3000/api/validate \\
         label: "点评 Agent：交作业能拿到维度分、扣分点、改进建议，且落库",
         why: "点评+落库 = 第三斧的闭环——缺一项说明 review.ts 或 db.ts 没对接好。",
         detail:
-          "在下方「交付与检验单」编辑器贴一段代码，点「提交点评」。返回的 JSON 里有 dimensions（4 个维度的分数）、deductions（扣分点）、suggestions（改进建议）。然后跑 `node -e \"...\"` 验证数据库里有这条记录。",
+          "在下方「交付与检验单」编辑器贴一段代码，点「提交点评」。返回的 JSON 里有 dimensions（按验收清单动态设维度，每维 1-5 分）、deductions（扣分点）、suggestions（改进建议）。然后跑 `node -e \"...\"` 验证数据库里有这条记录。",
         askAI: "问导师：「帮我全面检查 review.ts ——System Prompt 的 JSON 格式要求是否明确、JSON.parse 的容错是否到位、upsertMastery 的调用是否正确。我把代码贴给你。」",
         stuckPrompt: "如果点评返回的不是 JSON：贴返回内容给导师，问「模型在 JSON 外面套了东西，怎么提取？」。如果点评没落库：问导师「reviewHomework → upsertMastery 的数据流对吗？是不是字段名没对上？」",
       },
@@ -601,11 +591,11 @@ curl -X POST http://localhost:3000/api/validate \\
         stuckPrompt: "贴 db.ts + 终端命令输出（查不到记录）给导师，问「为什么重启后数据丢了？是 upsert 没真正写进去，还是 dev.db 的路径不对？」",
       },
       {
-        label: "页面导航完整：首页 → 学习中心 → 工作区 → 沙箱 → 设置",
+        label: "页面导航完整：首页 → 学习中心 → 工作区 → 报告 → 设置",
         why: "龙骨四斧的接头——五条路由全通说明页面连线没断，缺一页整个学习路径就断了。",
         detail:
           "从首页开始，逐一访问 5 个页面。检查：每个页面都能正常渲染（不白屏）、面包屑导航正确、返回按钮能回到上一级。",
-        askAI: "问导师：「帮我做一次整体 code review——把 page.tsx（首页）、learn/page.tsx、learn/[id]/page.tsx、playground/page.tsx、settings/page.tsx 五个页面的代码贴给你，帮我检查：①Link 用法是否正确 ②动态路由的 params 处理对不对 ③有没有潜在的导入路径错误。」",
+        askAI: "问导师：「帮我做一次整体 code review——把 page.tsx（首页）、learn/page.tsx、learn/[id]/page.tsx、report/page.tsx、settings/page.tsx 五个页面的代码贴给你，帮我检查：①Link 用法是否正确 ②动态路由的 params 处理对不对 ③有没有潜在的导入路径错误。」",
         stuckPrompt: "如果某个页面白屏：贴该页面的代码 + 浏览器控制台报错给导师，问「这个页面为什么白屏？」。如果是 404：问导师「文件夹结构对吗？Next.js App Router 的路由约定是什么？」",
       },
       {

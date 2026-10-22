@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   Blocks,
   Compass,
-  FlaskConical,
   Home,
   LineChart,
   Settings,
@@ -26,7 +25,7 @@ interface NavItem {
    * `ready` = 路由已实现，渲染成链接；`planned` = 尚未实现，渲染成不可点的标签。
    *
    * 为什么要有这个区分：Phase 3 只交付主链路（首页 / 学习中心 / 模块页），
-   * 沙箱、报告、设置是 Phase 6 的提交点。如果现在就给出链接，点下去是 404 ——
+   * 报告、设置是后续阶段的提交点。如果现在就给出链接，点下去是 404 ——
    * 在演示视频里就是一个扣分画面；如果干脆不显示，又看不出产品全貌。
    * 明确标成「规划中」是唯一不撒谎也不出丑的选择。
    * Phase 6 把 status 改成 `ready` 即可，链接形态自动跟随。
@@ -37,12 +36,6 @@ interface NavItem {
 const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "首页", icon: Home, status: "ready" },
   { href: "/learn", label: "学习中心", icon: Compass, status: "ready" },
-  {
-    href: "/playground",
-    label: "沙箱实验室",
-    icon: FlaskConical,
-    status: "ready",
-  },
   { href: "/report", label: "学习报告", icon: LineChart, status: "ready" },
   { href: "/settings", label: "设置", icon: Settings, status: "ready" },
 ];

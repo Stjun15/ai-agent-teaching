@@ -12,7 +12,7 @@
  */
 
 import * as React from "react";
-import { Blocks, Info, LogOut } from "lucide-react";
+import { Blocks, GraduationCap, Info, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -208,6 +208,12 @@ export default function AuthPage() {
     window.location.href = "/";
   }
 
+  function handleDemoFill(username: string, password: string) {
+    setLoginUsername(username);
+    setLoginPassword(password);
+    setLoginError(null);
+  }
+
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-12 sm:py-16">
       <div className="flex flex-col gap-6">
@@ -308,11 +314,31 @@ export default function AuthPage() {
                   登 录
                 </Button>
 
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  评审演示账号：用户名 <code>test</code> 或 <code>eval</code>
-                  ，密码 <code>test1234</code> 或 <code>eval1234</code>
-                  （一一对应）。
-                </p>
+                <div className="rounded-lg border bg-muted/40 px-3.5 py-3">
+                  <div className="mb-2.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <GraduationCap className="size-3.5" aria-hidden />
+                    评审演示
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoFill("test", "test1234")}
+                      className="flex-1 rounded-md border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-ring hover:bg-accent hover:text-foreground"
+                    >
+                      test / test1234
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoFill("eval", "eval1234")}
+                      className="flex-1 rounded-md border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-ring hover:bg-accent hover:text-foreground"
+                    >
+                      eval / eval1234
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground/60">
+                    点击按钮自动填充账号密码，然后点「登录」即可。
+                  </p>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="flex flex-col gap-4">

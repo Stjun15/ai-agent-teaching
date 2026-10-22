@@ -28,17 +28,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiError, apiGet } from "@/lib/client-api";
+import { ApiError, apiGet, apiPut } from "@/lib/client-api";
 import { currentStudentId } from "@/lib/client-identity";
 import { PROMPT_SCORE_MAX } from "@/lib/scores";
 import type { ErrorRecord, PromptHistory, StudentErrorsResponse, StudentPromptsResponse } from "@/schemas";
 
 /** 每页条数。 */
 const PAGE_SIZE = 10;
+
+/** 每条错题的订正状态。 */
+type CorrectionState = {
+  answer: string;
+  submitting: boolean;
+  done: boolean;
+  error: string | null;
+};
 
 /** 错题本。数据自取，内部管理模块筛选与分页状态。 */
 export function ErrorBookSection() {
@@ -103,6 +111,53 @@ export function ErrorBookSection() {
     },
     [],
   );
+
+  const [corrections, setCorrections] = useState<
+    Record<string, CorrectionState>
+  >({});
+
+  const handleCorrect = useCallback(async (errorId: string, originalAnswer: string) => {
+    const entry = corrections[errorId];
+    if (!entry || !entry.answer.trim()) return;
+
+    const trimmed = entry.answer.trim();
+    if (trimmed === originalAnswer.trim()) {
+      setCorrections((prev) => ({
+        ...prev,
+        [errorId]: { ...entry, error: "订正答案不能和原来的错误答案一模一样，请重新思考后写出正确答案。" },
+      }));
+      return;
+    }
+
+    setCorrections((prev) => ({
+      ...prev,
+      [errorId]: { ...entry, submitting: true, error: null },
+    }));
+
+    try {
+      await apiPut("/api/student/errors", {
+        id: errorId,
+        correctedAnswer: trimmed,
+      });
+      setCorrections((prev) => ({
+        ...prev,
+        [errorId]: { ...prev[errorId], submitting: false, done: true },
+      }));
+      void fetchErrors(moduleId, page);
+    } catch (err) {
+      setCorrections((prev) => ({
+        ...prev,
+        [errorId]: {
+          ...prev[errorId],
+          submitting: false,
+          error:
+            err instanceof ApiError
+              ? err.message
+              : "提交失败，请重试。",
+        },
+      }));
+    }
+  }, [corrections, moduleId, page, fetchErrors]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -238,6 +293,22 @@ export function ErrorBookSection() {
                   <p className="mt-2 text-[11px] text-muted-foreground">
                     关联反模式：{item.relatedAntiPattern}
                   </p>
+                ) : null}
+
+                {/* 订正区：未订正的错题才显示 */}
+                {!item.isCorrected ? (
+                  <CorrectForm
+                    errorId={item.id}
+                    originalAnswer={item.studentAnswer}
+                    state={corrections[item.id] ?? { answer: "", submitting: false, done: false, error: null }}
+                    onAnswerChange={(v) =>
+                      setCorrections((prev) => ({
+                        ...prev,
+                        [item.id]: { ...prev[item.id], answer: v, submitting: false, done: false, error: null },
+                      }))
+                    }
+                    onSubmit={handleCorrect}
+                  />
                 ) : null}
               </li>
             ))}
@@ -559,5 +630,70 @@ function formatTime(value: string): string {
   return (
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+function CorrectForm({
+  errorId,
+  originalAnswer,
+  state,
+  onAnswerChange,
+  onSubmit,
+}: {
+  errorId: string;
+  originalAnswer: string;
+  state: CorrectionState;
+  onAnswerChange: (value: string) => void;
+  onSubmit: (errorId: string, originalAnswer: string) => void;
+}) {
+  if (state.done) {
+    return (
+      <p className="mt-2 flex items-center gap-1 text-xs text-green-600">
+        <Check className="size-3.5" />
+        已提交订正
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-2 border-t pt-2">
+      <label
+        htmlFor={`correction-${errorId}`}
+        className="text-[11px] text-muted-foreground"
+      >
+        请重新写出正确答案：
+      </label>
+      <textarea
+        id={`correction-${errorId}`}
+        rows={3}
+        className="w-full resize-y rounded-md border bg-background px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-ring"
+        placeholder="在这里订正你的答案…"
+        value={state.answer}
+        onChange={(e) => onAnswerChange(e.target.value)}
+        disabled={state.submitting}
+      />
+      {state.error ? (
+        <p className="text-[11px] text-destructive">{state.error}</p>
+      ) : null}
+      <Button
+        type="button"
+        size="sm"
+        disabled={state.submitting || !state.answer.trim()}
+        onClick={() => onSubmit(errorId, originalAnswer)}
+        className="w-fit"
+      >
+        {state.submitting ? (
+          <>
+            <Loader2 className="mr-1 size-3 animate-spin" />
+            提交中…
+          </>
+        ) : (
+          <>
+            <Check className="mr-1 size-3" />
+            提交订正
+          </>
+        )}
+      </Button>
+    </div>
   );
 }

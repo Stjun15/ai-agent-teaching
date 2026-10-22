@@ -13,11 +13,10 @@
  * 任务类型（`api-spec.md` 的 `ValidateSchema`），校验结果要能反复重试、
  * 逐轮对比。混进 SessionStore 会让「清空对话」与「清空代码」互相牵连。
  *
- * 语言只给两种
+ * 语言只给一种
  * -----------
- * `data-models.md` 的 `Message.language` 与 `SendMessageSchema` 都只认
- * `typescript` / `python`（`00-MASTER.md` 约束「TS 和 Python 两个版本」）。
- * 加第三种编程语言要同时改数据库列语义与教学材料，不是前端能单方面决定的事。
+ * 平台只教 TypeScript。`data-models.md` 的 `Message.language` 与
+ * `SendMessageSchema` 的值域见 `lib/languages.ts`。
  */
 
 import { create } from "zustand";
@@ -59,8 +58,7 @@ export interface CodeState {
 
 export const useCodeStore = create<CodeState>((set) => ({
   code: "",
-  // 与 `StudentProfile.preferredLanguage` 的默认值保持一致（`typescript`）——
-  // 学生画像接入后由它覆盖，见 `useStudentStore`。
+  // 平台只教 TypeScript；见 `lib/languages.ts`。
   language: "typescript",
   taskType: "code",
   validationStatus: "idle",

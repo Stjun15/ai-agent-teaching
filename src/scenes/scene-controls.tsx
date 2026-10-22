@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-/** 输入类的公共外观，与沙箱的 `LabInput` 保持一致。 */
+/** 输入控件的公共外观。 */
 const FIELD =
   "w-full rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring";
 

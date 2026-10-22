@@ -50,14 +50,6 @@ export const ValidateSchema = z.object({
   taskType: z.enum(["prompt", "tool", "code", "qa"]),
   content: z.string().min(1).max(10000),
   moduleId: z.string().min(1),
-  /**
-   * 沙箱实验室的试玩调用。置 true 时点评照常返回，但**不写学生档案**
-   * （prompt_history / errors / mastery）—— 沙箱页面向学生明说「没有评分」，
-   * 学生拿「帮我写个东西」玩票，不该把 15 分记进报告、更不该把掌握度
-   * 从 5 砸回 1、把已解锁的下一讲重新锁死。validation_results 照写：
-   * 那是审计记录，不进学生可见的报告。
-   */
-  sandbox: z.boolean().optional(),
 });
 
 export const ExplainSchema = z.object({

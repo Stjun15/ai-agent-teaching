@@ -60,10 +60,11 @@ export const errorDb = {
    * 写入一条错题（点评判为不通过时，见文件头「写入裁定」）。
    *
    * `question` 可空：`/api/agent/validate` 是学生自主提交，没有题面；
-   * `answer-grade` 从题库行带入。`is_corrected` / `variant_questions_generated` /
-   * `next_review_at` 固定写初始值 —— 订正与复习调度还没有实现路径，写假状态
+   * `answer-grade` 从题库行带入。`variant_questions_generated` /
+   * `next_review_at` 固定写初始值 —— 复习调度还没有实现路径，写假状态
    * 等于谎报。
-   */
+   *
+   * 订正路径：错题本页面提交订正答案 → `errorDb.markCorrected()`。 */
   async create(input: {
     studentId: string;
     moduleId: string;
@@ -183,5 +184,22 @@ export const errorDb = {
       )
       .all(studentId, limit);
     return (rows as Row[]).map((row) => asString(row.concept_id));
+  },
+
+  /** 将指定错题标记为已订正，同时保存订正后的答案。 */
+  markCorrected(id: string, correctedAnswer: string): void {
+    getDb()
+      .prepare(
+        "UPDATE errors SET is_corrected = 1, student_answer = ? WHERE id = ?",
+      )
+      .run(correctedAnswer, id);
+  },
+
+  /** 按 id 获取单条错题。 */
+  getById(id: string): ErrorRecord | null {
+    const row = getDb()
+      .prepare("SELECT * FROM errors WHERE id = ?")
+      .get(id) as Row | undefined;
+    return row ? mapError(row) : null;
   },
 };
