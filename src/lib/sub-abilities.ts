@@ -118,3 +118,115 @@ export function aggregateSubAbilities(
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// 成长曲线
+// ---------------------------------------------------------------------------
+
+/** 带时间戳的掌握度记录（时间轴只多要一个 `updatedAt`）。 */
+export interface MasteryTimelineSample extends MasterySample {
+  /** ISO 时间戳（`mastery.updated_at`）；只取前 10 位当日期。 */
+  updatedAt: string;
+}
+
+/** 曲线上的一点：某个能力在某一天、按当日可见证据重算的均值。 */
+export interface SubAbilityTrendPoint {
+  /** `YYYY-MM-DD`。 */
+  date: string;
+  /** 0~5。 */
+  score: number;
+  /** 当天参与平均的模块数。 */
+  samples: number;
+}
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * 六项能力的成长曲线。
+ *
+ * 口径（为什么不是「按日期分桶求平均」）
+ * ----------------------------------
+ * `mastery` 每个概念只有**一行最新值**，没有历史快照。按日期分桶会把
+ * 「今天只重测了一讲」画成「今天全站掌握度掉了下来」——那不是成长，是噪音。
+ * 所以这里做**截至当日的累积重算**：对每个有记录的日期，把每个模块取
+ * 「≤ 当日最近一次」的分数，再按能力求平均。这样每个点是「那一天你已知的
+ * 全部证据」，曲线只会在真正有记录变化的日期上出现拐点。
+ *
+ * 三条与聚合函数一致的规则：
+ * 1. 只统计映射里的模块；不在映射里的模块不产生点；
+ * 2. 非有限分数、缺失或非法 `updatedAt` 的记录直接跳过（不猜日期）；
+ * 3. 某个能力在某个日期没有任何证据时**不产点**（缺席不等于 0 分）。
+ */
+export function buildSubAbilityTimeline(
+  records: readonly MasteryTimelineSample[],
+): Record<SubAbilityKey, SubAbilityTrendPoint[]> {
+  // 先规整：只留下「能确定是哪天」且分数有效的记录，并按日期升序；
+  // 同一天的多条记录按输入顺序覆盖（后写的算更新的那次测量）。
+  const normalized = records
+    .map((record) => ({
+      conceptId: record?.conceptId,
+      score: record?.score,
+      date: typeof record?.updatedAt === "string"
+        ? record.updatedAt.slice(0, 10)
+        : "",
+    }))
+    .filter(
+      (record): record is { conceptId: string; score: number; date: string } =>
+        typeof record.conceptId === "string" &&
+        typeof record.score === "number" &&
+        Number.isFinite(record.score) &&
+        DATE_PATTERN.test(record.date),
+    )
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  const dates = [...new Set(normalized.map((record) => record.date))].sort();
+
+  const result = {} as Record<SubAbilityKey, SubAbilityTrendPoint[]>;
+  for (const key of SUB_ABILITY_KEYS) {
+    const modules = new Set(SUB_ABILITY_MODULES[key]);
+    // 截至当前日期的「每模块最新分」；只缓存映射内的模块。
+    const latest = new Map<string, number>();
+    let cursor = 0;
+    let dirty = false;
+    const points: SubAbilityTrendPoint[] = [];
+
+    for (const date of dates) {
+      while (cursor < normalized.length && normalized[cursor].date <= date) {
+        const record = normalized[cursor];
+        if (modules.has(record.conceptId)) {
+          latest.set(record.conceptId, record.score);
+          dirty = true;
+        }
+        cursor += 1;
+      }
+
+      // 只在该能力「真有新证据」的日期上取点：学生在别的模块上留下的
+      // 掌握度不该在这条曲线上补一个平点（那是无信息量的噪音）。
+      if (!dirty || latest.size === 0) {
+        dirty = false;
+        continue;
+      }
+      const values = [...latest.values()];
+      points.push({
+        date,
+        score: round2(
+          values.reduce((sum, score) => sum + score, 0) / values.length,
+        ),
+        samples: values.length,
+      });
+      dirty = false;
+    }
+
+    result[key] = points;
+  }
+  return result;
+}
+
+/**
+ * 曲线首尾变化量：`latest - first`，四舍五入到 2 位。
+ * 点数不足 2 时返回 `null`（一个点构不成趋势，别画成 0 变化）。
+ */
+export function trendDelta(points: readonly SubAbilityTrendPoint[]): number | null {
+  if (points.length < 2) return null;
+  return round2(points[points.length - 1].score - points[0].score);
+}

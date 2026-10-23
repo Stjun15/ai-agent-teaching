@@ -30,6 +30,7 @@ import {
   SUB_ABILITY_KEYS,
   SUB_ABILITY_LABELS,
   aggregateSubAbilities,
+  buildSubAbilityTimeline,
 } from "@/lib/sub-abilities";
 import type { ReportResponse, ReportSubAbilities } from "@/schemas";
 
@@ -82,6 +83,14 @@ export async function GET(request: Request): Promise<Response> {
       key,
       label: SUB_ABILITY_LABELS[key],
       ...evidence[key],
+    }));
+
+    // 六项能力的成长曲线（累积重算，见 `buildSubAbilityTimeline`）。
+    const timeline = buildSubAbilityTimeline(mastery);
+    const subAbilityTrends = SUB_ABILITY_KEYS.map((key) => ({
+      key,
+      label: SUB_ABILITY_LABELS[key],
+      points: timeline[key],
     }));
 
     // 掌握度趋势：按日期聚合「当天平均分」。
@@ -145,6 +154,7 @@ export async function GET(request: Request): Promise<Response> {
       },
       subAbilities,
       subAbilityEvidence,
+      subAbilityTrends,
       promptDimensions,
       masteryTrend,
       weaknesses,

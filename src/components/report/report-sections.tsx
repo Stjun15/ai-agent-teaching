@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
+import { SubAbilitySparkline } from "@/components/report/sub-ability-sparkline";
 import {
   MASTERY_MAX_SCORE,
   MASTERY_PASS_SCORE,
   PROMPT_SCORE_MAX,
   masteryToPercent,
 } from "@/lib/scores";
+import { trendDelta } from "@/lib/sub-abilities";
 import type { PathAdjustment, ReportResponse } from "@/schemas";
 import {
   AlertTriangle,
@@ -53,6 +55,10 @@ export function ReportSections({ report }: { report: ReportResponse }) {
   const measuredAbilities = report.subAbilityEvidence.filter(
     (ability) => ability.score !== null,
   ).length;
+  // 曲线按 key 建索引：六项能力的点序列都来自同一份 `buildSubAbilityTimeline`。
+  const trendsByKey = new Map(
+    report.subAbilityTrends.map((trend) => [trend.key, trend.points]),
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,34 +99,67 @@ export function ReportSections({ report }: { report: ReportResponse }) {
         <div className="flex items-baseline gap-2">
           <h2 className="text-sm font-semibold">六项子能力</h2>
           <span className="text-[11px] text-muted-foreground">
-            由对应教学模块的真实掌握度聚合，{measuredAbilities} / 6 项有证据
+            由对应教学模块的真实掌握度聚合，{measuredAbilities} / 6 项有证据 ·
+            曲线按截至当日的最新掌握度重算
           </span>
         </div>
         <ul className="mt-3 flex flex-col gap-2">
-          {report.subAbilityEvidence.map((ability) => (
-            <li key={ability.key} className="flex items-center gap-3">
-              <span className="w-32 shrink-0 text-xs">{ability.label}</span>
-              {ability.score === null ? (
-                <span className="flex-1 text-[11px] leading-relaxed text-muted-foreground">
-                  未测评 —— 学完 {ability.modules.join(" / ")}{" "}
-                  中任意一讲并留下掌握度记录后出现
-                </span>
-              ) : (
-                <>
-                  <Progress
-                    value={masteryToPercent(ability.score)}
-                    label={`${ability.label} ${ability.score} / ${MASTERY_MAX_SCORE}`}
-                  />
-                  <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                    {ability.score}
-                  </span>
-                  <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
-                    {ability.samples} 条
-                  </span>
-                </>
-              )}
-            </li>
-          ))}
+          {report.subAbilityEvidence.map((ability) => {
+            const points = trendsByKey.get(ability.key) ?? [];
+            const delta = trendDelta(points);
+            const first = points[0];
+            const last = points[points.length - 1];
+
+            return (
+              <li key={ability.key} className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <span className="w-32 shrink-0 text-xs">{ability.label}</span>
+                  {ability.score === null ? (
+                    <span className="flex-1 text-[11px] leading-relaxed text-muted-foreground">
+                      未测评 —— 学完 {ability.modules.join(" / ")}{" "}
+                      中任意一讲并留下掌握度记录后出现
+                    </span>
+                  ) : (
+                    <>
+                      <Progress
+                        value={masteryToPercent(ability.score)}
+                        label={`${ability.label} ${ability.score} / ${MASTERY_MAX_SCORE}`}
+                      />
+                      <span className="w-10 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                        {ability.score}
+                      </span>
+                      <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
+                        {ability.samples} 条
+                      </span>
+                    </>
+                  )}
+                </div>
+                {ability.score !== null && (
+                  <div className="flex items-center gap-2 pl-[8.5rem]">
+                    {points.length >= 2 ? (
+                      <>
+                        <SubAbilitySparkline points={points} />
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          {first.date} {first.score} → {last.date} {last.score}
+                          （{delta !== null && delta > 0 ? "+" : ""}
+                          {delta}，{points.length} 个时间点）
+                        </span>
+                      </>
+                    ) : points.length === 1 ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        {points[0].date} 首次记录 {points[0].score} 分 ——
+                        再有新记录才画得出曲线
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        暂无时间点
+                      </span>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
