@@ -181,7 +181,9 @@ export function SettingsView() {
           </li>
           <li>
             <strong className="font-medium text-foreground">语音输入</strong>
-            ：需要录音与转写链路，排在 Phase 7。
+            ：链路已实现（Web Speech API），但生产环境是 `http://` 明文页面，
+            Chrome / Edge 按安全上下文策略不允许请求麦克风，入口已撤下；
+            配好 HTTPS 后可恢复。
           </li>
         </ul>
       </SettingsSection>

@@ -6,8 +6,6 @@ import {
   CornerDownLeft,
   ImagePlus,
   Loader2,
-  Mic,
-  MicOff,
   Send,
   Square,
   X,
@@ -16,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useChatStream } from "@/hooks/useChatStream";
 import { useElapsed } from "@/hooks/use-elapsed";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useCodeStore, useSessionStore } from "@/stores";
 import type { StepType } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -112,60 +109,11 @@ export function Composer({
   const [images, setImages] = useState<string[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  // 语音输入状态由 hook 自身管理；error/state 透传给 UI。
-  // 同时暴露 start/stop 供空格键 PTT（Push-to-Talk）控制。
-  const {
-    isSupported: micSupported,
-    isListening,
-    error: speechError,
-    start: startMic,
-    stop: stopMic,
-    toggle: toggleMic,
-  } = useSpeechRecognition({
-    onResult: (spoken) => {
-      // 语音识别结果直接填入输入框，替换而非追加
-      // （追加会在修修补补时产生大量冗余文本）
-      setText(spoken);
-    },
-  });
-
-  // 空格键 PTT（Push-to-Talk）：按住空格开始收音，松开即停止。
-  // 仅在输入框未聚焦时生效，避免干扰正常打字。
-  // 这里用的是 DOM 原生 addEventListener，回调参数类型由 DOM 自动推断，
-  // 不能标注 React.KeyboardEvent（会和原生 KeyboardEvent 冲突）。
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== " " || e.repeat) return;
-      if (
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLInputElement
-      )
-        return;
-      e.preventDefault();
-      if (!isListening) {
-        startMic();
-      }
-    }
-
-    function handleKeyUp(e: KeyboardEvent) {
-      if (e.key !== " ") return;
-      if (
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLInputElement
-      )
-        return;
-      if (isListening) {
-        stopMic();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [isListening, startMic, stopMic]);
+  // 语音输入入口已整体撤下（2026-10-23）：生产的 `http://` 明文页面上，
+  // Chrome / Edge 按安全上下文策略**不允许**发起麦克风请求，点了只会弹一句
+  // 误导人的「请在浏览器设置中允许」。实现保留在
+  // `src/hooks/use-speech-recognition.ts`（含四条降级文案），配好 HTTPS 后
+  // 重新接回即可 —— 只恢复按钮，别忘了一并恢复空格键 PTT 与占位文案。
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -303,12 +251,6 @@ export function Composer({
         </p>
       ) : null}
 
-      {speechError !== null ? (
-        <p role="alert" className="text-xs text-destructive">
-          {speechError}
-        </p>
-      ) : null}
-
       <input
         ref={fileInputRef}
         type="file"
@@ -326,35 +268,15 @@ export function Composer({
           onKeyDown={handleKeyDown}
           rows={2}
           placeholder={
-            isListening
-              ? "正在聆听…松开空格键停止收音"
-              : images.length > 0
-                ? "想对截图说什么？（可选，直接发图也行）"
-                : "说说你的思路，或问一个具体的问题…（空格键语音，Enter 发送）"
+            images.length > 0
+              ? "想对截图说什么？（可选，直接发图也行）"
+              : "说说你的思路，或问一个具体的问题…（Enter 发送）"
           }
-          className={cn(
-            "min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed transition-colors duration-200 outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-            isListening && "border-primary ring-[3px] ring-primary/30",
-          )}
+          className="min-h-[60px] flex-1 resize-y rounded-md border bg-background p-2.5 text-sm leading-relaxed transition-colors duration-200 outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         />
 
         <div className="flex flex-col gap-2">
           <div className="flex gap-1">
-            {micSupported ? (
-              <Button
-                type="button"
-                variant={isListening ? "default" : "outline"}
-                size="sm"
-                onClick={toggleMic}
-                aria-label={isListening ? "停止录音" : "语音输入"}
-              >
-                {isListening ? (
-                  <MicOff className="size-4 animate-pulse" />
-                ) : (
-                  <Mic className="size-4" />
-                )}
-              </Button>
-            ) : null}
             <Button
               type="button"
               variant="outline"
