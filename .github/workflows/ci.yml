@@ -32,5 +32,29 @@ jobs:
       - name: TypeScript
         run: pnpm typecheck
 
-      - name: 标准测试框架（Vitest + 覆盖率）
+      - name: 标准测试框架（Vitest + 覆盖率门槛）
         run: pnpm test:coverage
+
+      # 覆盖率报告留档：测试红了也能下载来看是哪一块掉的。
+      - name: 上传覆盖率报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
+
+      # 自研 node:test 组里挑出的「无服务器、无真模型」子集（见 scripts/run-tests.mjs
+      # 的 CI_SUITE_FILES）。真模型组与打 localhost 的冷启动/浏览器组不在 CI 跑：
+      # CI 没有模型密钥，也没有起着的 dev server，硬跑只会全红。
+      - name: 自研测试子集
+        run: pnpm db:migrate && node scripts/run-tests.mjs --ci
+
+      - name: 生产构建
+        run: pnpm build
+        env:
+          # 构建期只需要变量存在：页面在构建时读的是 llm-wiki 文件，不调模型。
+          # 这里放占位值而不是真密钥 —— 真密钥只存在于部署环境的 env 文件里。
+          ARK_API_KEY: ci-placeholder-key
+          AUTH_SECRET: ci-placeholder-secret
+          DATABASE_URL: file:./dev.db

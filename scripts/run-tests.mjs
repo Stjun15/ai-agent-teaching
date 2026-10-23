@@ -270,6 +270,67 @@ const SUITES = [
   },
 ];
 
+/**
+ * CI 子集 —— `--ci` 时只跑这些组。
+ *
+ * 判据只有一条：**不依赖 dev server、不调真模型、不依赖本机预置数据**。
+ * 三条都是 CI 环境里不存在的东西（CI 没有起着的 3000 端口、没有模型密钥、
+ * 数据库是 db:migrate 出来的空库），硬跑只会把工作流刷成全红 —— 一个永远红的
+ * CI 等于没有 CI。名单是 2026-10-23 在本机逐组实测（关掉服务器）后才写下的。
+ *
+ * 明确排除的三类：
+ *   - `model: true` 的三组：要真模型，且天生间歇失败；
+ *   - 冷启动 / 学生走查 / 掌握度水合：打 `localhost:3000`；
+ *   - 组件渲染组（jsdom: true）与 `session-pool-spec`：本机实测前者依赖
+ *     浏览器环境差异，后者在无服务器时**挂住不退出**（跑完不退出比失败更难查）。
+ *
+ * 新增组要不要进 CI：在**没有服务器、没有密钥**的环境里单独跑一遍，
+ * 能退出且全绿才加进来；挂住不退出的一律不进。
+ */
+const CI_SUITE_FILES = new Set([
+  "scripts/markdown-spec.ts",
+  "scripts/client-identity-spec.ts",
+  "scripts/scores-spec.ts",
+  "scripts/theme-spec.ts",
+  "scripts/scene-spec.ts",
+  "scripts/project-templates-spec.ts",
+  "scripts/prompt-budget-spec.ts",
+  "scripts/security-spec.ts",
+  "scripts/rate-limit-spec.ts",
+  "scripts/rag-hybrid-spec.ts",
+  "scripts/replica-check-spec.ts",
+  "scripts/teaching-step-spec.ts",
+  "scripts/lecture-cache-spec.ts",
+  "scripts/auth-flow-spec.ts",
+  "scripts/data-isolation-spec.ts",
+  "scripts/sse-protocol-spec.ts",
+  "scripts/lecture-split-spec.ts",
+  "scripts/thinking-attribution-spec.ts",
+  "scripts/thinking-seal-spec.ts",
+  "scripts/thinking-filter-spec.ts",
+  "scripts/observe-segments-spec.ts",
+  "scripts/chat-schema-spec.ts",
+  "scripts/chat-dispatch-spec.ts",
+  "scripts/abort-registry-spec.ts",
+  "scripts/agent-registry-spec.ts",
+  "scripts/agent-loop-spec.ts",
+  "scripts/path-adjuster-spec.ts",
+  "scripts/sse-dispatch-spec.ts",
+  "scripts/concept-injection-spec.ts",
+]);
+
+const ciMode = process.argv.includes("--ci");
+const SELECTED = ciMode
+  ? SUITES.filter((suite) => CI_SUITE_FILES.has(suite.file))
+  : SUITES;
+
+if (ciMode && SELECTED.length !== CI_SUITE_FILES.size) {
+  const found = new Set(SELECTED.map((suite) => suite.file));
+  const missing = [...CI_SUITE_FILES].filter((file) => !found.has(file));
+  console.log(`CI 子集里有不存在的测试组：${missing.join("、")}`);
+  process.exit(1);
+}
+
 /** 跑一组，返回 { failed, passed, ok, output }。 */
 function runSuite(suite) {
   return new Promise((resolve) => {
@@ -326,7 +387,7 @@ function runSuite(suite) {
 }
 
 const results = [];
-for (const suite of SUITES) {
+for (const suite of SELECTED) {
   process.stdout.write(`▶ ${suite.name} … `);
   const result = await runSuite(suite);
   results.push(result);
@@ -347,7 +408,9 @@ const summary = results
   )
   .join("\n");
 
-console.log(`\n跑完 ${results.length} 组：`);
+console.log(
+  `\n跑完 ${results.length} 组${ciMode ? "（CI 子集）" : ""}：`,
+);
 console.log(summary);
 
 if (failedSuites.length > 0) {
