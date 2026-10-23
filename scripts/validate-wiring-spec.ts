@@ -173,17 +173,23 @@ test("复刻检验单必须按验收清单评分（rubric 模块定制）", () =
     "runtime 必须有 skillSupplement 拼接通道",
   );
 
-  // 题面：复刻点评必须带 wiki 现读的验收清单；其他模块不带。
+  // 题面：所有模块都尝试从概念页「实践任务」节现读（2026-10-21 起），
+  // 只有页面确实有这一节时才注入 questionText；不得内联清单正文。
   const route = read("../src/app/api/agent/validate/route.ts");
   assert.match(
     route,
-    /REPLICA_ACCEPTANCE_MODULE/,
-    "路由必须按模块键控题面（只有复刻带验收清单）",
+    /readPracticeTask\(body\.moduleId\)/,
+    "题面必须从概念页「动手任务」节现读，不得内联一份清单常量",
   );
   assert.match(
     route,
-    /readPracticeTask\(/,
-    "题面必须从概念页「动手任务」节现读，不得内联一份清单常量",
+    /questionText = taskText \|\| undefined/,
+    "题面只在概念页有实践任务节时注入，缺节时传 undefined",
+  );
+  assert.doesNotMatch(
+    route,
+    /- \[ \]/,
+    "路由不得复制验收清单正文 —— wiki 是唯一事实源",
   );
 
   // 事实源健康：清单真在概念页里（页面被改名/删节时这里先红）。
