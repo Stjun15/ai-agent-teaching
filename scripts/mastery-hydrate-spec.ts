@@ -25,20 +25,48 @@ import { DatabaseSync } from "node:sqlite";
 import { levelOfMastery, masteryToPercent } from "@/lib/scores";
 import { openBrowser, sleep } from "./lib/cdp-browser.mjs";
 import { BROWSERS } from "./lib/browser-registry.mjs";
-import demoStudent from "../src/lib/demo-student.json" with { type: "json" };
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const PORT = 9347;
 const CONCEPT = process.env.CONCEPT ?? "llm-api";
 
+// AuthGate（v0.5.0 起）会拦无令牌的浏览器 —— 与 browser-acceptance.mjs 同一套路：
+// 内置评审账号换真 JWT，导航前种进 localStorage，断言跟着登录学生的真实行走。
+const AUTH_CREDENTIALS = { username: "test", password: "test1234" };
+const APP_ORIGIN = new URL(APP).origin;
+
+async function loginForToken() {
+  const res = await fetch(`${APP_ORIGIN}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(AUTH_CREDENTIALS),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `验收登录失败（HTTP ${res.status}）：请确认已跑 pnpm db:seed:auth 播种评审账号`,
+    );
+  }
+  return await res.json();
+}
+
+function authSeedSource(auth: { token: string; studentId: string; username: string }) {
+  return `
+    if (location.origin === ${JSON.stringify(APP_ORIGIN)}) {
+      localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+      localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+      localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+    }
+  `;
+}
+
 /** 从库里读出该学生的掌握度，并换算成页面上应该出现的两个值。 */
-function readExpected() {
+function readExpected(sid: string) {
   const db = new DatabaseSync(process.env.DB_PATH ?? "dev.db");
   const row = db
     .prepare(
       "SELECT score FROM mastery WHERE student_id = ? AND concept_id = ? LIMIT 1",
     )
-    .get(demoStudent.studentId, CONCEPT) as { score: number } | undefined;
+    .get(sid, CONCEPT) as { score: number } | undefined;
   db.close();
   if (!row) return null;
   return {
@@ -49,11 +77,12 @@ function readExpected() {
 }
 
 async function main() {
-  const expected = readExpected();
+  const auth = await loginForToken();
+  const expected = readExpected(auth.studentId);
   if (!expected) {
     console.error(
       `库里没有 ${CONCEPT} 的掌握度记录，无法断言「卡应该显示什么」。` +
-        `先跑一次测评（或 pnpm db:seed:student）再跑本脚本。`,
+        `先跑 pnpm db:seed:auth 播种评审账号（test 账号自带种子掌握度）再跑本脚本。`,
     );
     process.exit(1);
   }
@@ -80,6 +109,9 @@ async function main() {
 
   try {
     await session.send("Page.enable");
+    await session.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: authSeedSource(auth),
+    });
     await session.send("Page.navigate", { url: `${APP}/learn/${CONCEPT}` });
 
     // 客户端 hydrate 是异步的，要等。等到「尚未测评」消失为止 ——
