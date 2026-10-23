@@ -209,7 +209,7 @@ pnpm test:mastery                                 # 掌握度卡 M0–M3（store
    **三个收尾点**与消息数组一起封口，且传**同一时间戳**（避免时间线乱序）。
    别把这个函数删掉或只在其中一个出口调用。
 
-10. **~~🟡 思维链泄漏系统内部口径~~（10-11 更新：缓存侧已闭环，B 核验待跑）** —— **铁律 5 已修**（`c6686f3`：延伸到 thinking + 替换口径）。**缓存讲稿不再是旧口径**：10-10/10-11 全部 11 讲讲解稿已按新口径手写重制直写入库（`_direct-cache-write.ts`），`scan-cache-internal-words.ts` 全绿。剩余动作只有一个：**B 核验**（`scripts/verify-thinking-leak.ts` 抓真实 thinking 流）此前受阻于方舟欠费 403，账号现在有余额，接手后可直接跑一次确认 thinking 侧泄漏真的被 `thinking-filter.ts` 服务端过滤兜住（历史根因与修法记录见 `HANDOVER.md` 4.2）。
+10. **~~🟡 思维链泄漏系统内部口径~~（10-23 深夜：A/B 双侧全部闭环）** —— **铁律 5 已修**（`c6686f3`：延伸到 thinking + 替换口径）。**缓存讲稿不再是旧口径**：10-10/10-11 全部 11 讲讲解稿已按新口径手写重制直写入库（`_direct-cache-write.ts`），`scan-cache-internal-words.ts` 全绿（A 侧）。**B 核验已于 10-23 通过**：`verify-thinking-leak.ts` 两轮真调模型（一轮完整 + 一轮交叉）覆盖 agent-loop / ts-basics / system-prompt / mcp 四讲——含两个历史泄漏源（agent-loop 曾命中 5、ts-basics 曾命中 2），全部 `ok=true`、thinking 流 `internalHits=0`、SSE `errors=0`，服务端 `thinking-filter.ts` 在真实流量上确认兜住（历史根因与修法记录见 `HANDOVER.md` 4.2）。
 11. **~~🟡 `ExplainColdStart` 是死代码~~（10-10 复核为误报，原记录存档）** —— 原判定「两条路由都不可达」不成立：`module-workspace.tsx` 仍引用该组件（platform-replica 之外的交互模块走它）。platform-replica 本身走专属工作区是**设计分流**（该模块是项目实践不是概念课），且 10-11 起其讲稿缓存按用户裁定退役、教学由六阶段任务卡 + 概念页手册承载。
 12. **~~🟡 讲稿 / 概念页 / 示范代码内容不互相对齐~~（10-11 内容层清零）** —— **渲染层早已修**（`segmentByCode` 保留散文）；**内容层本轮清零**：ai-safety 概念页承诺词（五道闸门/场景A/B/C）已对齐讲稿与测验、五道口径四处统一（`43138b4`），全量审计 12 讲 0 缺陷（一致性维度全过）。守卫方式：改讲稿/概念页后重跑 `/api/audit`。
 13. **⚠️ 本机 3000/3100 端口常年被残留进程占用** —— 启动前先探空闲端口
