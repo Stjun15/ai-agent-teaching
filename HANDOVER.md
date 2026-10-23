@@ -12,9 +12,9 @@
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已于 10-23 晚合并 dev**（合并提交 `661a875`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；`v0.5.0` 已打并推送，指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
 | 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 列出的 `dev` / `main` / `v0.5.0` 与本地一致（核验方式：逐字符比对 `git rev-parse` 与 `ls-remote` 输出，别用 `rev-list origin/dev..HEAD`）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
-| CI           | ✅ **首跑已绿（2026-10-23 晚）**：`dev` / `main` 两次 push 均 success，ESLint + `tsc --noEmit` + Vitest（7 文件 26 用例）三步全过。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
+| CI           | ✅ **已绿（10-23 晚首绿；10-23 深夜再绿）**：`dev` / `main` 每次 push 均 success，ESLint + `tsc --noEmit` + Vitest 三步全过（首绿时 7 文件 26 用例，现 **12 文件 69 用例**）。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
-| 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
+| 门禁         | **2026-10-23 深夜实测（下线教师端 + 子能力成长曲线之后）**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 21 warning**（原 10 error）、`node scripts/run-tests.mjs --ci` **28/28**（CI 子集）、`node scripts/run-tests.mjs` 全量 **53 组**（需先起服务）、`vitest run` **12 文件 69 用例全绿**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
 | 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
@@ -118,7 +118,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
 | P1 | ~~两个未跟踪脚本~~ **已裁定并完成（10-23 晚）** | `split-platform-replica.mjs` **删除**（硬编码原稿行号、产物 `platform-replica-0{0..5}.md` 已入库，重跑会静默覆盖）。`seed-demo-accounts.mjs` **合并**进 `scripts/seed-auth-accounts.mjs`（同一批 test/eval 账号不再两处写），并把 `question_results`/`errors`/`prompt_history` 的 `randomUUID` 换成确定性 id + `ON CONFLICT(id) DO UPDATE` —— 实测连跑两次行数不变（32/8/12）。**不进 Vitest**：种子是数据准备不是被测逻辑，且 CI 的 Node 22 跑 `node:sqlite` 还需实验标志 | 我 |
 | P2 | 思维链泄漏 B 核验 | 真跑 `scripts/verify-thinking-leak.ts`，确认服务端 `thinking-filter.ts` 兜住了泄漏 | 我 |
-| P2 | 六项子能力真流量验证 | 用有掌握度记录的学生走一遍报告页，确认雷达从「未测评」变真实分（代码已接，缺一次真实流量确认） | 我 |
+| P2 | ~~六项子能力真流量验证~~ **代码已闭合（10-23 深夜）** | 聚合与成长曲线均已接真实 mastery（`/api/report` 实测返回六项 `subAbilityTrends`），无证据项显示「未测评」不画 0；剩余只需**跨日样本**才能看曲线形状（同日种子数据显示「首次记录 N 分」）。细节见下节「六项子能力成长曲线」 | 我 |
 | P3 | ~~学生模拟 Agent 产品化~~ **已尝试并下线（10-23 夜间）** | 已做成完整闭环（角色 / 两表 / 限额 / 三接口 / 控制台）后按作者裁定整体下线，见下节「教师端 / 模拟器」。**别再默认接回去**，除非先解决「谁用、怎么证明有用」 | 作者裁定 |
 
 **B. 已搁置（作者明说部署先放着）**
@@ -129,7 +129,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）已于 10-23 晚完成并推送；剩余 P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档、两个脚本去留裁定）。我侧下一项是 A 表 P2：先跑思维链泄漏 B 核验，再做六项子能力真流量验证——两项都要先起服务，**跑前先探空闲端口**。
+**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）已于 10-23 晚完成并推送；剩余 P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档）。我侧下一项是：**① 干净起服务（`pnpm start`）后浏览器走查 `/report` 六项子能力区块**（子代理登录卡住，见下节「六项子能力成长曲线」末条）；**② P2 思维链泄漏 B 核验**（`scripts/verify-thinking-leak.ts`，跑前先探空闲端口）。
 
 ### 教师端 / 模拟器（10-23 夜间：实现后整体下线）
 
@@ -141,6 +141,17 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 - **历史没丢**：`0df08c1..b5ab85e` 仍在 dev/main 历史里，`git show b5ab85e` 可取回全部实现。
 - **数据库残留（已知，不修）**：本机 `dev.db` 仍有两张空表 + `students.role` 列，`schema_migrations` 保留 `006_teacher_simulation.sql` 记录而文件已删 —— 与 `004/005` 同类的孤行记录。**新装环境不再建这些表**；生产库没跑过 006，无影响。本机 `teacher/teacher1234` 账号行也还在（无代码引用）。
 - **结论存档**：模拟器的价值在「内容动态可读性回归」（静态审计查不出的「讲不通」），但它缺**运行对比视图**与**固定采样参数**，跑一次只能当日志读、不能自证有效。将来若重建，先补这两件，再谈接进产品。
+
+### 六项子能力成长曲线 + RAG 倒挂文档（10-23 深夜）
+
+- **做了什么**（用户原话：「六项子能力从占位改成真实成长曲线、技术文档里明着写 RAG 倒挂的原因与取舍」）：
+  - `src/lib/sub-abilities.ts` 新增 `buildSubAbilityTimeline` / `trendDelta`；`src/schemas/report.ts` 新增 `ReportSubAbilityTrend(s)` 与 `subAbilityTrends` 字段；`/api/report` 接线；新建 `src/components/report/sub-ability-sparkline.tsx`（手写 SVG 迷你折线，零图表库）；`report-sections.tsx` 每项能力第二行渲染曲线或「首次记录 / 暂无时间点」文案。
+  - `docs/competition/technical-document.md` 新增 **4.4.1 融合倒挂**（三路同集评测表 + 机制原因 + 三方案取舍 + 下一步），并把 7.4 里过时的四条（融合倒挂只写「待调优」、六项能力「仍是占位」、模拟 Agent「下一步接入」、鉴权「尚未实现」）改成与代码一致。
+- **口径（别改回去）**：`mastery` 表每概念只留最新一行、**没有历史快照**，所以曲线是「截至当日各模块最新分累积重算」，且用 `dirty` 标记只在真有新证据的日期取点 —— 按日分桶会把「今天只重测一讲」画成掌握度下跌。
+- **诚实的两条**：① 种子数据全在同一天写入，报告页显示「首次记录 N 分 —— 再有新记录才画得出曲线」，**不补平点**；② 仍不把点评子维度映射到六项能力（映射规则不唯一，硬映射等于编数据）。
+- **验证**：`tests/sub-abilities.test.ts` 8/8；`/api/report` 实测返回六项 `subAbilityTrends`（各 1 点）；`tsc` / `eslint` / `vitest 12 文件 69 用例` / `pnpm build` 全绿。
+- 🔴 **没做完的一步（新对话第一个动作）**：**浏览器视觉走查 `/report` 未完成** —— 已派浏览器子代理走查，但它在 `/auth` 页登录卡住（页面有大量 Turbopack HMR `net::ERR_ABORTED`），没进到 `/report`。**登录接口本身是好的**：`POST /api/auth/login`（`{username:"test", password:"test1234"}`）返回 200 与 JWT。正确做法：先干净起服务（`pnpm start` 跑生产产物，别在改代码的同时走查），再人工或子代理确认「六项子能力」六行文案 + 无 hydration error + 单点文案为「首次记录 N 分 —— 再有新记录才画得出曲线」。
+- **可选（需作者点头）**：把种子数据 `mastery.updated_at` 铺到多日，报告页才看得到真实曲线形状；同日数据只能看到单点文案。
 
 
 ---
