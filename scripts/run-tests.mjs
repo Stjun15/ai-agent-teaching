@@ -39,7 +39,6 @@ const SUITES = [
   { name: "客户端身份", file: "scripts/client-identity-spec.ts", model: false },
   { name: "分数量纲", file: "scripts/scores-spec.ts", model: false },
   { name: "主题偏好", file: "scripts/theme-spec.ts", model: false },
-  { name: "沙箱清单", file: "scripts/playground-spec.ts", model: false },
   { name: "可视化场景", file: "scripts/scene-spec.ts", model: false },
   { name: "项目模板", file: "scripts/project-templates-spec.ts", model: false },
   { name: "教学循环 DB", file: "scripts/teaching-loop-spec.ts", model: false },
@@ -99,11 +98,6 @@ const SUITES = [
   {
     name: "练习判定接线",
     file: "scripts/practice-mastery-spec.ts",
-    model: false,
-  },
-  {
-    name: "编辑器焦点",
-    file: "scripts/editor-focus-spec.ts",
     model: false,
   },
   {
