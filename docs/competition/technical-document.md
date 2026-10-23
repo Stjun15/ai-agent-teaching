@@ -658,7 +658,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### B. 项目仓库
 
-- GitHub: `https://github.com/jiajunjiang15/ai-agent-teaching`
+- GitHub: `https://github.com/Stjun15/ai-agent-teaching`
 - 提交总数: 612次 (截至2026-10-22)
 - 分支: `dev`（工作分支），`main`（v0.4.0发布分支）
 - 标签: v0.1.0 / v0.2.0 / v0.3.0 / v0.4.0
