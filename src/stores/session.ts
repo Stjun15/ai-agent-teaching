@@ -42,6 +42,7 @@ import { persist, type PersistStorage } from "zustand/middleware";
 
 import type { StepType } from "@/lib/db";
 import { currentStudentId } from "@/lib/client-identity";
+import { randomUuid } from "@/lib/uuid";
 import { TEACHING_AGENT_ID } from "@/lib/agent/prompts/teaching-chat";
 import type { ErrorCode, JsonObject } from "@/schemas";
 
@@ -272,7 +273,7 @@ function applyBucket(saved?: SavedSessionBucket): Partial<SessionState> {
 }
 
 function newId(): string {
-  return crypto.randomUUID();
+  return randomUuid();
 }
 
 /** 找到正在流式输出的那条助手消息。 */
