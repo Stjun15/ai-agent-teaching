@@ -10,17 +10,17 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（工作分支）最新 `b5ab85e`（教师端模拟产品化 7 个提交）。**`main` 仍是 `a9f0c06`（10-23 晚 CI 修正那次），本轮教师端功能尚未并入 main** —— 要不要并（以及是否打 `v0.6.0`）是发布决定，等作者定。`main` 永远不是工作分支，别在上面提交 |
-| 与远端       | ✅ **已同步（10-23 晚实测）**：`ls-remote origin dev` = 本地 `HEAD` = `b5ab85e`（逐字符比对；别用 `rev-list origin/dev..HEAD`，本地 remote 引用会缺失）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
-| CI           | ✅ **全绿（10-23 晚，含本轮）**：ESLint + `tsc --noEmit` + Vitest（15 文件 86 用例）+ 自研测试 CI 子集（**30 组**，含新增「学生模拟器」）+ 生产构建。首跑曾 5 条全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仍低（核心库多为 0） |
+| 分支 / HEAD  | `dev`（工作分支）**已推送**。`main` 已于 10-23 晚用 plumbing 并入 dev（合并提交 `68dc5ff`，与 dev 同一 tree），并打 `v0.6.0`（指向该提交），main 的 CI 已复绿。`main` 永远不是工作分支，别在上面提交 |
+| 与远端       | ✅ **已同步（10-23 晚实测）**：`ls-remote origin dev` 与本地 `git rev-parse HEAD` 逐字符一致（别用 `rev-list origin/dev..HEAD`，本地 remote 引用会缺失）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| CI           | ✅ **全绿（10-23 晚，含本轮）**：ESLint + `tsc --noEmit` + Vitest（15 文件 86 用例）+ 自研测试 CI 子集（**29 组**，含新增「学生模拟器」）+ 生产构建。首跑曾 5 条全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仍低（核心库多为 0） |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
-| 门禁         | **10-23 晚实测（本轮）**：`tsc --noEmit` **0 error**、`eslint src scripts tests` **0 error / 21 warning**、`node scripts/run-tests.mjs --ci` **30/30 组**、`vitest run` **15 文件 86 用例**、`pnpm build` 成功。⚠️ 跑全量自研测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI |
+| 门禁         | **10-23 晚实测（本轮）**：`tsc --noEmit` **0 error**、`eslint src scripts tests` **0 error / 21 warning**、`node scripts/run-tests.mjs --ci` **29/29 组**、`vitest run` **15 文件 86 用例**、`pnpm build` 成功。⚠️ 跑全量自研测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI |
 | 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
 | 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
-| 测试套件     | **54 组**（10-23 晚新增「学生模拟器」9 例；3 组真模型；CI 子集 30 组）。另有标准框架：`tests/*.test.ts` **15 文件 86 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节） |
+| 测试套件     | **54 组**（10-23 晚新增「学生模拟器」9 例；3 组真模型；CI 子集 29 组）。另有标准框架：`tests/*.test.ts` **15 文件 86 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节） |
 | 本会话新增   | 见「〇〇」的**「本日第二轮」**（教师端模拟产品化 7 提交 + 门禁/走查结论）与上一段（20+ 提交、参赛审计五项核验、CI 首绿、P1 收尾、踩过的坑、遗留待办） |
 
 > ⚠️ 提交数以 `git rev-list --count HEAD` 实时值为准（10-23 晚约 640）。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
@@ -76,7 +76,7 @@
 
 **已知边界（写进代码注释，别当 bug 修）**：后台任务是**进程内 promise**，服务重启会让正在跑的记录停在 `running`；控制台按启动时间超过 10 分钟显示「疑似中断」，不伪造状态。没有外部队列是本项目部署形态决定的。
 
-**门禁实测（10-23 晚，本机）**：`tsc --noEmit` 0 error；`eslint src scripts tests` 0 error / 21 warning；`node scripts/run-tests.mjs --ci` **30/30 组全绿**（含新增「学生模拟器」9 例）；`vitest run` **15 文件 86 用例**；`pnpm build` 成功（`/teacher` 与三个 teacher 端点均为动态路由）。
+**门禁实测（10-23 晚，本机）**：`tsc --noEmit` 0 error；`eslint src scripts tests` 0 error / 21 warning；`node scripts/run-tests.mjs --ci` **29/29 组全绿**（含新增「学生模拟器」9 例）；`vitest run` **15 文件 86 用例**；`pnpm build` 成功（`/teacher` 与三个 teacher 端点均为动态路由）。
 浏览器走查（生产产物 + `localhost:3000`）：教师登录 → 导航出现「教师控制台」→ 表单（模块/步骤/人设/轮次）完整 → 失败运行记录与原因可见 → 无 React 水合错误、无未捕获异常，9 项全 PASS。
 
 **API 判权实测**：教师 200、学生 403、匿名 401；触发一次运行（占位密钥）落 `failed` 并带中文原因、`turns=1`，说明「异常也有收尾」这条链是通的。
