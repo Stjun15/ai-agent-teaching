@@ -8,6 +8,8 @@
 
 import crypto from "node:crypto";
 
+import type { StudentRole } from "@/lib/db/types";
+
 const AUTH_SECRET = Buffer.from(
   process.env.AUTH_SECRET ?? "ai-teaching-dev-secret-change-in-production",
   "utf8",
@@ -41,14 +43,21 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 interface TokenPayload {
   sub: string; // studentId
+  /**
+   * 角色。旧令牌（本字段上线前签发的）没有这一项 —— 验证时按 `student` 兜底，
+   * 因此**已在线的教师需要重新登录**才能拿到带 `teacher` 的令牌。
+   * 兜底方向必须是降权（student 而非 teacher），宁可让教师重登一次。
+   */
+  role?: StudentRole;
   exp: number;
   iat: number;
 }
 
-export function createToken(studentId: string): string {
+export function createToken(studentId: string, role: StudentRole = "student"): string {
   const now = Math.floor(Date.now() / 1000);
   const payload: TokenPayload = {
     sub: studentId,
+    role,
     exp: now + TOKEN_EXPIRY_SECONDS,
     iat: now,
   };
@@ -66,7 +75,9 @@ export function createToken(studentId: string): string {
   return `${headerB64}.${payloadB64}.${signature}`;
 }
 
-export function verifyToken(token: string): { studentId: string } | null {
+export function verifyToken(
+  token: string,
+): { studentId: string; role: StudentRole } | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
 
@@ -100,5 +111,9 @@ export function verifyToken(token: string): { studentId: string } | null {
   if (typeof payload.sub !== "string") return null;
   if (payload.exp < Math.floor(Date.now() / 1000)) return null;
 
-  return { studentId: payload.sub };
+  return {
+    studentId: payload.sub,
+    // 旧令牌缺 role 时按最低权限处理（见 TokenPayload.role 注释）。
+    role: payload.role === "teacher" ? "teacher" : "student",
+  };
 }

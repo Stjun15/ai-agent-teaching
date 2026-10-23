@@ -226,6 +226,9 @@ test("规则表覆盖全部受限端点，且额度与窗口为正", () => {
     // 认证端点按客户端 IP 计数，防口令爆破（2026-10-23 补）。
     "auth-login",
     "auth-register",
+    // 教师端学生模拟（/api/teacher/simulate）：一次要跑多轮两侧模型调用，
+    // 额度刻意压到 2 次/分 —— 比学生发消息更贵，不是聊天。
+    "simulation",
   ];
   assert.deepEqual(
     Object.keys(RATE_LIMIT_RULES).sort(),
@@ -267,9 +270,14 @@ const ROUTE_SCOPES: { file: string; scope: string; key: string }[] = [
     scope: "answer-grade",
     key: "身份",
   },
+  {
+    file: "src/app/api/teacher/simulate/route.ts",
+    scope: "simulation",
+    key: "身份",
+  },
 ];
 
-test("七个端点都接了限流，scope 与路由一致", () => {
+test("八个端点都接了限流，scope 与路由一致", () => {
   for (const { file, scope, key } of ROUTE_SCOPES) {
     const text = readSource(file);
     assert.match(

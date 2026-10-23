@@ -111,6 +111,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "学生模拟器",
+    file: "scripts/simulation-spec.ts",
+    model: false,
+  },
+  {
     name: "SSE 协议",
     file: "scripts/sse-protocol-spec.ts",
     model: false,
@@ -278,11 +283,15 @@ const SUITES = [
  * 数据库是 db:migrate 出来的空库），硬跑只会把工作流刷成全红 —— 一个永远红的
  * CI 等于没有 CI。名单是 2026-10-23 在本机逐组实测（关掉服务器）后才写下的。
  *
- * 明确排除的三类：
+ * 明确排除的四类：
  *   - `model: true` 的三组：要真模型，且天生间歇失败；
  *   - 冷启动 / 学生走查 / 掌握度水合：打 `localhost:3000`；
  *   - 组件渲染组（jsdom: true）与 `session-pool-spec`：本机实测前者依赖
- *     浏览器环境差异，后者在无服务器时**挂住不退出**（跑完不退出比失败更难查）。
+ *     浏览器环境差异，后者在无服务器时**挂住不退出**（跑完不退出比失败更难查）；
+ *   - `rag-hybrid-spec`：它的第 4 例要求 `knowledge_embeddings` 里已有向量索引，
+ *     而索引只能由 `pnpm rag:index` 调真模型建出来 —— CI 是空库，
+ *     2026-10-23 晚实测它在 CI 报「索引为空请先跑 pnpm rag:index」。
+ *     本机跑全量前先 `pnpm rag:index` 一次，这一组才有效。
  *
  * 新增组要不要进 CI：在**没有服务器、没有密钥**的环境里单独跑一遍，
  * 能退出且全绿才加进来；挂住不退出的一律不进。
@@ -297,12 +306,12 @@ const CI_SUITE_FILES = new Set([
   "scripts/prompt-budget-spec.ts",
   "scripts/security-spec.ts",
   "scripts/rate-limit-spec.ts",
-  "scripts/rag-hybrid-spec.ts",
   "scripts/replica-check-spec.ts",
   "scripts/teaching-step-spec.ts",
   "scripts/lecture-cache-spec.ts",
   "scripts/auth-flow-spec.ts",
   "scripts/data-isolation-spec.ts",
+  "scripts/simulation-spec.ts",
   "scripts/sse-protocol-spec.ts",
   "scripts/lecture-split-spec.ts",
   "scripts/thinking-attribution-spec.ts",

@@ -124,3 +124,27 @@ export async function resolveStudent(request: Request): Promise<StudentLookup> {
 
   return { ok: true, student };
 }
+
+/**
+ * 教师端点准入。
+ *
+ * 判权读的是**数据库里的 role**，不是令牌里的 claim：令牌里的角色只是签发瞬间的
+ * 快照，改库（降级/停用）应当立刻生效，而不是等 7 天令牌过期。令牌 claim 的
+ * 作用是「没查库时也能给出 403 而不是 401」，不是权威来源。
+ *
+ * 对无 role 列的老库行：`mapStudent` 已统一回退为 student，所以这里是
+ * 「默认拒绝」而不是「默认放行」—— 教师端是成本入口，权限门永远朝安全方向倒。
+ */
+export async function requireTeacher(request: Request): Promise<StudentLookup> {
+  const resolved = await resolveStudent(request);
+  if (!resolved.ok) return resolved;
+
+  if (resolved.student.role !== "teacher") {
+    return {
+      ok: false,
+      response: jsonError("FORBIDDEN", "该端点仅对教师账号开放。"),
+    };
+  }
+
+  return resolved;
+}

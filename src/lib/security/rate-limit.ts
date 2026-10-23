@@ -56,6 +56,11 @@ export const RATE_LIMIT_RULES = {
   // 对脚本字典攻击足够慢；注册更紧（20 次/小时），挡住批量造号。
   "auth-login": { limit: 10, windowMs: 60_000 },
   "auth-register": { limit: 20, windowMs: 60 * 60_000 },
+  // 教师端模拟：一次运行 = 最多 4 轮 × 2 次模型调用，是本站最贵的单个操作。
+  // 这里只挡**瞬时连点**（2 次/分钟）；真正的成本额度是 24 小时滚动上限，
+  // 由数据库计数判定（见 `simulationDb.countByTeacherSince` 与 student/limits.ts）——
+  // 内存窗口一重启就清零，不能承担「每日额度」的语义。
+  simulation: { limit: 2, windowMs: 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 export type RateLimitScope = keyof typeof RATE_LIMIT_RULES;

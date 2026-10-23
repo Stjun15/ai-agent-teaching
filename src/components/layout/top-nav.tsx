@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Blocks,
   Compass,
+  GraduationCap,
   Home,
   LineChart,
   Settings,
@@ -13,6 +14,7 @@ import {
 import { motion } from "motion/react";
 
 import { Badge } from "@/components/ui/badge";
+import { currentAuthRole } from "@/lib/client-identity";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
@@ -40,6 +42,14 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: "/settings", label: "设置", icon: Settings, status: "ready" },
 ];
 
+/** 只对教师账号显示的入口。显隐依据是令牌里的 role（见 `currentAuthRole`）。 */
+const TEACHER_NAV_ITEM: NavItem = {
+  href: "/teacher",
+  label: "教师控制台",
+  icon: GraduationCap,
+  status: "ready",
+};
+
 /** 判断当前路径是否应高亮某导航项（含子路由）。 */
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -47,6 +57,21 @@ function isActive(pathname: string, href: string): boolean {
 
 export function TopNav() {
   const pathname = usePathname();
+  /**
+   * 角色必须**水合后**才读：服务端渲染时没有 localStorage，若在渲染期读，
+   * 首帧（无教师项）与客户端首帧（有教师项）不一致 → React #418 水合失败。
+   * 这是本项目已经踩过一次的坑（见 HANDOVER 的「全站水合失败」记录）。
+   */
+  const [role, setRole] = React.useState<"student" | "teacher">("student");
+
+  React.useEffect(() => {
+    // 同一类例外：挂载后从 localStorage 读一次角色，不产生级联渲染。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRole(currentAuthRole());
+  }, [pathname]);
+
+  const items =
+    role === "teacher" ? [...NAV_ITEMS, TEACHER_NAV_ITEM] : NAV_ITEMS;
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
@@ -69,7 +94,7 @@ export function TopNav() {
           aria-label="主导航"
           className="relative flex flex-1 items-center gap-0.5 sm:gap-1"
         >
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon;
             const active =
               item.status === "ready" && isActive(pathname, item.href);

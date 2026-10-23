@@ -10,18 +10,18 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已于 10-23 晚合并 dev**（合并提交 `661a875`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；`v0.5.0` 已打并推送，指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
-| 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 列出的 `dev` / `main` / `v0.5.0` 与本地一致（核验方式：逐字符比对 `git rev-parse` 与 `ls-remote` 输出，别用 `rev-list origin/dev..HEAD`）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
-| CI           | ✅ **首跑已绿（2026-10-23 晚）**：`dev` / `main` 两次 push 均 success，ESLint + `tsc --noEmit` + Vitest（7 文件 26 用例）三步全过。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
+| 分支 / HEAD  | `dev`（工作分支）最新 `b5ab85e`（教师端模拟产品化 7 个提交）。**`main` 仍是 `a9f0c06`（10-23 晚 CI 修正那次），本轮教师端功能尚未并入 main** —— 要不要并（以及是否打 `v0.6.0`）是发布决定，等作者定。`main` 永远不是工作分支，别在上面提交 |
+| 与远端       | ✅ **已同步（10-23 晚实测）**：`ls-remote origin dev` = 本地 `HEAD` = `b5ab85e`（逐字符比对；别用 `rev-list origin/dev..HEAD`，本地 remote 引用会缺失）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| CI           | ✅ **全绿（10-23 晚，含本轮）**：ESLint + `tsc --noEmit` + Vitest（15 文件 86 用例）+ 自研测试 CI 子集（**30 组**，含新增「学生模拟器」）+ 生产构建。首跑曾 5 条全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仍低（核心库多为 0） |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
-| 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
+| 门禁         | **10-23 晚实测（本轮）**：`tsc --noEmit` **0 error**、`eslint src scripts tests` **0 error / 21 warning**、`node scripts/run-tests.mjs --ci` **30/30 组**、`vitest run` **15 文件 86 用例**、`pnpm build` 成功。⚠️ 跑全量自研测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI |
 | 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
 | 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
-| 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` 7 文件 **26 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
-| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——20+ 个提交、参赛审计五项的核验结论、CI 首绿、P1 收尾、踩过的坑、遗留待办，**本轮移交重点** |
+| 测试套件     | **54 组**（10-23 晚新增「学生模拟器」9 例；3 组真模型；CI 子集 30 组）。另有标准框架：`tests/*.test.ts` **15 文件 86 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节） |
+| 本会话新增   | 见「〇〇」的**「本日第二轮」**（教师端模拟产品化 7 提交 + 门禁/走查结论）与上一段（20+ 提交、参赛审计五项核验、CI 首绿、P1 收尾、踩过的坑、遗留待办） |
 
 > ⚠️ 提交数以 `git rev-list --count HEAD` 实时值为准（10-23 晚约 640）。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
 
@@ -47,6 +47,41 @@
 ## 〇〇、2026-10-23 会话全记录（最新一轮，先读这节）
 
 > 自包含：出发点、五项核验结论、改了什么、怎么验证、踩过的坑、遗留待办。10-11 那轮见下一节。
+
+### 本日第二轮（10-23 晚）：CI 加固 + 学生模拟产品化（**最新，先读这段**）
+
+**出发点**：作者指令「修 CI，以及学生模拟 Agent 产品化 —— 要接就得设计教师端控制台、限流与成本边界」。
+
+**三条已锁定决策（别反向执行）**：
+
+1. **服务层模拟，不启浏览器**：See = 文本屏幕快照（`screen-digest.ts`），Act = 进程内 lib 调用，不走 HTTP / Playwright。理由：浏览器自动化在 Serverless 与 CI 上都不可靠，成本也不可控。
+2. **教师身份 = 数据列**：`students.role` 列 + JWT `role` claim；**判权读数据库**，令牌里的 role 只用于界面显隐（旧令牌无 role 时降级为 student，教师需重登）。
+3. **成本口径 = 轮次与 token，不折算人民币**：汇率与单价会变，折算出的「花了多少钱」第二天就假。
+
+**新增能力（提交 `0df08c1` → `b5ab85e`，共 7 个，已推送 dev）**：
+
+| 提交 | 内容 |
+|---|---|
+| `0df08c1` | `006_teacher_simulation.sql`：`students.role` + `simulation_runs` / `simulation_turns` 两表；`simulationDb` 仓库 |
+| `a315478` | 令牌带 role、`requireTeacher`（403 FORBIDDEN）、`teacher` 种子账号（`teacher` / `teacher1234`） |
+| `e4788ec` | 服务层模拟器：三人设（`lost-beginner` / `overconfident` / `three-minute`）、文本快照、导师回答、逐轮 token 计量；`runTextCompletion` 从 runtime 导出 |
+| `c0daad6` | 限流桶 `simulation`（2 次/分） |
+| `b8b6fce` | `POST /api/teacher/simulate`（202 + 进程内后台执行）、`GET /api/teacher/simulations`、`GET /api/teacher/simulations/[id]` |
+| `0948961` | `/teacher` 教师控制台（服务端装配 + 客户端 2 秒轮询、状态徽标、逐轮屏幕快照折叠） |
+| `b5ab85e` | 测试组入 `run-tests.mjs`（含 CI 子集）+ `rate-limit-spec` 端点清单补 `simulation` |
+
+**成本边界（`SIMULATION_LIMITS`，四处共用一份）**：单次最多 **4 轮**、单次 **20k token**、单轮 **6k token**、每位教师**滚动 24 小时 10 次**。
+双层额度：内存固定窗口（2 次/分，重启即失效，挡连点）+ 数据库滚动 24h 计数（权威）。
+**预算到线记 `completed` + `stopReason:"token-budget"`，不是 `failed`** —— 设计内停止不等于故障；触发上限的那一轮仍落库，教师才能看出花了多少。
+
+**已知边界（写进代码注释，别当 bug 修）**：后台任务是**进程内 promise**，服务重启会让正在跑的记录停在 `running`；控制台按启动时间超过 10 分钟显示「疑似中断」，不伪造状态。没有外部队列是本项目部署形态决定的。
+
+**门禁实测（10-23 晚，本机）**：`tsc --noEmit` 0 error；`eslint src scripts tests` 0 error / 21 warning；`node scripts/run-tests.mjs --ci` **30/30 组全绿**（含新增「学生模拟器」9 例）；`vitest run` **15 文件 86 用例**；`pnpm build` 成功（`/teacher` 与三个 teacher 端点均为动态路由）。
+浏览器走查（生产产物 + `localhost:3000`）：教师登录 → 导航出现「教师控制台」→ 表单（模块/步骤/人设/轮次）完整 → 失败运行记录与原因可见 → 无 React 水合错误、无未捕获异常，9 项全 PASS。
+
+**API 判权实测**：教师 200、学生 403、匿名 401；触发一次运行（占位密钥）落 `failed` 并带中文原因、`turns=1`，说明「异常也有收尾」这条链是通的。
+
+**踩坑（本轮新增）**：`rate-limit-spec` 的「端点清单必须同步额度表」守卫**当场抓出**新桶没登记 —— 这正是上一轮踩坑 3「测试基准随演进滞后」的正向版本。改限流/路由时先跑这一组。
 
 ### 出发点
 
@@ -119,7 +154,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | P1 | ~~两个未跟踪脚本~~ **已裁定并完成（10-23 晚）** | `split-platform-replica.mjs` **删除**（硬编码原稿行号、产物 `platform-replica-0{0..5}.md` 已入库，重跑会静默覆盖）。`seed-demo-accounts.mjs` **合并**进 `scripts/seed-auth-accounts.mjs`（同一批 test/eval 账号不再两处写），并把 `question_results`/`errors`/`prompt_history` 的 `randomUUID` 换成确定性 id + `ON CONFLICT(id) DO UPDATE` —— 实测连跑两次行数不变（32/8/12）。**不进 Vitest**：种子是数据准备不是被测逻辑，且 CI 的 Node 22 跑 `node:sqlite` 还需实验标志 | 我 |
 | P2 | 思维链泄漏 B 核验 | 真跑 `scripts/verify-thinking-leak.ts`，确认服务端 `thinking-filter.ts` 兜住了泄漏 | 我 |
 | P2 | 六项子能力真流量验证 | 用有掌握度记录的学生走一遍报告页，确认雷达从「未测评」变真实分（代码已接，缺一次真实流量确认） | 我 |
-| P3 | 学生模拟 Agent 产品化 | 可选；要做得先把「离线审计」与「运行时模拟」两条链路分开，别把 1598 行整体接进产品 | 我 |
+| P3 | ~~学生模拟 Agent 产品化~~ **已产品化（10-23 晚）** | 走的是「与离线审计分离」的服务层模拟路线（不启浏览器）：见「〇〇 / 本日第二轮」。剩余只有一条：用真密钥在教师控制台跑一次完整运行（本机只验到占位密钥的失败收尾） | 我 |
 
 **B. 已搁置（作者明说部署先放着）**
 
@@ -129,7 +164,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）已于 10-23 晚完成并推送；剩余 P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档、两个脚本去留裁定）。我侧下一项是 A 表 P2：先跑思维链泄漏 B 核验，再做六项子能力真流量验证——两项都要先起服务，**跑前先探空闲端口**。
+**下一步建议（新对话开场可直接照做）**：教师端模拟已上线到 `dev` 并推送。我侧下一项按顺序：① 有真密钥时在 `/teacher` 跑一次完整模拟（本机只验到失败收尾）；② A 表 P2 两项（思维链泄漏 B 核验、六项子能力真流量验证）——都要先起服务，**跑前先探空闲端口**；③ `main` 是否并入本轮教师端功能、要不要打 `v0.6.0`，等作者定。作者侧仍是仓库可见性、报名缴费提交、演示视频与 PDF 转档。
 
 ---
 
