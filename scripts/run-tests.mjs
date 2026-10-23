@@ -111,6 +111,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "学生模拟器",
+    file: "scripts/simulation-spec.ts",
+    model: false,
+  },
+  {
     name: "SSE 协议",
     file: "scripts/sse-protocol-spec.ts",
     model: false,
@@ -303,6 +308,7 @@ const CI_SUITE_FILES = new Set([
   "scripts/lecture-cache-spec.ts",
   "scripts/auth-flow-spec.ts",
   "scripts/data-isolation-spec.ts",
+  "scripts/simulation-spec.ts",
   "scripts/sse-protocol-spec.ts",
   "scripts/lecture-split-spec.ts",
   "scripts/thinking-attribution-spec.ts",
