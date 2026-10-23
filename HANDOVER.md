@@ -1,35 +1,34 @@
-# 接手文档 — 2026-10-11（当日更新：讲稿优化专项——复刻讲稿退役 + 做中学三件套 + 审计口径升级）
+# 接手文档 — 2026-10-23（当日更新：参赛审计五项补齐，21 个提交已推送）
 
-> 上一份（2026-10-10）已完成概念测验安全加固、讲稿批量直写工具、知识库查询工具。
-> 本次新增：**讲稿优化专项**——上一会话手写重制的 12 讲讲解稿入库；修正讲稿事实错误（沙箱注释/编造统计）；ai-safety 概念页统一五道闸门；课程顺序改为 vibe-coding 第 1 讲；**复刻讲稿退役**（用户裁定：复刻阶段做中学，不要理论课）；复刻导师对话携带阶段上下文（phaseContext）；十一讲任务卡「复刻连线」；复刻任务卡「为什么有这步」试点；报错求助四件套模板；审计口径升级（跨讲术语累积 + 无讲稿模块豁免），**全量审计 12 讲 0 缺陷**。
+> 上一份（2026-10-11）是讲稿优化专项，记录仍保留在「〇一」节，内容依然有效。
+> 本轮（10-21 ~ 10-23）针对一份参赛作品审计清单逐项核验并补齐：**最新一轮的完整移交记录在「〇〇」节，接手先读那节**。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
-> ⚠️ **接手的是新模型？先读〇一节**——那节是本轮的完整移交记录，读完再往下看历史。
 
 ---
 
-## 〇、当前状态速查（2026-10-11 更新）
+## 〇、当前状态速查（2026-10-23 更新）
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `cb06d98`（提交总数 **559**）                                                                                                                                                                                                                                                                                                                                                                           |
-| 与远端       | 🔴 **状态异常，需作者人工核验** —— 10-08 曾核验同步到 `01dce84`（当时第 528 个提交），此后 **31 个提交未推**（本轮 15 个 + 10-10/10-11 之间 16 个，`git log 01dce84..HEAD --oneline \| wc -l` = 31）。**10-11 实测 `ls-remote origin` 返回 0 个 ref（exit 0）**，push --dry-run 也静默无输出——远端仓库可能被清空/删除，或网络中转异常。**先让作者登录 GitHub 网页确认仓库在不在、非不非空，再按第六节姿势推送** |
-| 工作区       | 干净（`git write-tree` == `HEAD^{tree}`）。三个**有意不提交**的未跟踪文件：`.zcodeignore`（ZCode 工具配置，作者裁定要不要入库）、`_temp_vibe_coding.pdf` / `_temp_vibe_coding.txt`（vibe-coding 讲的素材原件，用完可删）。`site-footer.tsx` 仍为 `skip-worktree` 隐藏本地改动状态                                                                                                                               |
-| 门禁         | **10-11 实测全绿**：`pnpm check` 0 error（7 条 eslint warning 为历史遗留）；`pnpm test` **45/45**（含 3 组真模型，方舟账号当时有余额）。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`），见〇一节验证清单                                                                                                                                                                                          |
+| 分支 / HEAD  | `dev` @ `3efd9f5` + 本轮文档提交（提交总数 **634**，含本次移交文档；实时核 `git rev-list --count HEAD`）。`main` 仍停在 `v0.4.0`（001dcd3），落后 dev 全部新工作                                                                                                                                                                                                                                                                                                                                                                           |
+| 与远端       | ✅ **已同步（2026-10-23 实测）**：`ls-remote origin dev` 返回 `3efd9f5`，与本地 `git rev-parse HEAD` 一致；远端另有 `main`（001dcd3）与 4 个 tag。10-11 记录的「0 个 ref」异常已消失，`01dce84..HEAD` 区间积压的提交也已全部推上去。推送姿势仍按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`（已完成轮次无残留改动）。两个**未跟踪、有意未提交**的脚本待作者裁定：`scripts/seed-demo-accounts.mjs`（给 test/eval 演示账号灌真实学习数据，幂等）、`scripts/split-platform-replica.mjs`（一次性拆页脚本，产物已在 `llm-wiki/concepts/` 里）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待作者裁定                                                                                                                               |
+| 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
 | 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
-| 测试套件     | 45 组全跑无跳过；3 组真模型。**10-11 实测 45/45 全绿**。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
-| 本会话新增   | 见「〇一、2026-10-11 会话全记录」——15 个提交、改稿流程、架构不变量、遗留待办，**本轮移交重点**                                                                                                                                                                                                                                                                                                                  |
+| 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` 7 文件 **26 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
+| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——21 个提交、参赛审计五项的核验结论、踩过的坑、遗留待办，**本轮移交重点**                                                                                                                                                                                                                                                                                                                  |
 
-> ⚠️ **表中「559 个提交 / 31 个未推」以最后一个代码提交 `cb06d98` 为基准**；本文档自身的提交（首次为 `34c5791`）在其上，只含文档改动。实时核对用 `git rev-list --count HEAD`（会多出文档提交的个数）与 `git log 01dce84..HEAD --oneline | wc -l`。
+> ⚠️ 提交数 633 是 2026-10-23 推送后的实测值（`git rev-list --count HEAD`），每轮新提交后以该命令为准。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
 
-### 远端推送状态（10-11 更新）：🔴 异常待人工核验
+### 远端推送状态（2026-10-23 更新）：✅ 已同步
 
-10-08 19:55 曾成功推送并核验（`c0a6619`），随后推进到 `01dce84` 也核验同步——**那是最后一次成功的远端确认**。
-10-11 本轮用同样的四开关姿势实测：`ls-remote origin dev` 与 `ls-remote origin`（全量）都返回 **0 个 ref 且 exit 0**，
-`push --dry-run origin dev` 静默无输出。这不像是证书问题（那个会报 `CRYPT_E_NO_REVOCATION_CHECK`），
-更像远端仓库被清空/删除或中转层吞了响应。**处置：让作者本人登录 GitHub 网页看仓库状态，再决定重推还是重建远端；别在本机反复盲试。**
+10-23 用四开关姿势实测：`ls-remote origin` 正常返回 `dev`（`3efd9f5`）/ `main`（`001dcd3`）/ 4 个 tag；
+`push origin dev` 成功（`7203a35..3efd9f5`），推后 `ls-remote origin dev` 与本地 `git rev-parse HEAD` 逐字符一致。
+**10-11 那次「0 个 ref + push --dry-run 静默」的异常没有复现，无需重建远端。**
+⚠️ PowerShell 5 没有 `env -u`，清代理变量的写法是 `Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue`（连 `HTTPS_PROXY` / 小写变体 / `ALL_PROXY` 一起清），之后照 `AGENTS.md` 第八节带 `-c http.schannelCheckRevoke=false -c http.sslVerify=false -c http.postBuffer=524288000`。
 
 ### 已闭合（原「等作者裁定」的两项均已解决）
 
@@ -42,7 +41,69 @@
 
 ---
 
-## 〇一、2026-10-11 会话全记录（本轮移交重点——接手的人先读完这节再干活）
+## 〇〇、2026-10-23 会话全记录（最新一轮，先读这节）
+
+> 自包含：出发点、五项核验结论、改了什么、怎么验证、踩过的坑、遗留待办。10-11 那轮见下一节。
+
+### 出发点
+
+作者拿一份参赛作品审计清单，对照赛道规则（`https://www.boxuegu.com/matchTrack/detail/?id=10037`），
+要求逐项核验「有没有做过」：做过就看能否优化，没做就补。五项：
+
+1. 🔴 MCP / 工具集成（4% 权重）—— 认为平台只在教 MCP，自身不用 MCP 协议。
+2. 🔴 没有标准测试框架（0 个 `*.test.ts`、无覆盖率、无 CI）。
+3. 🟡 六项子能力雷达是占位。
+4. 🟡 认证是硬编码白名单（搜不到 OAuth / JWT）。
+5. 🟡 学生模拟 Agent 没接进产品。
+
+### 核验结论与处置
+
+| 项 | 核验结果 | 处置 |
+|---|---|---|
+| MCP | **代码在，但是坏的**：`src/lib/mcp/wiki-server.ts` 用 `../../wiki/query.js` 导入一个不存在的扩展名，子进程启动即 `Cannot find module` 退出，`discoverTools()` 静默回退空数组 —— 功能上等于不存在 | 去掉 `.js` 后缀；新增 `tests/mcp.test.ts` 端到端回归（真起 stdio 子进程 → `listTools` 含 `search_wiki` → `tools/call` 返回真实检索） |
+| 测试框架 | 确为自研 `scripts/run-tests.mjs`，无 `tests/`、无覆盖率、无 CI | Vitest 5 + `@vitest/coverage-v8` 落地最小闭环：`tests/` **7 文件 26 用例**、`pnpm test:unit` / `test:coverage`；`ci.yml` 跑 ESLint + tsc + 覆盖率 |
+| 六项子能力 | 确为占位（`report-sections.tsx` 里有占位横幅） | 新叶子模块 `src/lib/sub-abilities.ts`：按 `module-specs.md` 的「训练子能力」列做模块→能力映射，用真实 mastery 记录聚合；无样本一律 `null` → 界面显示「未测评」，绝不画 0 |
+| 认证 | 审计结论**过时**：`src/lib/auth/index.ts` 已有 scrypt + JWT(HS256)，`AuthGate` 拦截未登录 | 补按客户端 IP 的登录限流（`auth-login` 10 次/分、`auth-register` 20 次/时），防口令爆破 |
+| 学生模拟 Agent | 确为离线审计工具（`scripts/student-agent/` 1598 行，`src/` 零引用） | **有意不产品化**：定位是离线审计工具，理由与后续规划写进文档，不硬接高风险链路 |
+
+### 本轮提交（21 个，全部已推送）
+
+- 10-21~10-22：`dbcced5` MCP 落地、`3a40a4f` Vitest+CI、`81f3b5b` MCP 回归、`1e8056c` 核心测试、`17b9e9d`/`5b3ba3b` 子能力+报告 UI、`052370a` 报告测试、`e401853` 认证限流、`de7f74e`/`9774dd4`/`3022219` 文档
+- 10-23：`11f84ff`/`6e964b4` 测试 fixture 修复、`7fc9f87` 复刻工具箱竞态、`fbba406` hooks 合规、`ce75c49` store 类型、`1fe539f` 死测试清理（55→53 组）、`8cfc83f` CI 补静态门禁、`6e8cef6` 滞后 spec 同步、`3f4c058` 补跟踪 `knowledge-card-spec.ts`、`3efd9f5` 文档
+
+### 门禁实测（可复现）
+
+```bash
+npx tsc --noEmit                         # 0 error（原 54）
+npx eslint src scripts tests             # 0 error / 24 warning（原 10 error）
+pnpm start                               # 另开受管后台任务
+pnpm test                                # 53/53 全绿（冷启动组打 localhost:3000，必须先前台起服务）
+npx vitest run                           # 7 文件 / 26 用例
+CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
+```
+
+### 踩过的坑（本轮新增，别再踩）
+
+1. **MCP 静默失效**：工具发现失败会被吞成空数组，症状是「Agent 一切正常，但永远不用 MCP 工具」。任何 `discover*()` 必须有失败日志或端到端测试，别只看主流程绿。
+2. **裸跑 `eslint` 会扫 `coverage/`**：一次报 352 errors。`lint` 脚本已限定 `eslint src scripts tests`，`eslint.config.mjs` 的 `globalIgnores` 也加了 `coverage/**`（与 `tsconfig.json` 的 `exclude` 是同一份清单，改一份就要想另一份）。
+3. **测试基准会随产品演进而滞后**：`rate-limit-spec` 没列新增的认证桶、`validate-wiring-spec` 还在断言已删除的常量 → 全量测试假红。改逻辑时顺手核对有谁在断言它。
+4. **`run-tests.mjs` 引用的 spec 可能没入库**：`scripts/knowledge-card-spec.ts` 621 行长期未跟踪，新 clone 跑全量必缺一组。已补入库。
+5. **`prettier --check .` 本机全红 ≠ 代码脏**：`core.autocrlf=true` 让工作区全 CRLF，配置却是 `endOfLine: "lf"`。别为此改 git 配置或批量重写文件。
+6. **提交信息规范要回原文看**：本轮 21 个提交里 7 条 subject 超 50 字符、正文写成散文而非 `-` 列表、scope 用了表外的 `core/learn/report/test`。历史已推送不改（rebase 属禁项），**后续按 `agent-prompts/references/git-conventions.md` 原文执行**：subject ≤50、正文 `-` 列表且每行 ≤72、scope 只用表内值。
+
+### 遗留给你的事（按优先级）
+
+| 级别 | 事项 | 具体怎么做 |
+|---|---|---|
+| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（当前 `dev` 已推到 `3efd9f5`） |
+| P1 | `main` 落后 | `main` 仍停在 `v0.4.0`。本机禁止切分支/rebase，合并走 plumbing：`git merge-tree --write-tree main dev` → `git commit-tree` → `git update-ref refs/heads/main <new>`；或作者在 GitHub 网页开 PR 合并 |
+| P1 | 两个未跟踪脚本去留 | `scripts/seed-demo-accounts.mjs`（建议入库，评审演示灌数据用）、`scripts/split-platform-replica.mjs`（一次性拆页，可删）—— **作者裁定** |
+| P2 | CI 首次运行 | 新 `ci.yml` 还没在 GitHub 上跑过，`gh run list` 看一次是否绿（重点 tsc 与覆盖率） |
+| P2 | 学生 Agent 产品化 | 若要做，先把「离线审计」与「运行时模拟」两条链路分开，别把 1598 行整体接进产品 |
+
+---
+
+## 〇一、2026-10-11 会话全记录（上一轮：讲稿优化专项；历史记录，仍然有效）
 
 > 这节写给接手本轮工作的模型，自包含：改了什么、怎么验证、哪些别动、什么没做完。
 > 历史背景在下面的章节里，不影响本轮操作。
