@@ -1,4 +1,4 @@
-# 接手文档 — 2026-10-23（当日更新：参赛审计五项补齐，21 个提交已推送）
+# 接手文档 — 2026-10-23（参赛审计五项补齐 + 部署实况记录 + 待办重排；部署类已搁置）
 
 > 上一份（2026-10-11）是讲稿优化专项，记录仍保留在「〇一」节，内容依然有效。
 > 本轮（10-21 ~ 10-23）针对一份参赛作品审计清单逐项核验并补齐：**最新一轮的完整移交记录在「〇〇」节，接手先读那节**。
@@ -10,11 +10,11 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev` @ `3efd9f5` + 本轮文档提交（提交总数 **634**，含本次移交文档；实时核 `git rev-list --count HEAD`）。`main` 仍停在 `v0.4.0`（001dcd3），落后 dev 全部新工作                                                                                                                                                                                                                                                                                                                                                                           |
-| 与远端       | ✅ **已同步（2026-10-23 实测）**：`ls-remote origin dev` 返回 `3efd9f5`，与本地 `git rev-parse HEAD` 一致；远端另有 `main`（001dcd3）与 4 个 tag。10-11 记录的「0 个 ref」异常已消失，`01dce84..HEAD` 区间积压的提交也已全部推上去。推送姿势仍按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| 分支 / HEAD  | `dev`（最新 `f916ddc` + 本次移交提交；提交总数以 `git rev-list --count HEAD` 为准）。`main` 仍停在 `v0.4.0`（001dcd3），落后 dev 全部新工作 —— **合并是当前最高优先级动作之一**                                                                                                                                                                                                                                                                                                                                                                           |
+| 与远端       | ✅ **已同步（2026-10-23 实测）**：`ls-remote origin dev` 返回 `f916ddc`，与本地 `HEAD` 一致；远端另有 `main`（001dcd3）与 4 个 tag。10-11 记录的「0 个 ref」异常已消失。推送姿势仍按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`（已完成轮次无残留改动）。两个**未跟踪、有意未提交**的脚本待作者裁定：`scripts/seed-demo-accounts.mjs`（给 test/eval 演示账号灌真实学习数据，幂等）、`scripts/split-platform-replica.mjs`（一次性拆页脚本，产物已在 `llm-wiki/concepts/` 里）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待作者裁定                                                                                                                               |
 | 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
-| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用，修法见「〇〇」遗留表 P0。域名与 HTTPS 未配置 |
+| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
@@ -102,16 +102,31 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 5. **`prettier --check .` 本机全红 ≠ 代码脏**：`core.autocrlf=true` 让工作区全 CRLF，配置却是 `endOfLine: "lf"`。别为此改 git 配置或批量重写文件。
 6. **提交信息规范要回原文看**：本轮 21 个提交里 7 条 subject 超 50 字符、正文写成散文而非 `-` 列表、scope 用了表外的 `core/learn/report/test`。历史已推送不改（rebase 属禁项），**后续按 `agent-prompts/references/git-conventions.md` 原文执行**：subject ≤50、正文 `-` 列表且每行 ≤72、scope 只用表内值。
 
-### 遗留给你的事（按优先级）
+### 待办（2026-10-23 收尾时点；**部署类已由作者搁置，不在下面推进**）
 
-| 级别 | 事项 | 具体怎么做 |
-|---|---|---|
-| P0 | 生产环境补 `ARK_API_KEY` | 线上 `status=degraded`，模型全不可用。SSH 到 8.149.130.30 → 在 `/etc/ai-teaching.env` 补密钥 → `systemctl restart ai-teaching` → `curl -s http://127.0.0.1:3000/api/health` 应转 `ok`。**这是演示视频与评委验收的前置条件** |
-| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（当前 `dev` 已推到 `3efd9f5`） |
-| P1 | `main` 落后 | `main` 仍停在 `v0.4.0`。本机禁止切分支/rebase，合并走 plumbing：`git merge-tree --write-tree main dev` → `git commit-tree` → `git update-ref refs/heads/main <new>`；或作者在 GitHub 网页开 PR 合并 |
-| P1 | 两个未跟踪脚本去留 | `scripts/seed-demo-accounts.mjs`（建议入库，评审演示灌数据用）、`scripts/split-platform-replica.mjs`（一次性拆页，可删）—— **作者裁定** |
-| P2 | CI 首次运行 | 新 `ci.yml` 还没在 GitHub 上跑过，`gh run list` 看一次是否绿（重点 tsc 与覆盖率） |
-| P2 | 学生 Agent 产品化 | 若要做，先把「离线审计」与「运行时模拟」两条链路分开，别把 1598 行整体接进产品 |
+**A. 当前在推进的（非部署）**
+
+| 级别 | 事项 | 具体怎么做 | 谁能做 |
+|---|---|---|---|
+| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（`dev` 已推到 `f916ddc`） | 作者 |
+| P0 | 报名 + 缴费 + 提交 | 2026-11-18 当天截止，**提交后不得修改**，全部改动要在这之前完成 | 作者 |
+| P1 | `main` 合并 `dev` | 评委若看 `main` 只会看到 `v0.4.0` 旧版。本机禁止切分支/rebase，走 plumbing：`git merge-tree --write-tree main dev` → `git commit-tree <tree> -p main -p dev -m "..."` → `git update-ref refs/heads/main <new>` → 按第四节四开关推 `main`；合完可打 `v0.5.0` tag | 我 |
+| P1 | CI 首跑核验 | 新 `ci.yml` 还没在 GitHub 上跑过：`gh run list -L 5`，确认 ESLint / tsc / 覆盖率三步都绿 | 我 |
+| P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
+| P1 | 两个未跟踪脚本去留 | `scripts/seed-demo-accounts.mjs`（建议入库，评审演示灌数据用）、`scripts/split-platform-replica.mjs`（一次性拆页，可删） | 作者裁定 |
+| P2 | 思维链泄漏 B 核验 | 真跑 `scripts/verify-thinking-leak.ts`，确认服务端 `thinking-filter.ts` 兜住了泄漏 | 我 |
+| P2 | 六项子能力真流量验证 | 用有掌握度记录的学生走一遍报告页，确认雷达从「未测评」变真实分（代码已接，缺一次真实流量确认） | 我 |
+| P3 | 学生模拟 Agent 产品化 | 可选；要做得先把「离线审计」与「运行时模拟」两条链路分开，别把 1598 行整体接进产品 | 我 |
+
+**B. 已搁置（作者明说部署先放着）**
+
+| 事项 | 现状（备查，别当待办推进） |
+|---|---|
+| 生产环境 `ARK_API_KEY` | `http://8.149.130.30/api/health` 返回 `status=degraded`、`arkApiKeyConfigured=false`，线上模型能力不可用；修法见「部署实况」 |
+| HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
+| EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
+
+**下一步建议（新对话开场可直接照做）**：先做 A 表 P1 的 `main` 合并 `dev`（不需要作者提供任何东西），再做 CI 首跑核验；两项完成后向作者汇报，等其对两个未跟踪脚本与演示材料拍板。
 
 ---
 
