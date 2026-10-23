@@ -30,6 +30,8 @@ export { projectDb } from "./projects";
 export { questionResultDb } from "./question-results";
 export { validationResultDb } from "./validation-results";
 export { questionDb } from "./questions";
+// 教师端：学生模拟运行（汇总 + 逐轮明细），见 migrations/006_teacher_simulation.sql。
+export { simulationDb } from "./simulations";
 // 讲稿预生成缓存（2026-09-19）：运行期只读，写入仅限预生成脚本，见 lecture-cache.ts 文件头。
 export { lectureCacheDb } from "./lecture-cache";
 export type { LectureCacheEntry, LectureCacheStep } from "./lecture-cache";

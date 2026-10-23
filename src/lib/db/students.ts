@@ -55,6 +55,9 @@ function mapStudent(row: Row): Student {
     id: asString(row.id),
     nickname: asString(row.nickname),
     email: asOptionalString(row.email),
+    // 迁移 006 之前建的库行没有 role 列值 —— 一律回退为 student，
+    // 而不是把空串当成第三种角色。判权只认 "teacher" 这一个字面量。
+    role: asString(row.role) === "teacher" ? "teacher" : "student",
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at),
   };
@@ -110,6 +113,8 @@ export const studentDb = {
       id,
       nickname: username,
       email: undefined,
+      // 注册接口永远产出学生账号；教师只能由种子脚本写入（见迁移 006 注释）。
+      role: "student",
       createdAt: now,
       updatedAt: now,
     };

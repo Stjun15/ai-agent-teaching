@@ -12,10 +12,19 @@
 // 学生相关
 // ---------------------------------------------------------------------------
 
+/**
+ * 账号角色。
+ *
+ * `student` 是默认值（迁移 006 的列默认值），`teacher` 只能由种子脚本写入 ——
+ * 没有任何接口可以把学生升级成教师，判权在 `api-auth.ts` 的 `requireTeacher`。
+ */
+export type StudentRole = "student" | "teacher";
+
 export interface Student {
   id: string;
   nickname: string;
   email?: string;
+  role: StudentRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -276,4 +285,63 @@ export interface AgentTrace {
   retries: number;
   success: boolean;
   error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// 教师端：学生模拟运行
+// ---------------------------------------------------------------------------
+
+/**
+ * 一次模拟运行的状态。
+ *
+ * `running` 是唯一可写的初始值；服务进程重启会让运行中的记录停在 `running` ——
+ * 这是进程内执行（无外部队列）的已知边界，控制台按 `startedAt` 显示「疑似中断」，
+ * 而不是由后台任务去改写别人的行（那是日志撒谎）。
+ */
+export type SimulationRunStatus = "running" | "completed" | "failed" | "aborted";
+
+/** 运行结束的原因。空 = 还在跑。 */
+export type SimulationStopReason =
+  | "max-turns"
+  | "student-gave-up"
+  | "token-budget";
+
+/** 逐轮记录里的说话人：模拟学生 / 导师（产品里学生看到的那一侧）。 */
+export type SimulationSpeaker = "student" | "mentor";
+
+export interface SimulationRun {
+  id: string;
+  teacherId: string;
+  moduleId: string;
+  step: StepType;
+  /** 模拟学生人设 id，见 `src/lib/agent/student/personas.ts`。 */
+  persona: string;
+  status: SimulationRunStatus;
+  /** 教师请求的轮次上限（已按成本边界收敛，见 `simulation/limits.ts`）。 */
+  maxTurns: number;
+  turnsUsed: number;
+  tokensInput: number;
+  tokensOutput: number;
+  durationMs: number;
+  stopReason: SimulationStopReason | null;
+  error: string | null;
+  startedAt: string;
+  endedAt: string | null;
+}
+
+export interface SimulationTurn {
+  id: string;
+  runId: string;
+  /** 从 1 开始。 */
+  turnIndex: number;
+  speaker: SimulationSpeaker;
+  content: string;
+  /** 模拟学生这一轮「看到的屏幕」文本快照（截断后）。 */
+  screenDigest: string;
+  cognitiveState: string | null;
+  actionType: string | null;
+  tokensInput: number;
+  tokensOutput: number;
+  durationMs: number;
+  createdAt: string;
 }
