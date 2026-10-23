@@ -10,7 +10,7 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已于 10-23 晚合并 dev**（合并提交 `661a875`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；`v0.5.0` 已打并推送，指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
+| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已持续与 dev 同步**（10-23 晚首合并 `661a875`，深夜再合并 `76770c0`，两者与 dev 同一 tree）；`v0.5.0` 指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
 | 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 列出的 `dev` / `main` / `v0.5.0` 与本地一致（核验方式：逐字符比对 `git rev-parse` 与 `ls-remote` 输出，别用 `rev-list origin/dev..HEAD`）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
 | CI           | ✅ **已绿（10-23 晚首绿；10-23 深夜再绿）**：`dev` / `main` 每次 push 均 success，ESLint + `tsc --noEmit` + Vitest 三步全过（首绿时 7 文件 26 用例，现 **12 文件 69 用例**）。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
@@ -149,8 +149,9 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
   - `docs/competition/technical-document.md` 新增 **4.4.1 融合倒挂**（三路同集评测表 + 机制原因 + 三方案取舍 + 下一步），并把 7.4 里过时的四条（融合倒挂只写「待调优」、六项能力「仍是占位」、模拟 Agent「下一步接入」、鉴权「尚未实现」）改成与代码一致。
 - **口径（别改回去）**：`mastery` 表每概念只留最新一行、**没有历史快照**，所以曲线是「截至当日各模块最新分累积重算」，且用 `dirty` 标记只在真有新证据的日期取点 —— 按日分桶会把「今天只重测一讲」画成掌握度下跌。
 - **诚实的两条**：① 种子数据全在同一天写入，报告页显示「首次记录 N 分 —— 再有新记录才画得出曲线」，**不补平点**；② 仍不把点评子维度映射到六项能力（映射规则不唯一，硬映射等于编数据）。
+- **提交与推送（已完成）**：`906790d` `feat(report): add sub-ability growth curves`（代码 + 测试，6 文件）+ `a1e5f8c` `docs: document sub-ability curves and rag inversion`（技术文档 + 本文件 + `AGENTS.md`）；`dev` 已推、`main` 用 plumbing 合并（`76770c0`）后已推，**两条 CI 均 success**。补记 SHA 的这次 docs 提交紧随其后，以 `git log -1` 为准。
 - **验证**：`tests/sub-abilities.test.ts` 8/8；`/api/report` 实测返回六项 `subAbilityTrends`（各 1 点）；`tsc` / `eslint` / `vitest 12 文件 69 用例` / `pnpm build` 全绿。
-- 🔴 **没做完的一步（新对话第一个动作）**：**浏览器视觉走查 `/report` 未完成** —— 已派浏览器子代理走查，但它在 `/auth` 页登录卡住（页面有大量 Turbopack HMR `net::ERR_ABORTED`），没进到 `/report`。**登录接口本身是好的**：`POST /api/auth/login`（`{username:"test", password:"test1234"}`）返回 200 与 JWT。正确做法：先干净起服务（`pnpm start` 跑生产产物，别在改代码的同时走查），再人工或子代理确认「六项子能力」六行文案 + 无 hydration error + 单点文案为「首次记录 N 分 —— 再有新记录才画得出曲线」。
+- ✅ **生产产物走查已过（10-23 深夜，`PORT=3311 pnpm start`）**：用 `test` / `test1234` 登录后 `/report` 正常，副标题「由对应教学模块的真实掌握度聚合，6 / 6 项有证据 · 曲线按截至当日的最新掌握度重算」；六行均有分数（意图表达 3.25 / 任务分解 1.5 / 上下文管理 1 / 质量判断 1 / **迭代调优 0（真实的 0 分，不是渲染 bug）** / 理解 AI 行为模式 2.67），第二行均为「YYYY-MM-DD 首次记录 X 分 —— 再有新记录才画得出曲线」；无白屏、无 React #418/#425 hydration error（控制台只有 `localhost:3000` 残留的 `net::ERR_ABORTED` 噪音，与页面无关）。⚠️ 走查**必须**先干净起服务再跑：先前在 dev server 改代码中途派子代理，HMR 的 `ERR_ABORTED` 把登录流程冲掉，白跑一轮。
 - **可选（需作者点头）**：把种子数据 `mastery.updated_at` 铺到多日，报告页才看得到真实曲线形状；同日数据只能看到单点文案。
 
 
