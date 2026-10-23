@@ -12,16 +12,41 @@ import { analyzePath } from "@/lib/agent/path-adjuster";
 import type { AdjusterInput } from "@/lib/agent/path-adjuster";
 import type { ErrorRecord, LearningPath, Mastery, PathAdjustment } from "@/lib/db/types";
 
-function now(): string {
-  return new Date().toISOString();
-}
-
 function hoursAgo(h: number): string {
   return new Date(Date.now() - h * 3600 * 1000).toISOString();
 }
 
 function daysAgo(d: number): string {
   return new Date(Date.now() - d * 86400 * 1000).toISOString();
+}
+
+/**
+ * 完整的 `ErrorRecord` fixture。
+ *
+ * 规则引擎只看 `conceptId` / `createdAt` / `problems` 三个字段，其余字段
+ * 是数据库契约要求（缺一个就不算 `ErrorRecord`），取固定默认值即可。
+ */
+function makeError(
+  conceptId: string,
+  createdAt: string,
+  problems: string[] = [],
+): ErrorRecord {
+  return {
+    id: `err-${conceptId}-${createdAt}`,
+    studentId: "s1",
+    moduleId: conceptId,
+    conceptId,
+    taskType: "code",
+    question: "",
+    studentAnswer: "",
+    problems,
+    correctExample: "",
+    relatedAntiPattern: null,
+    isCorrected: false,
+    variantQuestionsGenerated: 0,
+    nextReviewAt: null,
+    createdAt,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -34,10 +59,10 @@ test("连续 3 次校验不通过 → 产出调整建议", () => {
     conceptId: "agent-loop",
     mastery: [],
     errors: [
-      { conceptId: "agent-loop", createdAt: hoursAgo(1), problems: ["理解偏差", "步骤遗漏"] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(5), problems: ["代码错误"] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(10), problems: [] },
-    ] as ErrorRecord[],
+      makeError("agent-loop", hoursAgo(1), ["理解偏差", "步骤遗漏"]),
+      makeError("agent-loop", hoursAgo(5), ["代码错误"]),
+      makeError("agent-loop", hoursAgo(10)),
+    ],
     path: {
       studentId: "s1",
       modules: [{ moduleId: "agent-loop", status: "in_progress" }],
@@ -58,9 +83,9 @@ test("只有 2 次失败 → 不触发", () => {
     conceptId: "agent-loop",
     mastery: [],
     errors: [
-      { conceptId: "agent-loop", createdAt: hoursAgo(1), problems: [] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(5), problems: [] },
-    ] as ErrorRecord[],
+      makeError("agent-loop", hoursAgo(1)),
+      makeError("agent-loop", hoursAgo(5)),
+    ],
     path: {
       studentId: "s1",
       modules: [{ moduleId: "agent-loop", status: "in_progress" }],
@@ -79,10 +104,10 @@ test("分散在 72 小时外 → 不视为连续密集失败", () => {
     conceptId: "agent-loop",
     mastery: [],
     errors: [
-      { conceptId: "agent-loop", createdAt: hoursAgo(1), problems: [] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(40), problems: [] },
-      { conceptId: "agent-loop", createdAt: daysAgo(4), problems: [] }, // >72h
-    ] as ErrorRecord[],
+      makeError("agent-loop", hoursAgo(1)),
+      makeError("agent-loop", hoursAgo(40)),
+      makeError("agent-loop", daysAgo(4)), // >72h
+    ],
     path: {
       studentId: "s1",
       modules: [{ moduleId: "agent-loop", status: "in_progress" }],
@@ -334,10 +359,10 @@ test("多规则命中 → 最多 2 条", () => {
       { conceptId: "ts-basics", score: 5, errorCount: 0 },
     ] as Mastery[],
     errors: [
-      { conceptId: "agent-loop", createdAt: hoursAgo(1), problems: ["a"] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(2), problems: ["b"] },
-      { conceptId: "agent-loop", createdAt: hoursAgo(3), problems: ["c"] },
-    ] as ErrorRecord[],
+      makeError("agent-loop", hoursAgo(1), ["a"]),
+      makeError("agent-loop", hoursAgo(2), ["b"]),
+      makeError("agent-loop", hoursAgo(3), ["c"]),
+    ],
     path: {
       studentId: "s1",
       modules: [

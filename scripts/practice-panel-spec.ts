@@ -352,7 +352,7 @@ test("简答题可输入文本", async () => {
 // ---------------------------------------------------------------------------
 
 test("评分兜底 → 显示「有题目没能连上评分模型」", async () => {
-  fetchResponder = (url, body) => {
+  fetchResponder = (url) => {
     if (url === "/api/session") {
       return new Response(JSON.stringify({ sessionId: "sess-6" }), {
         status: 200,
@@ -479,7 +479,17 @@ test("第二次出题复用初始会话", async () => {
 
 test("有掌握度记录 → generate-question 携带 difficulty", async () => {
   useStudentStore.setState({
-    mastery: { "ts-basics": { score: 4, errorCount: 0 } },
+    mastery: {
+      "ts-basics": {
+        studentId: "00000000-0000-4000-8000-000000000001",
+        conceptId: "ts-basics",
+        score: 4,
+        errorCount: 0,
+        lastReviewedAt: null,
+        status: "in_progress",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    },
   });
 
   let difficultySent: number | undefined;
@@ -558,10 +568,14 @@ test("无掌握度记录 → generate-question 不携带 difficulty", async () =
 // ---------------------------------------------------------------------------
 
 test("评分中题目 locked → 控件 disabled", async () => {
-  let resolveGrade: ((v: Response) => void) | null = null;
+  // 用对象持有 resolver：`let` 变量只在 Promise 回调里赋值时，
+  // TS 的控制流分析会在使用点把它窄化成 `null`（进而报「不可调用」）。
+  const gradeGate: { resolve: ((v: Response) => void) | null } = {
+    resolve: null,
+  };
 
   // 用可控的悬挂 Promise 让评分悬在 grading 阶段
-  fetchResponder = (url, body) => {
+  fetchResponder = (url) => {
     if (url === "/api/session") {
       return new Response(JSON.stringify({ sessionId: "sess-lock" }), {
         status: 200,
@@ -577,9 +591,9 @@ test("评分中题目 locked → 控件 disabled", async () => {
       );
     }
     if (url === "/api/agent/answer-grade") {
-      // 可控悬挂：返回一个 Promise，由 resolveGrade 手动释放
+      // 可控悬挂：返回一个 Promise，由 gradeGate.resolve 手动释放
       return new Promise<Response>((resolve) => {
-        resolveGrade = resolve;
+        gradeGate.resolve = resolve;
       });
     }
     return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
@@ -613,10 +627,8 @@ test("评分中题目 locked → 控件 disabled", async () => {
   });
 
   // 释放 Promise，让测试干净收尾
-  if (resolveGrade) {
-    resolveGrade(new Response(JSON.stringify(gradeResp(true, 80)), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }));
-  }
+  gradeGate.resolve?.(new Response(JSON.stringify(gradeResp(true, 80)), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  }));
 });

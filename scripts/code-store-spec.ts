@@ -8,6 +8,33 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 
 import { useCodeStore, selectIsPassed } from "@/stores/code";
+import type { ValidationResult } from "@/lib/db";
+
+/**
+ * 完整的 `ValidationResult` fixture。
+ *
+ * 为什么不直接写 `{ totalScore, isCorrect, issues, suggestions }`：
+ * Store 的 `validationResult` 类型就是数据库契约（11 个字段），少写的字段
+ * 在类型上不合法。用例只关心分数与是否通过，其余字段取固定默认值。
+ */
+function makeValidationResult(
+  overrides: Partial<ValidationResult> = {},
+): ValidationResult {
+  return {
+    id: "vr-1",
+    studentId: "00000000-0000-4000-8000-000000000001",
+    sessionId: "00000000-0000-4000-8000-000000000002",
+    taskType: "code",
+    totalScore: 0,
+    level: "不及格",
+    isCorrect: false,
+    dimensions: [],
+    issues: [],
+    suggestions: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 function reset() {
   useCodeStore.setState({
@@ -28,9 +55,9 @@ test("setCode → 更新代码内容", () => {
   assert.equal(useCodeStore.getState().code, "const x = 1;");
 });
 
-test("setLanguage → 切换语言", () => {
-  useCodeStore.getState().setLanguage("python");
-  assert.equal(useCodeStore.getState().language, "python");
+test("setLanguage → 设置语言（平台只教 TypeScript）", () => {
+  useCodeStore.getState().setLanguage("typescript");
+  assert.equal(useCodeStore.getState().language, "typescript");
 });
 
 test("setTaskType → 切换任务类型", () => {
@@ -55,8 +82,8 @@ test("beginValidation → 清除上次的错误信息", () => {
 });
 
 test("resolveValidation → 写入结果，状态转 done", () => {
-  const result = { totalScore: 90, isCorrect: true, issues: [], suggestions: [] };
-  useCodeStore.getState().resolveValidation(result as any);
+  const result = makeValidationResult({ totalScore: 90, isCorrect: true });
+  useCodeStore.getState().resolveValidation(result);
 
   assert.equal(useCodeStore.getState().validationStatus, "done");
   assert.equal(useCodeStore.getState().validationResult, result);
@@ -73,7 +100,7 @@ test("clear → 重置所有字段", () => {
   useCodeStore.setState({
     code: "x",
     validationStatus: "done",
-    validationResult: { totalScore: 100, isCorrect: true, issues: [], suggestions: [] },
+    validationResult: makeValidationResult({ totalScore: 100, isCorrect: true }),
     attempt: 3,
   });
 
@@ -92,14 +119,14 @@ test("selectIsPassed：未校验 → false", () => {
 
 test("selectIsPassed：isCorrect=true → true", () => {
   useCodeStore.setState({
-    validationResult: { totalScore: 100, isCorrect: true, issues: [], suggestions: [] },
+    validationResult: makeValidationResult({ totalScore: 100, isCorrect: true }),
   });
   assert.equal(selectIsPassed(useCodeStore.getState()), true);
 });
 
 test("selectIsPassed：isCorrect=false → false", () => {
   useCodeStore.setState({
-    validationResult: { totalScore: 50, isCorrect: false, issues: [], suggestions: [] },
+    validationResult: makeValidationResult({ totalScore: 50, isCorrect: false }),
   });
   assert.equal(selectIsPassed(useCodeStore.getState()), false);
 });
