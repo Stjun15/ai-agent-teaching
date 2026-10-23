@@ -8,7 +8,7 @@
 > - 参赛成员：江家俊 —— 产品设计 / 前端开发 / AI 工程 / 测试与部署（全部）
 > - 联系方式：通过大赛报名系统联系
 
-**状态**：`v0.4.0` 已打标 —— 七步教学流程全通（讲解/示范点开即有 · 动手模仿 · 校验点评 · 可视化 · 变式练习 · 掌握判定），Phase 7 软件侧 9/12 完成，剩 EdgeOne 真实部署（指南见 `docs/deployment.md`）与演示材料等人工事项 · 省赛提交截止 2026-11-18
+**状态**：`v0.5.0` 已打标 —— 七步教学流程全通（讲解/示范点开即有 · 动手模仿 · 校验点评 · 可视化 · 变式练习 · 掌握判定），报告页六项子能力为真实掌握度聚合 + 成长曲线；部署套件（`deploy/`）已交付并完成公网部署（nginx + systemd + SSE 关缓冲；模型能力由部署侧 `ARK_API_KEY` 启用）；剩余为演示视频 / 文档 PDF / 仓库公开等提交类人工事项 · 省赛提交截止 2026-11-18
 
 ---
 
@@ -57,11 +57,11 @@
 | 样式             | Tailwind CSS v4 + shadcn/ui                                |
 | 模型平台         | 火山方舟Volcengine Ark（OpenAI 兼容端点 `/v1`）            |
 | 主模型           | `deepseek-v4-flash-ga-260731`（环境变量 `ARK_TEXT_MODEL`） |
-| 多模态模型       | 同主模型，原生多模态（环境变量 `ARK_VISION_MODEL`）        |
+| 多模态模型       | `doubao-seed-2-1-pro-260915`（环境变量 `ARK_VISION_MODEL`） |
 | Agent 底座       | piagentSDK                                                 |
 | 知识层           | LLM Wiki + 轻量 RAG                                        |
 | 数据库（开发期） | SQLite + repository 抽象层                                 |
-| 数据库（部署期） | 腾讯云 CloudBase PostgreSQL + pgvector                     |
+| 数据库（部署期） | SQLite（当前部署实测形态；PG + pgvector 迁移为规划项，见 `docs/deployment.md`） |
 | 包管理器         | pnpm                                                       |
 | 代码规范         | ESLint + Prettier + TypeScript 严格模式                    |
 
@@ -71,7 +71,7 @@
 
 ### 环境要求
 
-- Node.js ≥ 20
+- Node.js ≥ 22.5（`node:sqlite` 硬要求，与 `package.json` 的 `engines` 同口径）
 - pnpm
 
 > **Windows 用户注意**：本仓库通过 `pnpm-workspace.yaml` 强制使用 `nodeLinker: hoisted`。
@@ -129,7 +129,7 @@ pnpm build        # 生产构建
 └── .prettierrc.json            格式化配置
 ```
 
-<!-- 目录结构随开发推进同步更新；个人参赛信息（赛道/学校/团队/联系方式）见顶部 TODO -->
+<!-- 目录结构随开发推进同步更新 -->
 
 ---
 
