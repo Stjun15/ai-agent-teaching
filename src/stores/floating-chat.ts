@@ -14,6 +14,7 @@ import { create } from "zustand";
 import { persist, type PersistStorage } from "zustand/middleware";
 
 import { currentStudentId } from "@/lib/client-identity";
+import { randomUuid } from "@/lib/uuid";
 
 export interface FloatingMessage {
   id: string;
@@ -53,7 +54,7 @@ export interface FloatingChatState {
 }
 
 function newId(): string {
-  return crypto.randomUUID();
+  return randomUuid();
 }
 
 function titleFrom(content: string): string {

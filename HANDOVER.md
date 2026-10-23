@@ -108,6 +108,15 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 ### 踩过的坑（本轮新增，别再踩）
 
+- **`crypto.randomUUID` 在明文 http 下不存在**（2026-10-23 深夜，线上讲解页恒显示「还没有对话」的真因）。
+  `randomUUID` 属于安全上下文 API，`http://<IP>` 访问时浏览器里是 `undefined`，调用抛 `TypeError`；
+  store 生成消息 id 崩掉 → `seedLecture` 没执行 → 空态。**本地 `localhost` 算安全上下文，四级验收全绿也抓不到**。
+  修法：统一走 `src/lib/uuid.ts` 的 `randomUuid()`（无 `randomUUID` 时降级 `getRandomValues` 拼 UUID v4），
+  守卫在 `tests/uuid.test.ts`。**教训：凡是只在 HTTPS/localhost 可用的 Web API（`randomUUID`、Clipboard、
+  Service Worker、Web Speech、`navigator.mediaDevices`），部署到明文 http 后都要有降级路径或明确禁用文案。**
+- **1C1G 上不要跑 `pnpm build`**：会把机器打进 swap 风暴、SSH 与 nginx 一起超时，只能控制台强制重启。
+  正确姿势见上节「🔴 1C1G 小机不要在服务器上 build」。
+
 1. **MCP 静默失效**：工具发现失败会被吞成空数组，症状是「Agent 一切正常，但永远不用 MCP 工具」。任何 `discover*()` 必须有失败日志或端到端测试，别只看主流程绿。
 2. **裸跑 `eslint` 会扫 `coverage/`**：一次报 352 errors。`lint` 脚本已限定 `eslint src scripts tests`，`eslint.config.mjs` 的 `globalIgnores` 也加了 `coverage/**`（与 `tsconfig.json` 的 `exclude` 是同一份清单，改一份就要想另一份）。
 3. **测试基准会随产品演进而滞后**：`rate-limit-spec` 没列新增的认证桶、`validate-wiring-spec` 还在断言已删除的常量 → 全量测试假红。改逻辑时顺手核对有谁在断言它。
