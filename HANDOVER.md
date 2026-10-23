@@ -117,7 +117,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | P1 | ~~CI 首跑核验~~ **已完成（10-23 晚；首跑是红的）** | 最初 5 条 run 全在 11–13s 失败：`pnpm 9` 撞纯配置型 `pnpm-workspace.yaml`（无 `packages` 字段），`setup-node` 的 `pnpm store path` 报 `packages field missing or empty`。`dac10e0` 钉 `pnpm 12` 后 dev/main 双绿（ESLint / tsc / Vitest 7 文件 26 用例）。⚠️ 行覆盖率仅 **5.67%** | 我 |
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
 | P1 | ~~两个未跟踪脚本~~ **已裁定并完成（10-23 晚）** | `split-platform-replica.mjs` **删除**（硬编码原稿行号、产物 `platform-replica-0{0..5}.md` 已入库，重跑会静默覆盖）。`seed-demo-accounts.mjs` **合并**进 `scripts/seed-auth-accounts.mjs`（同一批 test/eval 账号不再两处写），并把 `question_results`/`errors`/`prompt_history` 的 `randomUUID` 换成确定性 id + `ON CONFLICT(id) DO UPDATE` —— 实测连跑两次行数不变（32/8/12）。**不进 Vitest**：种子是数据准备不是被测逻辑，且 CI 的 Node 22 跑 `node:sqlite` 还需实验标志 | 我 |
-| P2 | 思维链泄漏 B 核验 | 真跑 `scripts/verify-thinking-leak.ts`，确认服务端 `thinking-filter.ts` 兜住了泄漏 | 我 |
+| P2 | ~~思维链泄漏 B 核验~~ **已完成（10-23 深夜）** | 两轮真调模型（一轮后台完整跑 + 一轮前台交叉验证）覆盖 agent-loop / ts-basics / system-prompt / mcp 四讲，全部 `ok=true`、`internalHits=0`、`errors=0`；agent-loop（历史命中 5）与 ts-basics（历史命中 2）两只金丝雀干净，`thinking-filter.ts` 在真实流量上确认生效。⚠️ 脚本进程内直跑 Agent 循环，**不需要起服务也不占端口**；跑前按 4.7 规程探端点（实测 200，`ARK_API_KEY` 在用户级环境变量） | 我 |
 | P2 | ~~六项子能力真流量验证~~ **代码已闭合（10-23 深夜）** | 聚合与成长曲线均已接真实 mastery（`/api/report` 实测返回六项 `subAbilityTrends`），无证据项显示「未测评」不画 0；剩余只需**跨日样本**才能看曲线形状（同日种子数据显示「首次记录 N 分」）。细节见下节「六项子能力成长曲线」 | 我 |
 | P3 | ~~学生模拟 Agent 产品化~~ **已尝试并下线（10-23 夜间）** | 已做成完整闭环（角色 / 两表 / 限额 / 三接口 / 控制台）后按作者裁定整体下线，见下节「教师端 / 模拟器」。**别再默认接回去**，除非先解决「谁用、怎么证明有用」 | 作者裁定 |
 
@@ -129,7 +129,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）已于 10-23 晚完成并推送；剩余 P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档）。我侧下一项是：**① 干净起服务（`pnpm start`）后浏览器走查 `/report` 六项子能力区块**（子代理登录卡住，见下节「六项子能力成长曲线」末条）；**② P2 思维链泄漏 B 核验**（`scripts/verify-thinking-leak.ts`，跑前先探空闲端口）。
+**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）、`/report` 生产走查、P2 思维链 B 核验均已完成（10-23 深夜）；剩余 P0/P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档）。我侧唯一可选剩余项：把种子数据 `mastery.updated_at` 铺到多日，让 `/report` 成长曲线显示真实曲线形状（同日种子只能显示「首次记录」单点文案；需作者点头再动手）。
 
 ### 教师端 / 模拟器（10-23 夜间：实现后整体下线）
 
