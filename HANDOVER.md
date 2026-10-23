@@ -85,15 +85,26 @@ npx vitest run                           # 7 文件 / 26 用例
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 ```
 
-### 部署实况（2026-10-23 实测）
+### 部署实况（2026-10-23 深夜更新：已换新构建）
 
 - 入口：`http://<ECS-IP>`（只有 80 端口，无域名、无 HTTPS）
-- 链路：nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`，应用目录 `/opt/ai-agent-teaching`
-- 数据：SQLite `dev.db` 落在 `/var/lib/ai-teaching`，19 张表，迁移 `001_init`–`005_audit_score_columns` 全执行
-- 自查：`/` 200、`/api/health` 200、Node `v22.23.3`、uptime 正常
-- 🔴 **`status=degraded`：`arkApiKeyConfigured=false`** → 线上所有模型能力不可用（对话 / 点评 / 出题全废）。修法：
-  在服务器 `/etc/ai-teaching.env` 补 `ARK_API_KEY=...` → `systemctl restart ai-teaching` → 复查
-  `curl -s http://127.0.0.1:3000/api/health` 应转 `ok`
+- 链路：nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`，应用目录 **`/opt/ai-agent-teaching-app`**（git clone，`git pull` 可更新）
+- 数据：SQLite `dev.db` **就在应用目录内**（不在 `/var/lib/ai-teaching`，早先文档写的那个路径与实际不符），19 张表，迁移 `001_init`–`005_audit_score_columns` 全执行
+- 环境变量：`/etc/ai-teaching.env`，**`ARK_API_KEY` 已配**，`/api/health` = **`status=ok`**、`arkApiKeyConfigured=true`
+- 换版核验：`BUILD_ID` 本地与线上一致（`0bUYIel-VMmh5Fb-nUWyT`）；`/` 200、`/teacher` **404**（证明是下线教师端之后的新构建）；登录 `test/test1234` 后打 `/api/chat` 真实流式吐字正常
+- 回滚：旧目录 `/opt/ai-agent-teaching` 原样保留，把 systemd 的 `WorkingDirectory` 改回去 + `daemon-reload` + `restart` 即可
+
+### 🔴 1C1G 小机不要在服务器上 build（本轮踩实）
+
+在 1.7GB RAM + 2G swap 的 ECS 上直接 `pnpm build` 会打进 swap 风暴：SSH 握手超时、nginx 也超时，**整机假死十几分钟**，只能到阿里云控制台强制重启。正确姿势：
+
+1. 本机（或大内存机）跑 `pnpm build`；
+2. 只传 `.next`：`tar -czf x.tgz -C .next --exclude=cache --exclude=dev .`（含 `cache` 是 377MB，排除后仅 **13.6MB**）；
+3. SFTP 上传 → 服务器解压进 `<APP_DIR>/.next`；
+4. 改 `required-server-files.json` 里四处本地绝对路径（`outputFileTracingRoot` / `repoRoot` / `root` / `appDir`）为服务器路径；
+5. `systemctl restart ai-teaching`。
+
+注意 `serverExternalPackages` 里的 pi 系列包是运行时从 `node_modules` 解析的，服务器端仍需 `pnpm install`（Linux 二进制），但**不需要**在服务器上编译构建产物。
 
 ### 踩过的坑（本轮新增，别再踩）
 
@@ -125,11 +136,11 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 | 事项 | 现状（备查，别当待办推进） |
 |---|---|
-| 生产环境 `ARK_API_KEY` | `http://<ECS-IP>/api/health` 返回 `status=degraded`、`arkApiKeyConfigured=false`，线上模型能力不可用；修法见「部署实况」 |
+| ~~生产环境 `ARK_API_KEY`~~ **已解决（10-23 深夜）** | 密钥已写入 `/etc/ai-teaching.env`，`status=ok`，线上对话 / 点评 / 出题均可真调模型 |
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）、`/report` 生产走查、P2 思维链 B 核验均已完成（10-23 深夜）；剩余 P0/P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档）。我侧唯一可选剩余项：把种子数据 `mastery.updated_at` 铺到多日，让 `/report` 成长曲线显示真实曲线形状（同日种子只能显示「首次记录」单点文案；需作者点头再动手）。
+**下一步建议（新对话开场可直接照做）**：我侧可做的项已全部完成（`main` 合并 `dev`、CI 核验、`/report` 生产走查、P2 思维链 B 核验、跨日种子数据、线上换版与密钥补齐，均 10-23 深夜）。**仓库已改 Public**（`github.com/Stjun15/ai-agent-teaching`，用户名换过一次，`deploy/*.sh` 里的 REPO_URL 已同步）。剩余全在作者侧：报名缴费提交（11-18 截止）、演示视频录制与技术文档 PDF 转档。
 
 ### 教师端 / 模拟器（10-23 夜间：实现后整体下线）
 
