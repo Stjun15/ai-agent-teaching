@@ -28,7 +28,6 @@ const PAGES = [
   { path: "/learn", expect: "学习中心" },
   { path: "/learn/llm-api", expect: "LLM API" },
   { path: "/learn/llm-api/explain", expect: "LLM API" },
-  { path: "/playground", expect: "沙箱实验室" },
   { path: "/report", expect: "学习报告" },
   { path: "/settings", expect: "设置" },
 ];

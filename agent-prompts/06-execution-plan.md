@@ -83,7 +83,7 @@ chore: create dev branch and initial structure
 - 搭建开发期数据库：SQLite + repository 抽象层（15 张表）
 - 集成 piagentSDK
 - 跑通一个 Agent + 一个工具
-- 对接火山方舟 Ark（OpenAI 兼容端点 `/api/v3`），模型走环境变量
+- 对接火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`），模型走环境变量
 - 验证 SSE 流式返回
 - 提交可运行的最小闭环
 

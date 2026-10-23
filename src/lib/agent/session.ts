@@ -71,6 +71,15 @@ export interface AgentSessionHandle {
   prompt: (text: string) => Promise<void>;
   /** 释放会话。必须调用，否则 SDK 资源不回收。 */
   dispose: () => void;
+  /** 中止当前正在运行的 prompt（如果有）。 */
+  abort: () => Promise<void>;
+  /**
+   * 订阅 SDK 事件，返回取消订阅函数。
+   *
+   * 支持 session pool 在请求之间换绑事件处理器：
+   * 上一轮的 SSE 译器注销，新一轮的译器挂上 —— 底层 session 不动。
+   */
+  subscribe: (listener: (event: AgentSessionEvent) => void) => () => void;
 }
 
 /**
@@ -148,5 +157,8 @@ export async function createSession(
   return {
     prompt: (userText: string) => session.prompt(userText),
     dispose,
+    abort: () => session.abort(),
+    subscribe: (listener: (event: AgentSessionEvent) => void) =>
+      session.subscribe(listener),
   };
 }

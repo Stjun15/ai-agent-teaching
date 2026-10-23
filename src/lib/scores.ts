@@ -62,3 +62,19 @@ export function levelOfMastery(
   if (score >= 2) return "及格";
   return "不及格";
 }
+
+/**
+ * 点评分（0~100）→ 掌握度分（0~5）。
+ *
+ * 掌握式学习的运行时闭环（点评 → 掌握度 → 解锁下一讲）必须做这次量纲
+ * 换算，而换算公式若散在两个路由里，必然出现一边 `/ 20` 一边 `/ 25`。
+ * 取整用四舍五入：通过线 75 分落在 3.75 → 4（良好+），保证「过点评线
+ * 必过掌握线（3）」，两条门槛不打架；50 分 → 3 边界与掌握判定线一致。
+ * 越界输入夹到 [0, 5]，防模型给出超纲分数时把数据库 CHECK 约束炸掉。
+ */
+export function masteryScoreFromPromptScore(promptScore: number): number {
+  if (!Number.isFinite(promptScore)) return 0;
+  const step = PROMPT_SCORE_MAX / MASTERY_MAX_SCORE;
+  const converted = Math.round(promptScore / step);
+  return Math.min(Math.max(converted, 0), MASTERY_MAX_SCORE);
+}

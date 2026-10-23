@@ -2,10 +2,24 @@ import Link from "next/link";
 import { ArrowRight, Clock, Film } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import { ModuleProgress } from "@/components/learn/module-progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { MAX_DIFFICULTY, type TeachingModule } from "@/lib/modules";
+import type { TeachingModule } from "@/lib/modules";
+
+const ACCENT_COLORS = [
+  "oklch(0.62 0.19 50)" /* amber */,
+  "oklch(0.55 0.16 160)" /* teal */,
+  "oklch(0.50 0.14 230)" /* blue */,
+  "oklch(0.55 0.18 320)" /* purple */,
+  "oklch(0.58 0.20 20)" /* coral */,
+  "oklch(0.50 0.16 185)" /* cyan */,
+  "oklch(0.55 0.14 270)" /* indigo */,
+  "oklch(0.56 0.20 140)" /* green */,
+  "oklch(0.60 0.18 80)" /* gold */,
+  "oklch(0.58 0.16 10)" /* rose */,
+  "oklch(0.50 0.14 200)" /* sky */,
+];
 
 /**
  * 学习中心的模块卡片。
@@ -23,7 +37,13 @@ export function ModuleCard({
   prerequisites: ReadonlyMap<string, string>;
 }) {
   return (
-    <Card className="h-full gap-3 transition-colors hover:border-ring/60">
+    <Card
+      className="group h-full gap-3 overflow-hidden border-t-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"
+      style={{
+        borderTopColor:
+          ACCENT_COLORS[teachingModule.order % ACCENT_COLORS.length],
+      }}
+    >
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-base">
@@ -35,7 +55,7 @@ export function ModuleCard({
             </Link>
           </CardTitle>
           <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            第 {teachingModule.order + 1} 讲
+            {teachingModule.orderLabel || `第 ${teachingModule.order + 1} 讲`}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -61,11 +81,9 @@ export function ModuleCard({
         ) : null}
 
         <div className="mt-auto flex flex-col gap-2">
-          <Progress
-            value={teachingModule.difficulty}
-            max={MAX_DIFFICULTY}
-            label={`${teachingModule.name} 的难度`}
-            className="h-1.5"
+          <ModuleProgress
+            moduleId={teachingModule.id}
+            moduleName={teachingModule.name}
           />
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -94,13 +112,13 @@ export function ModuleCard({
         </div>
       </CardContent>
 
-      <div className="px-5">
+      <div className="mt-auto border-t px-5 pt-3">
         <Link
           href={teachingModule.href}
-          className="inline-flex items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          className="flex items-center justify-between text-sm font-medium transition-colors group-hover:text-primary"
         >
           进入本讲
-          <ArrowRight className="size-3.5" />
+          <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
         </Link>
       </div>
     </Card>

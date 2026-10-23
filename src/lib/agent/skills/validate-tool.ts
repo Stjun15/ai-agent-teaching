@@ -23,13 +23,12 @@ export const VALIDATE_TOOL_SKILL: SkillDefinition = {
 
 ## 执行步骤
 
-1. 读取 \`validation/tool-rubric.md\`。
-2. 读取 \`anti-patterns/missing-params.md\`。
-3. 读取 \`students/{id}/prompts.md\`。
-4. 逐维度打分。
-5. 生成 issues 和 suggestions。
-6. 写入 \`students/{id}/prompts.md\`、\`errors.md\`。
-7. 更新 \`students/{id}/mastery.md\`。
+1. 阅读 rubric_context（评分标准的完整原文）。维度、权重、扣分细则、通过条件均以此为准。
+2. 阅读 module_context（本模块教了什么）。评分边界不得超出 module_context 中列出的知识点。
+3. 如果有 demo_content（观察步展示过的示范工具定义）：将其作为参考答案对照。不是要求学生的工具定义和 demo 一模一样 —— 不同的命名/参数设计但功能正确、体现模块核心概念，不应扣分。demo 帮你判断「学生的写法是否等价于 demo 表达的核心逻辑」。
+4. 将 student_answer 对照 rubric_context 逐维度打分。
+5. 生成 issues（扣分依据引用 rubric_context 中的具体规则）和 suggestions。
+6. 计算 total_score，按 rubric_context 中的通过条件判定 is_correct。
 
 ## 评分维度
 

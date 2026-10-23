@@ -24,14 +24,31 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
-import { TEACHING_CHAT_SYSTEM_PROMPT } from "@/lib/agent/prompts/teaching-chat";
+import {
+  TEACHING_CHAT_SYSTEM_PROMPT,
+  TEACHING_EXPLAIN_PROMPT,
+} from "@/lib/agent/prompts/teaching-chat";
 import { ChatRequestSchema } from "@/schemas";
 
 test("讲解三步由讲解导师接管", () => {
-  for (const step of ["explain", "observe", "imitate"] as const) {
+  // explain 拿专用提示词（无动手），observe / imitate 拿完整版（含动手）
+  {
+    const spec = resolveStepAgent("explain");
+    assert.equal(spec.teaching, true, "explain 应由讲解导师接管");
+    assert.equal(
+      spec.systemPrompt,
+      TEACHING_EXPLAIN_PROMPT,
+      "explain 应走无动手版提示词",
+    );
+  }
+  for (const step of ["observe", "imitate"] as const) {
     const spec = resolveStepAgent(step);
     assert.equal(spec.teaching, true, `${step} 应由讲解导师接管`);
-    assert.equal(spec.systemPrompt, TEACHING_CHAT_SYSTEM_PROMPT);
+    assert.equal(
+      spec.systemPrompt,
+      TEACHING_CHAT_SYSTEM_PROMPT,
+      `${step} 应走含动手版提示词`,
+    );
   }
 });
 
@@ -49,29 +66,68 @@ test("其余步骤保持通用答疑口径", () => {
   }
 });
 
-test("教学提示词要求讲透 + 实例 + 学生动手", () => {
+test("教学提示词要求讲透 + 实例", () => {
+  // observe / imitate 版：讲透 + 实例 + 双任务守门（不另出题）
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /禁止一句话回答/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /打个比方/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /正经说清楚/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /看一个完整例子/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /容易引起|容易踩的坑/);
   assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /现在轮到你/);
-  // 停在这里等学生动手 —— 不许自问自答
-  assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /做完发给我/);
+  assert.match(TEACHING_CHAT_SYSTEM_PROMPT, /不要另出一道新任务/);
+  // explain 版：讲透 + 实例，但**没有**动手环节
+  assert.match(TEACHING_EXPLAIN_PROMPT, /禁止一句话回答/);
+  // 2026-10-01：旧结构第一节是「🚪 门禁确认」，会把「编排层没有提示前置
+  // 掌握度不足」这类系统术语直接讲给学生（与铁律 5 冲突）。改为学生视角
+  // 的「开场」——守卫双向钉住：新结构在，旧术语不出。
+  assert.match(TEACHING_EXPLAIN_PROMPT, /### 开场/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /不需要任何基础/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /为什么需要/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /核心概念/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /防踩坑/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /概念测验/);
+  assert.match(TEACHING_EXPLAIN_PROMPT, /通关宣告/);
+  assert.ok(
+    !/🚪|门禁通过|编排层提示|编排层没有提示/.test(TEACHING_EXPLAIN_PROMPT),
+    "讲解提示词的结构节不得指挥模型输出系统内部术语（铁律 5 枚举的禁用词本身除外）",
+  );
+  // 2026-10-07 审计 C2：任务卡（assignment-card）从 explain 讲稿抽
+  // 「五、现在轮到你」整节，10-01 门禁化时把它从 explain 提示词删掉，
+  // 11/11 模块缓存缺任务节、模仿页任务卡全站消失。新不变量双向钉住：
+  // 任务节必须在（缓存里要有），但配「输出节奏」声明压住「停在这里」
+  // 的互动语义（不许停在测验），且概念讲解页渲染时 truncate 会把本节
+  // 截掉——学生看不见，守卫只管提示词与缓存的口径。
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /现在轮到你/,
+    "explain 提示词必须包含任务节（模仿页任务卡的唯一来源）",
+  );
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /做完发给我/,
+    "explain 提示词的任务节必须有可验证的收尾口径",
+  );
+  assert.match(
+    TEACHING_EXPLAIN_PROMPT,
+    /开场讲稿是一次性输出/,
+    "必须有输出节奏声明压住「停在这里」，否则讲稿截断在测验（C2 根因）",
+  );
 });
 
 test("教学提示词不带任何 JSON 输出契约", () => {
-  for (const marker of [
-    "严格返回 JSON",
-    "check_question",
-    "next_action",
-    "expected_keywords",
-    "hint_levels",
-  ]) {
-    assert.ok(
-      !TEACHING_CHAT_SYSTEM_PROMPT.includes(marker),
-      `教学提示词不该要求输出 ${marker}：SSE 逐字吐给学生，学生会看到原始报文`,
-    );
+  for (const prompt of [TEACHING_CHAT_SYSTEM_PROMPT, TEACHING_EXPLAIN_PROMPT]) {
+    for (const marker of [
+      "严格返回 JSON",
+      "check_question",
+      "next_action",
+      "expected_keywords",
+      "hint_levels",
+    ]) {
+      assert.ok(
+        !prompt.includes(marker),
+        `教学提示词不该要求输出 ${marker}：SSE 逐字吐给学生，学生会看到原始报文`,
+      );
+    }
   }
 });
 
@@ -168,8 +224,26 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   // 动手模仿不得自动开场 —— 那一步的主体是学生自己写。
   assert.match(
     workspace,
-    /currentStepId === "explain" \|\| currentStepId === "observe"/,
-    "讲解与观察示范两步都应自动开场",
+    /currentStepId === "explain"/,
+    "概念讲解步必须挂自动开讲组件",
+  );
+  // 2026-09-26：观察示范改为读 wiki 示范代码（零模型调用、零等待），
+  // 不再自动开讲 —— 守卫钉住 AUTO_LECTURE_STEPS 不含 observe，
+  // 防止将来有人把 observe 悄悄加回自动开讲。
+  const openers = readFileSync(
+    new URL("../src/lib/lecture-openers.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    openers,
+    /AUTO_LECTURE_STEPS = \["explain"\] as const/,
+    "自动开讲只允许 explain —— observe 的示范代码走 wiki 直读",
+  );
+  assert.match(workspace, /LectureLauncher/g, "讲解步应自动开场");
+  const launcherCount = (workspace.match(/<LectureLauncher/g) || []).length;
+  assert.ok(
+    launcherCount >= 1,
+    `LectureLauncher 应至少挂载一次（当前 ${launcherCount} 次；文件长度 ${workspace.length}）`,
   );
   assert.match(
     workspace,
@@ -188,7 +262,7 @@ test("讲解步骤自动开讲，且不发假提问（文本守卫）", () => {
   );
   assert.match(
     store,
-    /options\?\.silent === true\s*\?\s*state\.messages/,
+    /options\?\.silent === true/,
     "beginTurn 必须支持静默（不落学生消息）",
   );
 });

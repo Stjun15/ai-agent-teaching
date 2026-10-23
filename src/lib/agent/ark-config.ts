@@ -1,5 +1,8 @@
 /**
- * 火山方舟配置（纯逻辑，**不 import SDK**）
+ * LLM 平台配置（纯逻辑，**不 import SDK**）
+ *
+ * 平台：火山方舟（Volcengine Ark）— OpenAI 兼容端点
+ * 模型：DeepSeek V4 Flash（文本）/豆包视觉模型
  *
  * 为什么与 `ark.ts` 分开
  * ---------------------
@@ -14,20 +17,34 @@
  * 密钥处理：本文件只读不存，任何函数与日志都不回显密钥内容。
  */
 
-/** provider id。SDK 由它推导环境变量名（`ark` → `ARK_API_KEY`），不要改动。 */
+/** provider id。SDK 由它推导环境变量名（`ark` → `ARK_API_KEY`）。内部标识不变。 */
 export const ARK_PROVIDER_ID = "ark";
 
-/** 保存密钥的环境变量名。`ark.ts` 的 provider 配置以 `$ARK_API_KEY` 形式引用它。 */
+/** 保存密钥的环境变量名。请在 `.env.local` 中设置 `ARK_API_KEY`。 */
 export const ARK_API_KEY_ENV = "ARK_API_KEY";
 
-/** 方舟 OpenAI 兼容端点，与 `00-MASTER.md` 一致；可被 `ARK_BASE_URL` 覆盖。 */
+/** 方舟 OpenAI 兼容端点；可被 `ARK_BASE_URL` 覆盖。 */
 export const ARK_DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
 
-/** 主模型（文本推理）默认值；可被 `ARK_TEXT_MODEL` 覆盖。 */
+/** 主模型（文本推理）— DeepSeek V4 Flash；可被 `ARK_TEXT_MODEL` 覆盖。 */
 export const ARK_DEFAULT_TEXT_MODEL = "deepseek-v4-flash-ga-260731";
 
-/** 多模态模型（视觉理解）默认值；可被 `ARK_VISION_MODEL` 覆盖。 */
+/** 多模态模型（视觉理解）— 可被 `ARK_VISION_MODEL` 覆盖。 */
 export const ARK_DEFAULT_VISION_MODEL = "doubao-seed-2-1-pro-260915";
+
+/**
+ * 文本模型输出上限（tokens）。**定义在此而非 `ark.ts`**，因为
+ * `generate-lecture-cache.ts` 的截断守卫要用它，而该脚本不该为了一个数字
+ * 把整个 pi-coding-agent 拖进来（本文件头的存在理由就是不import SDK）。
+ *
+ * ⚠️ 换平台/换模型时**必须同步改这里**（2026-10-08 教训）：守卫阈值曾写死
+ * `>= 8000`（那时上限 8192），切回方舟后上限 16384，于是 llm-wiki(9572 tok)、
+ * multi-agent(8170 tok) 两条**完整正常的讲稿**被当成「顶到上限」拒收。
+ */
+export const TEXT_MAX_TOKENS = 16_384;
+
+/** 视觉模型输出上限（tokens）。 */
+export const VISION_MAX_TOKENS = 8_192;
 
 /**
  * 本模块用到的环境变量。
@@ -43,7 +60,7 @@ export interface ArkEnv {
   ARK_VISION_MODEL?: string | undefined;
 }
 
-/** 从环境变量解析出的方舟连接参数（不含密钥）。 */
+/** 从环境变量解析出的平台连接参数（不含密钥）。 */
 export interface ArkSettings {
   /** OpenAI 兼容端点，例如 `https://ark.cn-beijing.volces.com/api/v3` */
   baseUrl: string;

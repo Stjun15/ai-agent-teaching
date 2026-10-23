@@ -26,12 +26,22 @@
  * 是 0~100。api-spec 只写了 `number`，没有区分 —— 消费方必须自己知道，
  * 否则「4 分（满分 5）」会被显示成「4 / 100」。
  *
- * ⚠️ `subAbilities` 目前是占位数据
- * ----------------------------
- * `mastery` 表建的是「概念 → 分数」，没有按这 6 项能力建模，所以路由暂时用
- * 「总体平均掌握度」填这 6 个字段（见 `src/app/api/report/route.ts` 文件头）。
- * 前端在六个数值完全相同时应理解为「暂无分项数据」而不是「六项能力一模一样」。
+ * ⚠️ `subAbilities` 的口径
+ * ----------------------
+ * 六项能力由 `src/lib/sub-abilities.ts` 按「模块 → 能力」映射聚合真实掌握度
+ * （映射逐字取自 `module-specs.md` 的「训练子能力」列）。某个能力对应的模块
+ * 一条掌握度记录都没有时，值是 `null`，界面必须显示「未测评」而不是 0 分。
  */
+
+import type { PathAdjustment } from "@/lib/db";
+import {
+  SUB_ABILITY_KEYS,
+  SUB_ABILITY_LABELS,
+  type SubAbilityKey,
+} from "@/lib/sub-abilities";
+
+export type { PathAdjustment };
+export { SUB_ABILITY_KEYS, SUB_ABILITY_LABELS, type SubAbilityKey };
 
 /** 报告页顶部四个总览数字。 */
 export interface ReportOverview {
@@ -53,19 +63,30 @@ export interface ReportOverview {
    *
    * ⚠️ **量纲是 0~100** —— 来自点评 Agent 的 `total_score`
    * （`ReviewerOutputSchema` 的 `min(0).max(100)`），
-   * 与上面的 `averageMastery` **不是同一个量纲**，两者不能直接比较。
+   * 与上面 `averageMastery` **不是同一个量纲**，两者不能直接比较。
    */
   averagePromptScore: number;
 }
 
-/** `00-MASTER.md` 第一原则的六个子能力（当前为占位，见文件头）。 */
-export interface ReportSubAbilities {
-  intentExpression: number;
-  taskDecomposition: number;
-  contextManagement: number;
-  qualityJudgment: number;
-  iterativeOptimization: number;
-  understandingAI: number;
+/**
+ * `00-MASTER.md` 第一原则的六个子能力。
+ *
+ * 分项建模见 `src/lib/sub-abilities.ts`：每一项由「该能力对应的教学模块」
+ * 的真实掌握度聚合而来。**没有证据时值是 `null`**（界面显示「未测评」），
+ * 不是 0 分 —— 两者的区别是「没测」与「测得 0 分」。
+ */
+export type ReportSubAbilities = Record<SubAbilityKey, number | null>;
+
+/** 一项子能力的证据：分数 + 样本数 + 来源模块。 */
+export interface ReportSubAbilityEvidence {
+  key: SubAbilityKey;
+  label: string;
+  /** 0~5；无证据时为 `null`。 */
+  score: number | null;
+  /** 参与平均的掌握度记录数。 */
+  samples: number;
+  /** 该能力对应的模块 id（课程设计口径，见 `sub-abilities.ts`）。 */
+  modules: readonly string[];
 }
 
 /** 掌握度趋势上的一点：某天的平均分。 */
@@ -102,25 +123,21 @@ export interface ReportPromptDimension {
 
 export interface ReportResponse {
   overview: ReportOverview;
+  /** 六项子能力的分数（0~5；无证据为 null）。 */
   subAbilities: ReportSubAbilities;
+  /** 每一项子能力的证据（样本数 + 来源模块），供界面解释数字的来路。 */
+  subAbilityEvidence: ReportSubAbilityEvidence[];
   /** 真实评分维度的汇总；一次点评都没有时是空数组。 */
   promptDimensions: ReportPromptDimension[];
   masteryTrend: ReportTrendPoint[];
   weaknesses: ReportWeakness[];
   recommendations: string[];
+  /**
+   * 系统自动产出的路径调整记录（来自 path-adjuster）。
+   *
+   * 每次答题评分后，path-adjuster 按四条阈值判定并写入
+   * `learning_paths.adjustments`；报告页从中取最近 3 条展示。
+   * 无调整时为空数组。
+   */
+  adjustments: PathAdjustment[];
 }
-
-/** 六个子能力字段名 → 中文标签。报告页按此顺序渲染，顺序取自 `00-MASTER.md`。 */
-export const SUB_ABILITY_LABELS: Record<keyof ReportSubAbilities, string> = {
-  intentExpression: "意图表达",
-  taskDecomposition: "任务分解",
-  contextManagement: "上下文管理",
-  qualityJudgment: "质量判断",
-  iterativeOptimization: "迭代调优",
-  understandingAI: "理解 AI 行为模式",
-};
-
-/** 六个子能力的字段名，顺序与 `SUB_ABILITY_LABELS` 一致，便于遍历渲染。 */
-export const SUB_ABILITY_KEYS = Object.keys(
-  SUB_ABILITY_LABELS,
-) as (keyof ReportSubAbilities)[];

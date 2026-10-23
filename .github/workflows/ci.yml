@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: ["dev", "main"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 只扫源码目录：仓库根还有生成的审计产物与部署脚本，不属于工程门禁范围。
+      - name: ESLint
+        run: pnpm lint
+
+      - name: TypeScript
+        run: pnpm typecheck
+
+      - name: 标准测试框架（Vitest + 覆盖率）
+        run: pnpm test:coverage

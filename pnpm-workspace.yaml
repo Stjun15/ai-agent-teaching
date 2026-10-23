@@ -33,3 +33,8 @@ allowBuilds:
   protobufjs: true
   # postinstall 仅做自检；预编译二进制已由可选依赖提供，跳过不影响功能。
   unrs-resolver: false
+
+minimumReleaseAgeExclude:
+  - framer-motion@13.4.1
+  - motion-dom@13.4.1
+  - motion@13.4.1

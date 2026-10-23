@@ -42,8 +42,21 @@ export interface Assessment {
 /** 评分所需的题目最小信息（来自题库行或出题输出）。 */
 export interface GradeableQuestion {
   type: string;
+  /**
+   * 题面原文。主观题评分必须把它带给点评 Agent（question_text）——
+   * 不带的话模型只能按模块通用 rubric 猜题目要求，实测会判出
+   * 「题面让说明改进思路，点评却要求交出 prompt 文本」这类脱节结论。
+   */
+  text: string;
   correctAnswer: string;
   explanation: string;
+  /**
+   * 选择题的选项文本（裸文本，无字母前缀）。带上的目的：学生/界面
+   * 可能提交**裸选项文本**而不是字母或「B. 前缀」形态——题库存字母时
+   * 三种形态必须都能对账，否则**答对判 0**（2026-10-03 复刻模拟实测：
+   * 学生提交「缺少具体用户、核心场景和完成标准」= B 选项原文，判 0）。
+   */
+  options?: readonly string[];
 }
 
 /** 客观题类型：可规则判分。 */
@@ -70,20 +83,73 @@ function normalize(text: string): string {
 }
 
 /**
+ * 剥离答案里的括号备注。
+ *
+ * 出题 Agent 实测会把可接受变体的说明写进 correct_answer（如
+ * 「晴（或任何合理的天气描述，如多云、小雨等）」）—— 备注不是答案本身，
+ * 拿整串去比对，学生答「晴，东南风 3 级」也会被判错。生成侧已在提示词
+ * 约束（见 examiner.ts），这里兜住存量题与漏网之鱼。
+ */
+function canonicalAnswer(correct: string): string {
+  return correct.replace(/[（(][^（）()]*[）)]/g, "");
+}
+
+/**
+ * 从选项文本开头提取选项字母（「A. …」「B、…」→ a/b），没有字母前缀返回 null。
+ *
+ * 出题 Agent 生成的选择题，题库里 correct_answer 存选项字母、options 存
+ * 「A. 整段文本」，而界面上送的是整段选项文本 —— 两种形态必须在这里对账，
+ * 否则**答对也判 0 分**（2026-09-19 生产走查实测）。从原始文本提取而不从
+ * 归一化后的文本提取：归一化会剥掉字母后的分隔符，前缀就认不出来了。
+ */
+function leadingOptionLetter(text: string): string | null {
+  const match = text.trim().match(/^([A-Da-d])\s*[.．、。:：]/);
+  return match ? match[1].toLowerCase() : null;
+}
+
+/**
  * 客观题规则判分（纯函数，可脱离模型直接断言）。
  *
- * 为什么只用归一化精确比对
- * ----------------------
- * 选择题/填空题的正确答案唯一且短，归一化后比对足够稳；简答题的正确答案
- * 是模型给出的参考文本，逐字比对必误，因此交给模型（见 runAssessLoop）。
+ * 为什么不只用归一化精确比对
+ * ------------------------
+ * 三层放行，各自兜一类实测失败模式：
+ *   1. 精确比对 —— 基线；
+ *   2. 选择题的字母对账 —— 题库存字母、界面送整段选项文本（见
+ *      leadingOptionLetter）；
+ *   3. 填空题的包含比对 —— 学生填空常写成完整短句，覆盖标准答案即算对。
+ * 方向是单向的：标准答案比学生答案长仍然判错（少答不算对）。
+ *
+ * 简答题的正确答案是模型给出的参考文本，逐字比对必误，因此交给模型
+ * （见 runAssessLoop）。
  */
 export function gradeObjective(
   question: GradeableQuestion,
   studentAnswer: string,
 ): Assessment {
-  const correct = normalize(question.correctAnswer);
+  const correct = normalize(canonicalAnswer(question.correctAnswer));
   const given = normalize(studentAnswer);
-  const isCorrect = correct.length > 0 && correct === given;
+  // 选择题：correct_answer 是单个选项字母时，比对界面送来的选项前缀字母。
+  const isBareLetter = /^[a-d]$/.test(correct);
+  const givenLetter = leadingOptionLetter(studentAnswer);
+  // 裸选项文本对账：学生/界面可能送裸选项文本（无「B. 」前缀）——
+  // 在 options 里找到与提交文本相同的选项，把它的位置换算成字母再比对。
+  let optionTextLetter: string | null = null;
+  if (isBareLetter && question.options && given.length > 0) {
+    const index = question.options.findIndex(
+      (option) => normalize(option) === given,
+    );
+    if (index >= 0) optionTextLetter = String.fromCharCode(97 + index);
+  }
+  const prefixLetterMatch =
+    isBareLetter && givenLetter !== null && givenLetter === correct;
+  const textLetterMatch =
+    isBareLetter && optionTextLetter !== null && optionTextLetter === correct;
+  const letterMatch = prefixLetterMatch || textLetterMatch;
+  const isCorrect =
+    correct.length > 0 &&
+    (correct === given ||
+      letterMatch ||
+      (question.type === "填空题" && given.includes(correct)));
   return {
     isCorrect,
     score: isCorrect ? 100 : 0,
@@ -121,11 +187,24 @@ export async function runAssessLoop(
   }
 
   const taskType = SUBJECTIVE_TASK_TYPE[input.question.type] ?? "prompt";
+
+  // 变式练习的参考答案：与模块专属动手题的 demo_content 不同，
+  // 这里传入的是"这道具体题目的标准答案 + 解析"，交给 validate-practice
+  // Skill 作为评分锚点（不是唯一标准、不逐字比对，见该 Skill 的说明）。
+  const demoContent =
+    `【题目】${input.question.text}\n\n` +
+    `【参考答案】${input.question.correctAnswer}\n\n` +
+    `【解析】${input.question.explanation}\n\n` +
+    `（以上是评分锚点。学生用自己的话说清楚就算对，不要逐字比对文本。）`;
+
   const result = await runValidationLoop({
     taskType,
     studentAnswer: input.studentAnswer,
     moduleId: input.moduleId,
     conceptId: input.conceptId ?? input.moduleId,
+    questionText: input.question.text,
+    demoContent,
+    forceSkill: "validate-practice",
     attemptNumber: 1,
     env: input.env,
     signal: input.signal,

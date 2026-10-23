@@ -37,9 +37,11 @@
  * 不要在两边互相赋值。
  */
 
-import { create } from "zustand";
+import { create, type StoreApi } from "zustand";
+import { persist, type PersistStorage } from "zustand/middleware";
 
 import type { StepType } from "@/lib/db";
+import { currentStudentId } from "@/lib/client-identity";
 import { TEACHING_AGENT_ID } from "@/lib/agent/prompts/teaching-chat";
 import type { ErrorCode, JsonObject } from "@/schemas";
 
@@ -66,7 +68,19 @@ export interface ChatMessage {
   citations: Citation[];
   /** 该轮的 token 用量，来自 `done` 事件。 */
   tokens?: { input: number; output: number };
+  /** 学生消息附带的截图 data URL，来自 Composer 图片上传。 */
+  images?: string[];
   createdAt: string;
+  /**
+   * 该条助手消息对应的思维链（来自 `thinking` SSE 事件）。
+   *
+   * 每收到一个 thinking 增量，除了写全局 `thinking[]` 给右栏时间线，
+   * 也追加到当前正在流式输出的助手消息里 —— 这样消息气泡上方就能直接
+   * 渲染「思考过程」折叠面板，效果对标 DeepSeek 网页端。
+   *
+   * 学生消息永不为此字段赋值（始终 undefined）。
+   */
+  thinkingSteps?: ThinkingStep[];
 }
 
 /** 引用来源（`citation` 事件）。字段与 `data-models.md` 的 `Citation` 对齐。 */
@@ -142,6 +156,17 @@ export interface SessionState {
   turnStep: StepType | null;
 
   /**
+   * 非活动模块的会话缓存（2026-09-20「分桶缓存」改造）。
+   *
+   * 此前 `ensureModule` 切换模块时把上一条对话**清空**，切回上一个模块时
+   * 对话也不回来。现在改成**保存 + 恢复**：切走时把当前 messages/thinking/
+   * tools/citations 等快照进 `byModule[from]`，切回时从 `byModule[to]` 还原
+   * 并把它移出缓存。等于是按模块分桶，但没有即时对话的模块仍只占静态内存。
+   * 瞬时态（status/error）不缓存 —— 每次切桶都重置为 idle。
+   */
+  byModule: Record<string, SavedSessionBucket>;
+
+  /**
    * 开启一轮对话。
    *
    * `silent`（2026-09-19）：不落学生消息，只进入 streaming 态。给「导师自动
@@ -153,7 +178,7 @@ export interface SessionState {
    */
   beginTurn: (
     content: string,
-    options?: { silent?: boolean; step?: StepType },
+    options?: { silent?: boolean; step?: StepType; images?: string[] },
   ) => void;
   appendToken: (content: string, messageId: string) => void;
   appendThinking: (input: {
@@ -180,6 +205,14 @@ export interface SessionState {
   abortTurn: () => void;
   noteInvalidFrame: () => void;
   /**
+   * 同步排空 token 缓冲区（供测试使用）。
+   *
+   * 正常情况下 token 按 `requestAnimationFrame` 批量合并写入 Store，
+   * 避免每个 token 事件单独触发一次 React 渲染。测试需要同步读取
+   * Store 状态，调用此方法可立即应用缓冲区中所有待处理的 token。
+   */
+  flushTokenBuffer: () => void;
+  /**
    * 注入一条预生成讲稿（2026-09-19「点开即有」）。
    *
    * 缓存命中时由 LectureLauncher 调用：讲稿作为**已完成**的助手消息直接
@@ -187,7 +220,55 @@ export interface SessionState {
    * 返回是否真的注入了（调用方无需关心，返回值只为测试）。
    */
   seedLecture: (step: StepType, content: string) => boolean;
+  /** 当前会话态所属的模块；null = 尚未进入任何模块页。 */
+  activeModuleId: string | null;
   reset: () => void;
+  /**
+   * 模块会话按需隔离（2026-09-20「分桶缓存」改造）。
+   * 此前是"SPA 切换模块时清空上一模块的对话态"（清空式），改成分桶缓存式：
+   * 切走时快照进 `byModule`，切回时还原 —— 换模块不会串台，且切回还能看到
+   * 上次的对话。同名调用是 no-op —— 模块内逐步切换不受影响。
+   */
+  ensureModule: (moduleId: string) => void;
+}
+
+/** 会话快照（非活动模块的分桶缓存内容）。 */
+export interface SavedSessionBucket {
+  messages: ChatMessage[];
+  thinking: ThinkingStep[];
+  tools: ToolActivity[];
+  citations: Citation[];
+  tokens: SessionState["tokens"];
+  invalidFrames: number;
+  turnStep: StepType | null;
+}
+
+/** 从当前会话态抓快照（用于切桶时保存）。 */
+function snapshotBucket(state: SessionState): SavedSessionBucket {
+  return {
+    messages: state.messages,
+    thinking: state.thinking,
+    tools: state.tools,
+    citations: state.citations,
+    tokens: state.tokens,
+    invalidFrames: state.invalidFrames,
+    turnStep: state.turnStep,
+  };
+}
+
+/** 把（缓存的）快照铺回当前会话态；没有快照就用空初值。 */
+function applyBucket(saved?: SavedSessionBucket): Partial<SessionState> {
+  return {
+    messages: saved?.messages ?? [],
+    thinking: saved?.thinking ?? [],
+    tools: saved?.tools ?? [],
+    citations: saved?.citations ?? [],
+    tokens: saved?.tokens ?? null,
+    invalidFrames: saved?.invalidFrames ?? 0,
+    turnStep: saved?.turnStep ?? null,
+    status: "idle",
+    error: null,
+  };
 }
 
 function newId(): string {
@@ -220,273 +301,648 @@ function replaceMessage(
   return next;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
-  messages: [],
-  thinking: [],
-  tools: [],
-  citations: [],
-  status: "idle",
-  error: null,
-  tokens: null,
-  invalidFrames: 0,
-  /** 本轮所属的学习步骤；演练场（无步骤语境）为 null。助手消息据此继承 step。 */
-  turnStep: null,
+/**
+ * 只取「尚未封口」的思维段。
+ *
+ * 全局 thinking[] 跨轮累积（Agent 时间线要展示历史），但消息的
+ * thinkingSteps 只属于当前这一轮：此前三个建消息点都把整个全局数组
+ * 复制进去，学生会在第 2 轮回复里重读第 1 轮的全部内心戏（2026-10-07
+ * 审计实测：第 2 条回复逐字重复第 1 轮 6079 字符英文思维链）。历史轮次
+ * 的思维段在 completeTurn / failTurn / abortTurn 里都已封口，用
+ * endedAt 即可区分；本轮内已封口的早期思维段仍会在时间线面板展示，
+ * 只是不进消息体。
+ */
+function inFlightThinking(steps: ThinkingStep[]): ThinkingStep[] | undefined {
+  const open = steps.filter((step) => step.endedAt === undefined);
+  return open.length > 0 ? open : undefined;
+}
 
-  beginTurn: (content, options) =>
-    set((state) => ({
-      messages:
-        options?.silent === true
-          ? state.messages
-          : [
-              ...state.messages,
-              {
-                id: newId(),
-                role: "student",
-                content,
-                status: "done",
-                citations: [],
-                createdAt: new Date().toISOString(),
-                ...(options?.step !== undefined ? { step: options.step } : {}),
-              },
-            ],
-      // 新的一轮清掉上一轮的错误与用量，但不清消息本身 ——
-      // 对话是累积的，学生要能往上翻。
-      status: "streaming",
-      error: null,
-      tokens: null,
-      turnStep: options?.step ?? null,
-    })),
+/**
+ * Token 批量合并：避免每个 SSE token 事件单独触发一次 React 渲染。
+ *
+ * 模型每秒可产 30~80 个 token，如果每个 token 都走一次 `set()` →
+ * ChatPanel 重渲染 → MarkdownView 重解析全文 → scrollTop 设置，
+ * 产生的「卡」不是因为渲染一帧慢，而是 500 帧挤在同一秒里互相阻塞。
+ *
+ * 这里把同一条流式消息收到的连续 token 按 `setTimeout(0)` 合并：
+ * 每个 task 周期只写一次 Store，其余 token 只进缓冲区。
+ */
+const tokenBuffer = new Map<
+  string,
+  { content: string; flushScheduled: boolean }
+>();
 
-  appendToken: (content, messageId) =>
-    set((state) => {
-      const streaming = findStreamingAssistant(state.messages);
-      // 助手消息**懒创建**：它的 id 必须等于服务端给的 `messageId`，
-      // 而那个值要等第一个 token 事件才拿到。提前建会得到一个对不上的 id，
-      // 后续 `done` 事件的归属就无从判断。
+function flushTokenBufferImpl(set: StoreApi<SessionState>["setState"]): void {
+  const toFlush = new Map(tokenBuffer);
+  tokenBuffer.clear();
+  set((state: SessionState) => {
+    let messages = state.messages;
+    let changed = false;
+    for (const [messageId, buf] of toFlush) {
+      const streaming = findStreamingAssistant(messages);
       if (streaming === undefined) {
-        return {
-          messages: [
-            ...state.messages,
-            {
-              id: messageId,
-              role: "assistant" as const,
-              content,
-              status: "streaming" as const,
-              citations: [],
-              createdAt: new Date().toISOString(),
-              // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
-              ...(state.turnStep !== null ? { step: state.turnStep } : {}),
-            },
-          ],
-          thinking: closeThinking(state.thinking),
-        };
+        messages = [
+          ...messages,
+          {
+            id: messageId,
+            role: "assistant" as const,
+            content: buf.content,
+            status: "streaming" as const,
+            citations: [],
+            createdAt: new Date().toISOString(),
+            ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+            // 首个 token 到达时才创建助手消息，此前可能已有若干思考段
+            // 落在全局 thinking[] 里 —— 只关联本轮尚未封口的段落。
+            thinkingSteps: inFlightThinking(state.thinking),
+          },
+        ];
+        changed = true;
+        continue;
       }
-
       if (streaming.id !== messageId) {
-        // 服务端在一条助手消息内换了 id（例如中间插了工具调用）——
-        // 按新 id 另起一条，而不是把内容混进旧消息。
-        return {
-          messages: [
-            ...state.messages.map((message) =>
-              message.id === streaming.id
-                ? { ...message, status: "done" as const }
-                : message,
+        if (streaming.content === "") {
+          // 占位消息（由 beginTurn 或 appendThinking 创建）：
+          // 不关闭不重建，只把 id 更新为服务端的 messageId，
+          // 思维链保持不动，内容开始写入。
+          messages = replaceMessage(messages, streaming.id, (m) => ({
+            ...m,
+            id: messageId,
+            content: buf.content,
+          }));
+        } else {
+          messages = [
+            ...messages.map((m) =>
+              m.id === streaming.id ? { ...m, status: "done" as const } : m,
             ),
             {
               id: messageId,
               role: "assistant" as const,
-              content,
+              content: buf.content,
               status: "streaming" as const,
               citations: [],
               createdAt: new Date().toISOString(),
-              // 助手消息继承本轮的步骤标签（见 turnStep 的说明）。
               ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+              thinkingSteps: inFlightThinking(state.thinking),
             },
-          ],
-          thinking: closeThinking(state.thinking),
-        };
+          ];
+        }
+        changed = true;
+        continue;
       }
-
-      return {
-        messages: replaceMessage(state.messages, messageId, (message) => ({
-          ...message,
-          content: message.content + content,
-        })),
-        thinking: closeThinking(state.thinking),
-      };
-    }),
-
-  appendThinking: ({ step, agent, content }) =>
-    set((state) => {
-      const last = state.thinking[state.thinking.length - 1];
-      if (
-        last !== undefined &&
-        last.endedAt === undefined &&
-        last.step === step &&
-        last.agent === agent
-      ) {
-        const next = state.thinking.slice();
-        next[next.length - 1] = {
-          ...last,
-          content: last.content + content,
-          deltas: last.deltas + 1,
-        };
-        return { thinking: next };
-      }
-
-      return {
-        thinking: [
-          ...state.thinking,
-          {
-            id: newId(),
-            agent,
-            step,
-            content,
-            deltas: 1,
-            startedAt: Date.now(),
-          },
-        ],
-      };
-    }),
-
-  addToolCall: ({ callId, toolName, params }) =>
-    set((state) => ({
-      tools: [
-        ...state.tools,
-        { callId, toolName, params, startedAt: Date.now() },
-      ],
+      messages = replaceMessage(messages, messageId, (m) => ({
+        ...m,
+        content: m.content + buf.content,
+      }));
+      changed = true;
+    }
+    if (!changed) return state;
+    return {
+      messages,
       thinking: closeThinking(state.thinking),
-    })),
+    };
+  });
+}
 
-  addToolResult: ({ callId, result, durationMs }) =>
-    set((state) => ({
-      // 结果到达时补进对应的那条调用记录。找不到（例如调用帧被丢弃）就忽略，
-      // 不新建一条没有参数的孤儿记录。
-      tools: state.tools.map((tool) =>
-        tool.callId === callId ? { ...tool, result, durationMs } : tool,
-      ),
-      thinking: closeThinking(state.thinking),
-    })),
-
-  addCitation: (citation) =>
-    set((state) => {
-      const streaming = findStreamingAssistant(state.messages);
-      return {
-        citations: [...state.citations, citation],
-        messages:
-          streaming === undefined
-            ? state.messages
-            : replaceMessage(state.messages, streaming.id, (message) => ({
-                ...message,
-                citations: [...message.citations, citation],
-              })),
-      };
-    }),
-
-  completeTurn: ({ messageId, tokens }) =>
-    set((state) => {
-      const streaming = findStreamingAssistant(state.messages);
-      const targetId = streaming?.id ?? messageId;
-      return {
-        messages: replaceMessage(state.messages, targetId, (message) => ({
-          ...message,
-          status: "done",
-          tokens,
-        })),
-        status: "done",
-        tokens,
-        thinking: closeThinking(state.thinking),
-      };
-    }),
-
-  failTurn: (error) =>
-    set((state) => {
-      const streaming = findStreamingAssistant(state.messages);
-      return {
-        messages:
-          streaming === undefined
-            ? state.messages
-            : replaceMessage(state.messages, streaming.id, (message) => ({
-                ...message,
-                status: "error",
-              })),
-        status: "error",
-        error,
-        thinking: closeThinking(state.thinking),
-      };
-    }),
-
-  abortTurn: () =>
-    set((state) => {
-      const streaming = findStreamingAssistant(state.messages);
-      return {
-        // 中断不是错误：已收到的内容保留下来，标成 done 让它可以被复制。
-        // 用户自己按的「停止」，不该看到一条红色报错。
-        messages:
-          streaming === undefined
-            ? state.messages
-            : replaceMessage(state.messages, streaming.id, (message) => ({
-                ...message,
-                status: "done",
-              })),
-        status: "aborted",
-        thinking: closeThinking(state.thinking),
-      };
-    }),
-
-  noteInvalidFrame: () =>
-    set((state) => ({ invalidFrames: state.invalidFrames + 1 })),
-
-  seedLecture: (step, content) => {
-    let seeded = false;
-    set((state) => {
-      // 该步骤已经有消息（学生问过 / 已注入过）就不动 —— 讲稿只负责开场。
-      if (state.messages.some((message) => message.step === step)) {
-        return state;
-      }
-      seeded = true;
-      return {
-        messages: [
-          ...state.messages,
+/**
+ * 同步排空 token 缓冲区，返回应用了所有缓存内容的消息数组。
+ *
+ * 在 `completeTurn` / `failTurn` / `abortTurn` 这些收尾动作里调用：
+ * `done` 事件到达时可能还有没被 rAF 刷掉的 token，不先排空就会丢失
+ * 最后一段内容。
+ */
+function drainTokenBuffer(messages: ChatMessage[]): ChatMessage[] {
+  const toFlush = new Map(tokenBuffer);
+  tokenBuffer.clear();
+  let result = messages;
+  for (const [messageId, buf] of toFlush) {
+    const streaming = findStreamingAssistant(result);
+    if (streaming === undefined) {
+      result = [
+        ...result,
+        {
+          id: messageId,
+          role: "assistant" as const,
+          content: buf.content,
+          status: "streaming" as const,
+          citations: [],
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    } else if (streaming.id !== messageId) {
+      if (streaming.content === "") {
+        // 占位消息 → 更新 id 并写入内容，不新建。
+        result = replaceMessage(result, streaming.id, (m) => ({
+          ...m,
+          id: messageId,
+          content: buf.content,
+        }));
+      } else {
+        result = [
+          ...result.map((m) =>
+            m.id === streaming.id ? { ...m, status: "done" as const } : m,
+          ),
           {
-            id: newId(),
+            id: messageId,
             role: "assistant" as const,
-            content,
-            // 与实时路径的 agent 标识同源（SSE thinking 事件里就是它），
-            // 时间线与消息徽标两种来源显示一致。
-            agent: TEACHING_AGENT_ID,
-            status: "done" as const,
+            content: buf.content,
+            status: "streaming" as const,
             citations: [],
             createdAt: new Date().toISOString(),
-            step,
           },
-        ],
-      };
-    });
-    return seeded;
-  },
+        ];
+      }
+    } else {
+      result = replaceMessage(result, messageId, (m) => ({
+        ...m,
+        content: m.content + buf.content,
+      }));
+    }
+  }
+  return result;
+}
 
-  reset: () =>
-    set({
+/**
+ * 把「刷新前一刻仍在流式」的助手消息收敛成 `done`。
+ *
+ * 为什么需要（2026-10-07 扇出审计在 system-prompt 讲抓到）
+ * -----------------------------------------------------
+ * persist 的 partialize 不落 status、只落 messages —— 于是刷新后 store 的
+ * status 回到 idle，而消息数组里那条 `streaming` 的助手消息原样回来。已经
+ * 没有任何在途请求会去推进它，它就永远停在「输出中」，正文停在
+ * 「导师输出中正在思考…」。学生看到的是一个转圈不结束的回复。
+ *
+ * 注意这与「error 消息」是两件事：那种是服务端真的失败过、正文缺失有因；
+ * 这里只是刷新打断了流，本地无从判断内容是否完整 —— 所以**只改 status**
+ * （不再假装在输出），不动 content，既不假装成功也不篡改。
+ *
+ * 导出供回归测试直接调用：这是纯函数，不必真的刷新浏览器。
+ */
+export function settleStreamingMessages(
+  messages: readonly ChatMessage[],
+): ChatMessage[] {
+  let changed = false;
+  const next = messages.map((message) => {
+    if (message.role === "assistant" && message.status === "streaming") {
+      changed = true;
+      return { ...message, status: "done" as const };
+    }
+    return message;
+  });
+  return changed ? next : (messages as ChatMessage[]);
+}
+
+/**
+ * 落盘的字段子集 —— 与 `partialize` 的返回类型逐字段对齐。
+ *
+ * `persist` 对 storage 的泛型要求是「partialize 的返回类型」，不是完整的
+ * `SessionState`（status / error 不落盘）。用 `Pick` 表达子集，避免把
+ * storage 断言成完整 State 造成的泛型不匹配。
+ */
+type PersistedSessionState = Pick<
+  SessionState,
+  | "messages"
+  | "thinking"
+  | "tools"
+  | "citations"
+  | "tokens"
+  | "invalidFrames"
+  | "turnStep"
+  | "activeModuleId"
+  | "byModule"
+>;
+
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
       messages: [],
       thinking: [],
       tools: [],
       citations: [],
+      activeModuleId: null as string | null,
+      byModule: {},
       status: "idle",
       error: null,
       tokens: null,
       invalidFrames: 0,
+      /** 本轮所属的学习步骤；演练场（无步骤语境）为 null。助手消息据此继承 step。 */
       turnStep: null,
-    }),
-}));
 
-/** 封口最后一条思考记录（若它还开着）。 */
-function closeThinking(thinking: ThinkingStep[]): ThinkingStep[] {
+      beginTurn: (content, options) => {
+        tokenBuffer.clear();
+        return set((state) => {
+          const now = new Date().toISOString();
+          const studentMessage = options?.silent === true
+            ? null
+            : {
+                id: newId(),
+                role: "student" as const,
+                content,
+                status: "done" as const,
+                citations: [] as Citation[],
+                createdAt: now,
+                ...(options?.step !== undefined ? { step: options.step } : {}),
+                ...(options?.images !== undefined &&
+                options.images.length > 0
+                  ? { images: options.images }
+                  : {}),
+              };
+
+          return {
+            messages: [
+              ...state.messages,
+              ...(studentMessage !== null ? [studentMessage] : []),
+              {
+                id: newId(),
+                role: "assistant" as const,
+                content: "",
+                status: "streaming" as const,
+                citations: [] as Citation[],
+                createdAt: now,
+                ...(options?.step !== undefined
+                  ? { step: options.step }
+                  : {}),
+              },
+            ],
+            status: "streaming",
+            error: null,
+            tokens: null,
+            turnStep: options?.step ?? null,
+          };
+        });
+      },
+
+      appendToken: (content, messageId) => {
+        const existing = tokenBuffer.get(messageId);
+        if (existing !== undefined) {
+          existing.content += content;
+          return;
+        }
+        tokenBuffer.set(messageId, { content, flushScheduled: true });
+        setTimeout(() => {
+          const buf = tokenBuffer.get(messageId);
+          if (buf === undefined) return;
+          flushTokenBufferImpl(set);
+        }, 0);
+      },
+
+      appendThinking: ({ step, agent, content }) =>
+        set((state) => {
+          const prev = state.thinking;
+          const streaming = findStreamingAssistant(state.messages);
+          let next: ThinkingStep[];
+          let newStep: ThinkingStep | undefined;
+
+          const last = prev[prev.length - 1];
+          if (last !== undefined && last.endedAt === undefined) {
+            // 只要最后一条还没封口就继续往后追加——不分 step/agent。
+            // 对标 DeepSeek 网页端：思考过程是一条连续的流，不是
+            // 按 step 拆成多段。
+            next = prev.slice();
+            next[next.length - 1] = {
+              ...last,
+              content: last.content + content,
+              deltas: last.deltas + 1,
+            };
+          } else {
+            newStep = {
+              id: newId(),
+              agent,
+              step,
+              content,
+              deltas: 1,
+              startedAt: Date.now(),
+            };
+            next = [...prev, newStep];
+          }
+
+          if (streaming === undefined) {
+            // 尚无助手消息：立即创建占位消息，让思维链面板可见。
+            // 等第一个 token 到达时，flushTokenBufferImpl 会把这个
+            // 占位消息的 id 更新为服务端下发的 messageId 并开始写内容。
+            const placeholderId = newId();
+            return {
+              thinking: next,
+              messages: [
+                ...state.messages,
+                {
+                  id: placeholderId,
+                  role: "assistant" as const,
+                  content: "",
+                  status: "streaming" as const,
+                  citations: [],
+                  createdAt: new Date().toISOString(),
+                  ...(state.turnStep !== null ? { step: state.turnStep } : {}),
+                  thinkingSteps: inFlightThinking(next),
+                },
+              ],
+            };
+          }
+
+          const linked = newStep ?? next[next.length - 1];
+          return {
+            thinking: next,
+            messages: replaceMessage(
+              state.messages,
+              streaming.id,
+              (message) => ({
+                ...message,
+                thinkingSteps: upsertThinkingStep(
+                  message.thinkingSteps ?? [],
+                  linked,
+                ),
+              }),
+            ),
+          };
+        }),
+
+      addToolCall: ({ callId, toolName, params }) =>
+        set((state) => ({
+          tools: [
+            ...state.tools,
+            { callId, toolName, params, startedAt: Date.now() },
+          ],
+        })),
+
+      addToolResult: ({ callId, result, durationMs }) =>
+        set((state) => ({
+          // 结果到达时补进对应的那条调用记录。找不到（例如调用帧被丢弃）就忽略，
+          // 不新建一条没有参数的孤儿记录。
+          tools: state.tools.map((tool) =>
+            tool.callId === callId ? { ...tool, result, durationMs } : tool,
+          ),
+        })),
+
+      addCitation: (citation) =>
+        set((state) => {
+          const streaming = findStreamingAssistant(state.messages);
+          return {
+            citations: [...state.citations, citation],
+            messages:
+              streaming === undefined
+                ? state.messages
+                : replaceMessage(state.messages, streaming.id, (message) => ({
+                    ...message,
+                    citations: [...message.citations, citation],
+                  })),
+          };
+        }),
+
+      completeTurn: ({ messageId, tokens }) =>
+        set((state) => {
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
+          const targetId = streaming?.id ?? messageId;
+          const sealedAt = Date.now();
+          return {
+            messages: replaceMessage(messages, targetId, (message) =>
+              closeMessageThinking(
+                { ...message, status: "done", tokens },
+                sealedAt,
+              ),
+            ),
+            status: "done",
+            tokens,
+            thinking: closeThinking(state.thinking, sealedAt),
+          };
+        }),
+
+      failTurn: (error) =>
+        set((state) => {
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
+          const sealedAt = Date.now();
+          return {
+            messages:
+              streaming === undefined
+                ? messages
+                : replaceMessage(messages, streaming.id, (message) =>
+                    closeMessageThinking(
+                      { ...message, status: "error" },
+                      sealedAt,
+                    ),
+                  ),
+            status: "error",
+            error,
+            thinking: closeThinking(state.thinking, sealedAt),
+          };
+        }),
+
+      abortTurn: () =>
+        set((state) => {
+          const messages = drainTokenBuffer(state.messages);
+          const streaming = findStreamingAssistant(messages);
+          const sealedAt = Date.now();
+          return {
+            // 中断不是错误：已收到的内容保留下来，标成 done 让它可以被复制。
+            // 用户自己按的「停止」，不该看到一条红色报错。
+            messages:
+              streaming === undefined
+                ? messages
+                : replaceMessage(messages, streaming.id, (message) =>
+                    closeMessageThinking(
+                      { ...message, status: "done" },
+                      sealedAt,
+                    ),
+                  ),
+            status: "aborted",
+            thinking: closeThinking(state.thinking, sealedAt),
+          };
+        }),
+
+      noteInvalidFrame: () =>
+        set((state) => ({ invalidFrames: state.invalidFrames + 1 })),
+
+      flushTokenBuffer: () => {
+        const hasData = tokenBuffer.size > 0;
+        if (!hasData) return;
+        flushTokenBufferImpl(set);
+      },
+
+      seedLecture: (step, content) => {
+        let seeded = false;
+        set((state) => {
+          // 该步骤已经有消息（学生问过 / 已注入过）就不动 —— 讲稿只负责开场。
+          if (state.messages.some((message) => message.step === step)) {
+            return state;
+          }
+          seeded = true;
+          return {
+            messages: [
+              ...state.messages,
+              {
+                id: newId(),
+                role: "assistant" as const,
+                content,
+                // 与实时路径的 agent 标识同源（SSE thinking 事件里就是它），
+                // 时间线与消息徽标两种来源显示一致。
+                agent: TEACHING_AGENT_ID,
+                status: "done" as const,
+                citations: [],
+                createdAt: new Date().toISOString(),
+                step,
+              },
+            ],
+          };
+        });
+        return seeded;
+      },
+
+      ensureModule: (moduleId) =>
+        set((state) => {
+          if (state.activeModuleId === moduleId) return state;
+          // 切走：把当前模块的会话态快照进缓存（首次进入 activeModuleId 为 null 不用存）。
+          const nextByModule = { ...state.byModule };
+          if (state.activeModuleId !== null) {
+            nextByModule[state.activeModuleId] = snapshotBucket(state);
+          }
+          // 切回：取缓存（取到就移出，避免下次来是幽灵快照），铺回当前会话态。
+          const saved = nextByModule[moduleId];
+          delete nextByModule[moduleId];
+          return {
+            activeModuleId: moduleId,
+            byModule: nextByModule,
+            ...applyBucket(saved),
+          };
+        }),
+      reset: () => {
+        tokenBuffer.clear();
+        set({
+          messages: [],
+          thinking: [],
+          tools: [],
+          citations: [],
+          status: "idle",
+          error: null,
+          tokens: null,
+          invalidFrames: 0,
+          turnStep: null,
+          byModule: {},
+        });
+      },
+    }),
+    {
+      name: "sso.conversations",
+      storage: {
+        getItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            const raw = localStorage.getItem(key);
+            return raw
+              ? (JSON.parse(raw) as Record<string, unknown>)
+              : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch {
+            // silently ignore
+          }
+        },
+        removeItem: (name) => {
+          try {
+            const key = `${name}:${currentStudentId()}`;
+            localStorage.removeItem(key);
+          } catch {
+            // silently ignore
+          }
+        },
+      } as PersistStorage<PersistedSessionState>,
+      // 只持久化对话数据，函数与瞬时态（status/error）不落盘。
+      // 一次性把「当前激活桶 + 各模块缓存桶」都存在 localStorage：
+      // 刷新后 rehydrate 回内存，切回来还能看到上次对话。
+      partialize: (state: SessionState) => ({
+        messages: state.messages,
+        thinking: state.thinking,
+        tools: state.tools,
+        citations: state.citations,
+        tokens: state.tokens,
+        invalidFrames: state.invalidFrames,
+        turnStep: state.turnStep,
+        activeModuleId: state.activeModuleId,
+        byModule: state.byModule,
+      }),
+      /**
+       * 重新打开页面时收敛残留的流式消息。语义见
+       * `settleStreamingMessages` 的注释。
+       */
+      onRehydrateStorage: () => (state) => {
+        if (state === undefined) return;
+        state.messages = settleStreamingMessages(state.messages);
+        state.byModule = Object.fromEntries(
+          Object.entries(state.byModule).map(([key, bucket]) => [
+            key,
+            { ...bucket, messages: settleStreamingMessages(bucket.messages) },
+          ]),
+        );
+      },
+    },
+  ),
+);
+/**
+ * 向消息的 thinkingSteps 数组中追加或更新一条思维链记录。
+ *
+ * 如果最后一条记录 id 相同（同一阶段的增量），只更新它的 content/deltas；
+ * 否则追加新条目。用于 `appendThinking` 把思维链片段同时写进消息气泡。
+ */
+function upsertThinkingStep(
+  steps: ThinkingStep[],
+  step: ThinkingStep,
+): ThinkingStep[] {
+  const last = steps[steps.length - 1];
+  if (last !== undefined && last.id === step.id) {
+    const next = steps.slice();
+    next[next.length - 1] = step;
+    return next;
+  }
+  return [...steps, step];
+}
+
+/**
+ * 封口最后一条思考记录（若它还开着）。
+ *
+ * `at` 由调用方传入，好让全局数组与消息快照封口到同一毫秒
+ * —— 见 closeMessageThinking 的注释。
+ */
+function closeThinking(
+  thinking: ThinkingStep[],
+  at: number = Date.now(),
+): ThinkingStep[] {
   const last = thinking[thinking.length - 1];
   if (last === undefined || last.endedAt !== undefined) return thinking;
   const next = thinking.slice();
-  next[next.length - 1] = { ...last, endedAt: Date.now() };
+  next[next.length - 1] = { ...last, endedAt: at };
   return next;
+}
+
+/**
+ * 封口消息气泡里 thinkingSteps 的最后一段（若它还开着）。
+ *
+ * 为什么全局封口不够（2026-10-07 扇出审计 10/10 讲复现）
+ * ------------------------------------------------------
+ * 消息的 thinkingSteps 是**建消息那一刻**从全局 thinking[] 拷进去的
+ * 快照（见 inFlightThinking 的三个调用点），而 closeThinking 封口的
+ * 是全局数组 —— 两者不是同一份对象。于是 completeTurn / failTurn /
+ * abortTurn 跑完，全局段有了 endedAt，消息快照里的那段仍然没有。
+ *
+ * 后果：`message-item.tsx` 的 `isStreaming = steps.some((s) =>
+ * s.endedAt === undefined)` 永远为真，折叠区标题在流结束、甚至消息
+ * 已 `done` 之后，仍显示「进行中」徽标。
+ *
+ * 传 `at` 是为了让同一次收尾里全局数组与消息快照封口到同一毫秒 ——
+ * 时间线面板按 endedAt 算耗时，两处不一致会显示成一段 0ms 的耗时。
+ */
+function closeMessageThinking(message: ChatMessage, at: number): ChatMessage {
+  const steps = message.thinkingSteps;
+  if (steps === undefined || steps.length === 0) return message;
+  const last = steps[steps.length - 1];
+  if (last === undefined || last.endedAt !== undefined) return message;
+  const next = steps.slice();
+  next[next.length - 1] = { ...last, endedAt: at };
+  return { ...message, thinkingSteps: next };
 }
 
 // ---------------------------------------------------------------------------

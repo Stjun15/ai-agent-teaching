@@ -58,9 +58,13 @@ markdown
 6. 区分「严重错误」和「优化建议」：
    - 严重错误：参数缺失、逻辑错误、安全漏洞 → 必须修改。
    - 优化建议：命名、注释、简洁性 → 可选改进。
+7. 评分以题面为准：先核对 question_text 要求了什么产出，再评学生答了什么；
+   题面没有要求的内容不得作为扣分理由。（2026-09-19 实测修正：主观题评分
+   曾与题面脱节 —— 题面让说明改进思路，点评却要求交出 prompt 文本。）
 ## 输入
 - task_type：prompt | tool | code
 - student_answer：学生提交内容
+- question_text：题目原文（如有；自主提交的作业没有这一项）
 - rubric：对应评分标准
 - anti_patterns：相关反模式
 - student_history：学生历史记录
@@ -150,6 +154,11 @@ markdown
 - 不出语法题。
 - 不出需要写完整代码的题。
 - 不出和已有题库重复的题。
+- 选择题与填空题的 correct_answer 必须是唯一、可机器判定的标准答案本身
+  （选择题填选项字母，填空题填标准短语）；不得把「（或…）」「…等」这类
+  可接受变体的说明写进答案字段。答案开放时，改题面措辞让标准答案唯一
+  （如「请用一个表示天气的词」），变体说明放进 explanation。
+  （2026-09-19 实测修正：模型曾把变体备注写进答案字段，规则判分必误判。）
 4. 答疑 Agent（assistant.system.md）
 markdown
 # 答疑 Agent
@@ -285,6 +294,13 @@ markdown
 - 无严重错误
 ## 通过后
 返回 `{ "is_correct": true, "next_action": "visualize" }`，触发可视化场景。
+（模块定制，2026-10-05 实测修正，适用于 validate-prompt / validate-tool / validate-code 三个校验 Skill）
+platform-replica 模块的点评对象是最终交付，评价标准 = 概念页「动手任务：最终验收」的
+七条验收清单，不是通用四维。实现为**追加段**而非新 Skill（skill id 与 allowedSkills
+白名单不变）：题面（七条清单）由 `/api/agent/validate` 路由从概念页「动手任务」节现读、
+经 question_text 下发（wiki 是清单唯一事实源，本文件不复制清单正文）；「怎么按清单评」
+的评分指令在 `src/lib/agent/skills/module-rubric.ts`，由 validation-loop 拼到 Skill
+内容尾部。诚实条款：提交文本里找不到证据的清单条目不得给分、不得扣分、不设维度。
 5. generate-question.md
 markdown
 # Skill: 生成题目
@@ -308,6 +324,12 @@ markdown
 - 第 1 题：基础，考概念
 - 第 2 题：应用，换场景
 - 第 3 题：综合，多概念组合
+## 难度起点与题型（按 mastery，2026-09-19 实测修正）
+- 输入里的 mastery 是学生当前掌握度（1~5）。上面「难度递进」的**起点**跟着
+  mastery 走：mastery=4 时三题从 4 附近起步，不要每次都从 1 开始——那是
+  把已掌握的学生按回第一课。
+- mastery >= 3 时，三题中至少 1 道简答题或实战题（考设计思路）；
+  mastery <= 2 时以选择题、填空题为主。
 6. answer-question.md
 markdown
 # Skill: 答疑

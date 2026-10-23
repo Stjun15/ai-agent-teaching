@@ -27,6 +27,7 @@ import type {
 import { useElapsed } from "@/hooks/use-elapsed";
 import { ApiError, apiPost } from "@/lib/client-api";
 import { currentStudentId } from "@/lib/client-identity";
+import { useStudentStore } from "@/stores/student";
 
 export type PracticePhase =
   "idle" | "generating" | "answering" | "grading" | "graded";
@@ -44,19 +45,27 @@ export function usePractice(moduleId: string) {
   const elapsed = useElapsed(busy);
 
   /** 首次作答前为本模块开一个真实会话（answer-grade 校验归属）。 */
-  const ensureSession = async (studentId: string): Promise<string> => {
-    if (sessionIdRef.current !== null) return sessionIdRef.current;
-    const created = await apiPost<{ sessionId: string }>("/api/session", {
-      studentId,
-      moduleId,
-    });
-    sessionIdRef.current = created.sessionId;
-    return created.sessionId;
-  };
+  const ensureSession = useCallback(
+    async (studentId: string): Promise<string> => {
+      if (sessionIdRef.current !== null) return sessionIdRef.current;
+      const created = await apiPost<{ sessionId: string }>("/api/session", {
+        studentId,
+        moduleId,
+      });
+      sessionIdRef.current = created.sessionId;
+      return created.sessionId;
+    },
+    [moduleId],
+  );
 
   const generate = useCallback(async (): Promise<void> => {
     setPhase("generating");
     setError(null);
+    // 立即清空上一轮的旧题，避免在出题等待（20~60 秒）期间
+    // 页面还挂着已经做完的上一组题目。
+    setQuestions([]);
+    setAnswers({});
+    setGrades({});
     try {
       const studentId = currentStudentId();
       if (studentId === "") {
@@ -68,6 +77,11 @@ export function usePractice(moduleId: string) {
         );
       }
       await ensureSession(studentId);
+      // 把概念掌握度作为难度上下文带给出题 Agent —— 等待文案承诺的是
+      // 「按你的掌握度出题」，但此前请求里根本没有这个字段，出题 Agent
+      // 只能盲出（掌握度 4 也出一堆基础题，简答题永远轮不到）。无记录
+      // 或 0 分时不传：schema 的 difficulty 下限是 1，「没测过」不是难度。
+      const mastery = useStudentStore.getState().mastery[moduleId];
       const result = await apiPost<{
         questions: RawQuestion[];
         usedFallback: boolean;
@@ -75,6 +89,7 @@ export function usePractice(moduleId: string) {
         studentId,
         moduleId,
         count: 3,
+        ...(mastery && mastery.score >= 1 ? { difficulty: mastery.score } : {}),
       });
       if (result.usedFallback) {
         // 出题兜底意味着题目是编的（没有可判分的正确答案），直接如实告知
@@ -104,7 +119,7 @@ export function usePractice(moduleId: string) {
       );
       setPhase("idle");
     }
-  }, [moduleId]);
+  }, [moduleId, ensureSession]);
 
   const submit = useCallback(async (): Promise<void> => {
     if (phase !== "answering" || sessionIdRef.current === null) return;

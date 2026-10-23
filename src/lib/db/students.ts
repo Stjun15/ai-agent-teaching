@@ -50,13 +50,6 @@ const PROFILE_UPDATE: UpdateSpec = {
   },
 };
 
-/**
- * 把一行学生记录映射为 Student。
- *
- * 枚举字段（如编程背景、学习偏好）在此处用类型断言而非运行时校验：
- * SQLite 的 TEXT 列没有枚举约束，唯一性由应用层保证。
- * 若将来需要严格校验，应在写入侧做，而不是在读取侧。
- */
 function mapStudent(row: Row): Student {
   return {
     id: asString(row.id),
@@ -101,6 +94,60 @@ export const studentDb = {
     return row ? mapStudent(row as Row) : null;
   },
 
+  /** 注册：创建学生（含用户名 + 密码哈希）。昵称初始同用户名。 */
+  async createWithPassword(
+    username: string,
+    passwordHash: string,
+  ): Promise<Student> {
+    const id = crypto.randomUUID();
+    const now = nowIso();
+    getDb()
+      .prepare(
+        "INSERT INTO students (id, nickname, username, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(id, username, username, passwordHash, now, now);
+    return {
+      id,
+      nickname: username,
+      email: undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+  },
+
+  /** 按用户名取密码哈希与 id —— 仅供登录验证使用。 */
+  async getPasswordHash(
+    username: string,
+  ): Promise<{ id: string; passwordHash: string } | null> {
+    const row = getDb()
+      .prepare("SELECT id, password_hash FROM students WHERE username = ?")
+      .get(username);
+    if (!row) return null;
+    return {
+      id: asString((row as Row).id),
+      passwordHash: asString((row as Row).password_hash),
+    };
+  },
+
+  /** 按学生 id 取密码哈希 —— 仅供改密等已验证身份的操作用。 */
+  async getPasswordHashById(id: string): Promise<string | null> {
+    const row = getDb()
+      .prepare("SELECT password_hash FROM students WHERE id = ?")
+      .get(id) as Row | undefined;
+    if (!row) return null;
+    const hash = asString(row.password_hash);
+    return hash.length > 0 ? hash : null;
+  },
+
+  /** 更新学生密码哈希。 */
+  async updatePassword(id: string, hash: string): Promise<void> {
+    getDb()
+      .prepare(
+        "UPDATE students SET password_hash = ?, updated_at = ? WHERE id = ?",
+      )
+      .run(hash, nowIso(), id);
+  },
+
   /** 部分更新学生；updatedAt 自动刷新 */
   async update(id: string, data: Partial<Student>): Promise<void> {
     const { assignments, values } = buildUpdateSet(STUDENT_UPDATE, data);
@@ -120,13 +167,7 @@ export const studentDb = {
     return row ? mapProfile(row as Row) : null;
   },
 
-  /**
-   * 写入学生画像。
-   *
-   * 已有的行做 UPDATE；不存在的行做 INSERT（见文件头的偏离说明 2）。
-   * 首次写入时必须给出 programmingBackground，否则 INSERT 会因 NOT NULL 失败 ——
-   * 这里提前抛错，报错信息比 SQLite 的约束错误更容易定位。
-   */
+  /** 写入学生画像（已有则 UPDATE，否则 INSERT）。 */
   async updateProfile(
     studentId: string,
     data: Partial<StudentProfile>,

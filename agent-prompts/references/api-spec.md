@@ -666,7 +666,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
 ```bash
 # .env.example
-# 模型平台：火山方舟 Ark（OpenAI 兼容端点 /api/v3）
+# 模型平台：火山方舟 Volcengine Ark（OpenAI 兼容端点 /v1）
 ARK_API_KEY=your-ark-api-key
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 ARK_TEXT_MODEL=deepseek-v4-flash-ga-260731
@@ -705,4 +705,3 @@ NODE_ENV=development
 - [ ] 健康检查接口 `/api/health`
 
 - [ ] 日志脱敏（不含密钥、用户隐私）
-

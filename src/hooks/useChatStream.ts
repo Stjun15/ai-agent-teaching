@@ -62,7 +62,10 @@ export interface UseChatStreamOptions {
 
 export interface ChatStreamController {
   /** 发一轮消息。重复调用会被拒绝（同一时刻只允许一条流）。 */
-  send: (request: ChatRequest, options?: { silent?: boolean }) => Promise<void>;
+  send: (
+    request: ChatRequest,
+    options?: { silent?: boolean; moduleId?: string },
+  ) => Promise<void>;
   /** 中断当前流。已收到的内容会保留。 */
   abort: () => void;
   /** 清空会话（消息、思考、工具、引用、用量）。 */
@@ -109,7 +112,7 @@ export function useChatStream(
     async (
       request: ChatRequest,
       /** `silent`：不在对话里落学生消息 —— 给「导师自动开讲」用。 */
-      options?: { silent?: boolean },
+      options?: { silent?: boolean; moduleId?: string },
     ): Promise<void> => {
       if (activeController.current !== null) return;
 
@@ -117,19 +120,60 @@ export function useChatStream(
       activeController.current = controller;
 
       const session = useSessionStore.getState();
+      // 模块切换时清空上一模块的对话态（含中止在途流）—— 跨模块的
+      // 讲稿/问答不允许串台（2026-09-19「每个模块不要套用其他模块」）。
+      if (options?.moduleId !== undefined) {
+        if (session.activeModuleId !== options.moduleId) {
+          activeController.current?.abort();
+          activeController.current = null;
+        }
+        session.ensureModule(options.moduleId);
+      }
+
+      // ---- 构建历史 ----
+      // silent（自动开讲）不带历史：开场讲稿应从零生成，不该受上一模块
+      // 残余消息干扰。学生追问才带历史，让模型理解「你刚才提到的…」。
+      if (options?.silent !== true) {
+        // 在 beginTurn 之前取：当前这条学生消息还没进 messages，
+        // 历史只包含「已经说过的话」。
+        const priorMessages = request.step
+          ? session.messages.filter((m) => m.step === request.step)
+          : session.messages;
+        const recent = priorMessages.slice(-10);
+        if (recent.length > 0) {
+          request = {
+            ...request,
+            history: recent.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+          };
+        }
+      }
+
       // step 随轮次进 store：学生消息直接带标签，助手消息经 turnStep 继承
       // —— LectureLauncher 的「这一步开过场没有」按消息的 step 判断。
       session.beginTurn(request.content, {
         silent: options?.silent,
         step: request.step,
+        images: request.images,
       });
 
+      const turnModuleId = options?.moduleId;
       try {
         await handleSSE(
           url,
           request,
           (event) => {
             if (!mountedRef.current) return;
+            // 学生在流式输出途中切走了模块：迟到事件一律丢弃，
+            // 否则旧模块的 token 会写进新模块的对话。
+            if (
+              turnModuleId !== undefined &&
+              useSessionStore.getState().activeModuleId !== turnModuleId
+            ) {
+              return;
+            }
             dispatch(event, onUiEventRef.current);
           },
           {
@@ -175,8 +219,11 @@ export function useChatStream(
   return { send, abort, reset };
 }
 
-/** 单个事件 → 对应 Store 的改动。 */
-function dispatch(
+/** 单个事件 → 对应 Store 的改动。
+ *
+ * 导出供测试验证 10 种 SSE 事件到 3 个 Store 的映射。
+ */
+export function dispatch(
   event: SSEEventInput,
   onUiEvent?: (event: {
     component: string;

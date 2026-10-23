@@ -6,6 +6,7 @@
  *   2. 从题库读取题目（question_id 外键必须存在，否则无法评分）；
  *   3. 评分（客观题规则 / 主观题复用 reviewer）；
  *   4. 写入 question_results（这是该表落库的唯一 HTTP 触发点）；
+ *      主观题另更新 mastery（「点评写掌握度」的设计约定，见 masteryScoreFromPromptScore）；
  *   5. 返回评分结论与已持久化的结果 id。
  *
  * 设计依据 api-spec.md 同类端点（validate / generate-question）的边界约定：
@@ -24,8 +25,17 @@
 import { resolveStudent } from "@/lib/api-auth";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { jsonError } from "@/lib/api-error";
-import { errorDb, questionDb, questionResultDb, sessionDb } from "@/lib/db";
+import {
+  errorDb,
+  learningPathDb,
+  masteryDb,
+  questionDb,
+  questionResultDb,
+  sessionDb,
+} from "@/lib/db";
+import { analyzePath, writeAdjustments } from "@/lib/agent/path-adjuster";
 import { newId } from "@/lib/db/helpers";
+import { masteryScoreFromPromptScore } from "@/lib/scores";
 import { runAssessLoop } from "@/lib/agent/orchestrator/assess-loop";
 import { AnswerGradeSchema, type AnswerGradeInput } from "@/schemas";
 
@@ -78,8 +88,12 @@ export async function POST(request: Request): Promise<Response> {
     const assessment = await runAssessLoop({
       question: {
         type: question.type,
+        // 题面原文：主观题点评必须对着「题面要求了什么」评，见 assess-loop.ts。
+        text: question.question,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
+        // 选项文本：裸选项提交形态的判分对账需要，见 assess-loop.ts。
+        options: question.options ?? undefined,
       },
       studentAnswer: body.studentAnswer,
       moduleId: body.moduleId,
@@ -146,6 +160,55 @@ export async function POST(request: Request): Promise<Response> {
         } catch (error) {
           console.error("[answer-grade] 错题持久化失败：", error);
         }
+      }
+
+      // 主观题由点评模型批改 → 与 validate 同属「点评写掌握度」的设计约定
+      // （02-agent-system.md「数据职责」），但练习语义是**只升不降**（max）：
+      // 练错一道题不该把已通过的掌握度砸回去、把已解锁的后续模块重新
+      // 锁死（2026-09-27 全链路模拟实测的连锁后果）。下降信号走错题本
+      // （errors 表，上面已写）；客观题走规则判分，不在此处更新掌握度。
+      if (assessment.gradedBy === "model") {
+        try {
+          const current = await masteryDb.getByConcept(
+            body.studentId,
+            question.conceptId,
+          );
+          const nextScore = Math.max(
+            current?.score ?? 0,
+            masteryScoreFromPromptScore(assessment.score),
+          );
+          if (nextScore !== (current?.score ?? -1)) {
+            await masteryDb.update(
+              body.studentId,
+              question.conceptId,
+              nextScore,
+            );
+          }
+        } catch (error) {
+          console.error("[answer-grade] 更新掌握度失败：", error);
+        }
+      }
+
+      // ---- 学习路径自动调整（同 validate 路由的闭环） ----
+      try {
+        const [allMastery, allErrors, path] = await Promise.all([
+          masteryDb.get(body.studentId),
+          errorDb.listByStudent(body.studentId),
+          learningPathDb.get(body.studentId),
+        ]);
+
+        if (path) {
+          const decisions = analyzePath({
+            studentId: body.studentId,
+            conceptId: question.conceptId,
+            mastery: allMastery,
+            errors: allErrors,
+            path,
+          });
+          await writeAdjustments(body.studentId, decisions);
+        }
+      } catch (adjusterError) {
+        console.error("[answer-grade] 路径调整失败：", adjusterError);
       }
     }
 

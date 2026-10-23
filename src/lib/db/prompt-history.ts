@@ -90,6 +90,58 @@ export const promptHistoryDb = {
     return (rows as Row[]).map(mapPrompt);
   },
 
+  /**
+   * 按模块筛选 + 分页的 Prompt 历史列表。
+   *
+   * moduleId 为空/null 时返回全量；offset/limit 做服务端分页。
+   */
+  async listByStudentFiltered(
+    studentId: string,
+    moduleId: string | null,
+    offset: number,
+    limit: number,
+  ): Promise<PromptHistory[]> {
+    const where = moduleId
+      ? "WHERE student_id = ? AND module_id = ?"
+      : "WHERE student_id = ?";
+    const params: (string | number)[] = moduleId
+      ? [studentId, moduleId, limit, offset]
+      : [studentId, limit, offset];
+    const sql = `SELECT * FROM prompt_history ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    const rows = getDb().prepare(sql).all(...params);
+    return (rows as Row[]).map(mapPrompt);
+  },
+
+  /**
+   * 按模块筛选的 Prompt 历史总数（分页用）。
+   */
+  async countByStudent(
+    studentId: string,
+    moduleId: string | null,
+  ): Promise<number> {
+    const where = moduleId
+      ? "WHERE student_id = ? AND module_id = ?"
+      : "WHERE student_id = ?";
+    const params: string[] = moduleId
+      ? [studentId, moduleId]
+      : [studentId];
+    const sql = `SELECT COUNT(*) as cnt FROM prompt_history ${where}`;
+    const row = getDb().prepare(sql).get(...params) as Row | undefined;
+    return asNumber(row?.cnt ?? 0);
+  },
+
+  /**
+   * 某学生所有 Prompt 历史涉及的去重模块 id（下拉选项用）。
+   */
+  async listDistinctModuleIds(studentId: string): Promise<string[]> {
+    const rows = getDb()
+      .prepare(
+        "SELECT DISTINCT module_id FROM prompt_history WHERE student_id = ? ORDER BY module_id ASC",
+      )
+      .all(studentId);
+    return (rows as Row[]).map((row) => asString(row.module_id));
+  },
+
   /** 某学生在某模块上的 Prompt 历史。 */
   async listByModule(
     studentId: string,

@@ -24,7 +24,7 @@ export interface StudentProfile {
   studentId: string;
   programmingBackground: "zero" | "beginner" | "intermediate";
   learningGoal: string;
-  preferredLanguage: "typescript" | "python";
+  preferredLanguage: import("@/lib/languages").CodeLanguage;
   pace: "slow" | "normal" | "fast";
   explanationStyle: "analogy" | "example" | "theory";
   hintPreference: "try_first" | "hint_early" | "direct";
@@ -72,7 +72,7 @@ export interface ErrorRecord {
   studentId: string;
   moduleId: string;
   conceptId: string;
-  taskType: "prompt" | "tool" | "code" | "question";
+  taskType: "prompt" | "tool" | "code" | "question" | "qa";
   question: string;
   studentAnswer: string;
   problems: string[];
@@ -88,7 +88,7 @@ export interface PromptHistory {
   id: string;
   studentId: string;
   moduleId: string;
-  taskType: "prompt" | "tool" | "code";
+  taskType: "prompt" | "tool" | "code" | "qa";
   content: string;
   score: number;
   dimensions: PromptDimension[];
@@ -168,7 +168,7 @@ export interface Message {
     "student" | "teacher" | "reviewer" | "examiner" | "assistant" | "system";
   content: string;
   code?: string;
-  language?: "typescript" | "python";
+  language?: import("@/lib/languages").CodeLanguage;
   citations: Citation[];
   metadata: MessageMetadata;
   createdAt: string;
@@ -214,7 +214,7 @@ export interface ValidationResult {
   id: string;
   studentId: string;
   sessionId: string;
-  taskType: "prompt" | "tool" | "code";
+  taskType: "prompt" | "tool" | "code" | "qa";
   totalScore: number;
   level: "优秀" | "良好" | "及格" | "不及格";
   isCorrect: boolean;

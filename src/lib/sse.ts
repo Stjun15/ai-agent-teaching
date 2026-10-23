@@ -61,6 +61,8 @@ export function isAbortError(error: unknown): boolean {
 
 export interface SSEOptions {
   signal?: AbortSignal;
+  /** 额外请求头（如学生 Agent 的 x-student-id 身份头）。 */
+  headers?: Record<string, string>;
   /**
    * 收到一帧无法通过 Zod 校验的数据时调用。
    *
@@ -83,11 +85,11 @@ export async function handleSSE(
   onEvent: (event: SSEEventInput) => void,
   options: SSEOptions = {},
 ): Promise<void> {
-  const { signal, onInvalidFrame } = options;
+  const { signal, onInvalidFrame, headers } = options;
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
     signal,
   });

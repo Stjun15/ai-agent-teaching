@@ -55,8 +55,13 @@
 import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 
 import type { ArkEnv } from "./ark";
+import { filterThinkingDelta, flushThinking } from "./thinking-filter";
 import { calculatorTool } from "./tools/calculator";
-import { createSession, type AgentSessionHandle } from "./session";
+import {
+  createSession,
+  type AgentCustomTool,
+  type AgentSessionHandle,
+} from "./session";
 import {
   createSSEStream,
   sseResponse,
@@ -74,6 +79,8 @@ const PROVISIONAL_SYSTEM_PROMPT = [
   "- 只讲你能确认的内容。不确定就直说，不要编造，也不要假装运行过代码。",
   "- 涉及算术时调用 calculate 工具，不要心算。",
   "- 用简体中文回答，简洁直接，先给结论再给理由。",
+  "- 思考过程（thinking / reasoning）也必须用中文，" +
+    "不要用英文思考。学生能看到你的推理。",
 ].join("\n");
 
 /** SSE 事件里 `agent` 字段的默认值。编排层接入后由调用方显式传入。 */
@@ -96,7 +103,13 @@ const THINKING_STEP = "思考";
  * 不过。真正危险的是「值经过 JSON / 数据库再回来」那种边界 —— 那里由 Zod 拦，
  * 与这里无关。
  */
-export type AgentCodeLanguage = "typescript" | "python";
+import type { CodeLanguage } from "@/lib/languages";
+
+/**
+ * 与 `lib/languages.ts` 的 `CodeLanguage` 同值 —— 历史名字，调用方沿用。
+ * 值域收敛后这里只保留别名，不再有第二份字面量联合。
+ */
+export type AgentCodeLanguage = CodeLanguage;
 
 /**
  * 把「学生说的话」与「学生提交的代码」组装成模型真正读到的用户输入。
@@ -254,11 +267,22 @@ export interface AgentLoopOptions {
    * 就能看到「本次参考了哪几页」。放在这里而不是让调用方自己再建一条流，
    * 是为了保证事件顺序严格 —— 两条流在浏览器侧的到达顺序是没有保证的。
    */
-  preludeEvents?: readonly SSEEvent[];
+  preludeEvents?: readonly SSEEvent[] | (() => Promise<readonly SSEEvent[]>);
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
   env?: ArkEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */
   signal?: AbortSignal;
+  /**
+   * 额外工具名（纯加法，不影响 calculator 工具）。
+   *
+   * 为什么叫 extra 而不是 tools
+   * -------------------------
+   * 如果叫 tools，调用方就要记得把 calculator 也列上，否则会把它关掉。
+   * extra 语义是「只增不减」：calculator 始终注册，调用方只需关心本步要加什么。
+   */
+  extraTools?: readonly string[];
+  /** 额外自定义工具，与 extraTools 一一对应（同名必须同时出现）。 */
+  extraCustomTools?: readonly AgentCustomTool[];
 }
 
 /** 一轮运行的汇总，供调用方断言与记录。 */
@@ -315,6 +339,8 @@ function createEventTranslator(
   let toolCalls = 0;
   const tokens = { input: 0, output: 0 };
   const toolStartedAt = new Map<string, number>();
+  /** thinking 跨块过滤的尾部缓冲（见 thinking-filter.ts）。 */
+  let thinkingCarry = "";
 
   function handle(event: AgentSessionEvent): void {
     switch (event.type) {
@@ -334,10 +360,17 @@ function createEventTranslator(
             data: { content: inner.delta, messageId },
           });
         } else if (inner.type === "thinking_delta") {
-          stream.send({
-            type: "thinking",
-            data: { step: THINKING_STEP, content: inner.delta, agent },
-          });
+          // 铁律 5 的服务端兜底：thinking 里出现内部词就在这里拿走。
+          // 靠提示词约束已被实测证伪（模型复述禁令本身就泄漏），故必须在代码层拦。
+          // filterThinkingDelta 带跨块缓冲，能识别被拆到两个 delta 之间的词。
+          const filtered = filterThinkingDelta(inner.delta, thinkingCarry);
+          thinkingCarry = filtered.carry;
+          if (filtered.emit !== "") {
+            stream.send({
+              type: "thinking",
+              data: { step: THINKING_STEP, content: filtered.emit, agent },
+            });
+          }
         }
         return;
       }
@@ -375,6 +408,16 @@ function createEventTranslator(
         if (event.message.role === "assistant") {
           tokens.input += event.message.usage.input;
           tokens.output += event.message.usage.output;
+          // 本轮 thinking 到此结束，把跨块缓冲里剩下的尾巴吐出去，
+          // 否则最后不足一个词长的残留会丢字。
+          const tail = flushThinking(thinkingCarry);
+          if (tail !== "") {
+            thinkingCarry = "";
+            stream.send({
+              type: "thinking",
+              data: { step: THINKING_STEP, content: tail, agent },
+            });
+          }
         }
         return;
 
@@ -399,6 +442,15 @@ function createEventTranslator(
  * 必须先交出响应头，才能开始推流（与 api-spec 第九节的写法一致）。
  * 想等整轮结束的调用方 await `completed`。
  */
+/** 解析异步前置事件：支持数组、异步函数或空值。 */
+async function resolvePreludeEvents(
+  source: AgentLoopOptions["preludeEvents"],
+): Promise<readonly SSEEvent[]> {
+  if (!source) return [];
+  if (typeof source === "function") return source();
+  return source;
+}
+
 export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
   const {
     prompt,
@@ -410,6 +462,8 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
     preludeEvents,
     env,
     signal,
+    extraTools = [],
+    extraCustomTools = [],
   } = options;
   // 组装一次、全程用组装后的值：后续若要记录「模型到底看到了什么」（审计、
   // 复现一次失败），必须能拿到同一个字符串，不能在两处各拼一次。
@@ -419,23 +473,25 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
   const stream = createSSEStream();
   const translator = createEventTranslator(stream, agent);
 
-  // 先发前置事件（引用等），再进模型。顺序见 AgentLoopOptions.preludeEvents 的说明。
-  for (const event of preludeEvents ?? []) {
-    stream.send(event);
-  }
-
   const completed = (async (): Promise<AgentLoopSummary> => {
     let handle: AgentSessionHandle | undefined;
 
     try {
+      // 流建立后立即并发：引用检索与模型会话创建同时进行，
+      // 总等待 = max(引用, 会话) 而非 sum。
+      const preludeReady = resolvePreludeEvents(preludeEvents);
+      void preludeReady.then((events) => {
+        for (const evt of events ?? []) stream.send(evt);
+      });
+
       // 会话一律走 `session.ts` 的工厂：资源锁定策略（关掉扩展/技能/提示词模板
       // /上下文文件）只在那儿定义一次，避免流式与非流式两条路径悄悄漂移。
       handle = await createSession({
         systemPrompt,
         // 工具白名单。注意 `tools` 是总白名单，自定义工具必须按名字列进来，
         // 写成空数组会把 calculate 一起挡掉（见文件头「工具白名单」的踩坑记录）。
-        tools: [calculatorTool.name],
-        customTools: [calculatorTool],
+        tools: [calculatorTool.name, ...extraTools],
+        customTools: [calculatorTool, ...extraCustomTools],
         onEvent: translator.handle,
         env,
         signal,
@@ -444,6 +500,29 @@ export function runAgentLoop(options: AgentLoopOptions): AgentLoop {
       await handle.prompt(userMessage);
 
       const { text: answer, toolCalls, tokens } = translator.summary();
+
+      // 守卫：session.prompt() 正常完成但模型零产出（空文本 + 零工具调用）。
+      // 模型有时陷入无限思考后静默结束（实测 69 条 thinking → 无任何输出），
+      // 此时发 done 会让前端留一条空泡，学生什么也看不到。改成明确报错告知
+      // 「模型未产出内容，请重试」，状态标可恢复。
+      if (answer.trim() === "" && toolCalls === 0) {
+        stream.send({
+          type: "error",
+          data: {
+            code: "LLM_ERROR",
+            message: "模型未产出内容，请重试。",
+            recoverable: true,
+          },
+        });
+        return {
+          ok: false,
+          text: "",
+          toolCalls: 0,
+          tokens,
+          error: "模型未产出内容",
+        };
+      }
+
       stream.send({
         type: "done",
         data: { messageId: translator.currentMessageId(), tokens },

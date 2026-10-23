@@ -17,3 +17,6 @@ agent-prompts
 _backup
 _day0_test
 .workbuddy
+
+# 走查会话的产物副本（不入库）
+walkthrough-output

@@ -26,6 +26,8 @@
 
 import { z } from "zod";
 
+import { CODE_LANGUAGES } from "@/lib/languages";
+
 // ---------------------------------------------------------------------------
 // api-spec.md 第八节：逐字实现
 // ---------------------------------------------------------------------------
@@ -39,13 +41,13 @@ export const SendMessageSchema = z.object({
   content: z.string().min(1).max(5000),
   taskType: z.enum(["prompt", "tool", "code"]).optional(),
   code: z.string().max(10000).optional(),
-  language: z.enum(["typescript", "python"]).optional(),
+  language: z.enum(CODE_LANGUAGES).optional(),
 });
 
 export const ValidateSchema = z.object({
   studentId: z.string().uuid(),
   sessionId: z.string().uuid(),
-  taskType: z.enum(["prompt", "tool", "code"]),
+  taskType: z.enum(["prompt", "tool", "code", "qa"]),
   content: z.string().min(1).max(10000),
   moduleId: z.string().min(1),
 });
@@ -90,6 +92,18 @@ export const WikiQuerySchema = z.object({
     .optional(),
 });
 
+/** POST /api/wiki/ingest —— 把外部 Markdown 文件编译进 LLM Wiki。 */
+export const WikiIngestSchema = z.object({
+  /** 源文件路径（相对 cwd 或绝对路径）。 */
+  source: z.string().min(1).max(2000),
+  /** 目标 wiki 路径（相对 wiki 根，如 `concepts/new.md`）。 */
+  target: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/\.md$/, "target 必须是以 .md 结尾的相对路径"),
+});
+
 // ---------------------------------------------------------------------------
 // Phase 3 最小端点：POST /api/chat
 // ---------------------------------------------------------------------------
@@ -126,7 +140,7 @@ export const ChatRequestSchema = z.object({
   /** 与 `SendMessageSchema.code` 同值域：学生提交的待点评内容。 */
   code: z.string().max(10000).optional(),
   /** 与 `SendMessageSchema.language` 同值域，理由见 `code`。 */
-  language: z.enum(["typescript", "python"]).optional(),
+  language: z.enum(CODE_LANGUAGES).optional(),
   /** 对应 loop.ts 的 `AgentLoopOptions.agent`，进 SSE 的 thinking 事件。 */
   agent: z.string().min(1).max(64).optional(),
   /**
@@ -149,6 +163,58 @@ export const ChatRequestSchema = z.object({
       "mastery",
     ])
     .optional(),
+  /**
+   * 本轮之前的对话历史（按时间升序）。
+   *
+   * 为什么需要：缓存讲稿（`seedLecture`）是前端侧注入的，后端从未见过；
+   * 即便是实时生成路径，`/api/chat` 每条都是独立调用，模型也不知道上一轮
+   * 说了什么。带上历史后模型才能理解「你刚才提到的那个…」指的是什么。
+   *
+   * 只传 `student` / `assistant` 两种角色：多 Agent 在模型眼里都是「助手说过
+   * 的话」。最多保留最近 20 条；后端另有一道 `HISTORY_CHAR_BUDGET`（4000 字）
+   * 裁剪，防止 prompt 随会话膨胀。
+   */
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["student", "assistant"]),
+        content: z.string(),
+      }),
+    )
+    .max(20)
+    .optional(),
+  /**
+   * 当前模块 ID。与 `/api/module-content` 同源的 `[a-z0-9-]+` 校验。
+   *
+   * 线路侧收到此字段时，读取 `llm-wiki/concepts/{moduleId}.md` 的概念页正文，
+   * 作为教学脚本注入系统提示词——不靠前端把数千字的内容硬塞进 `content` 字段。
+   * 缺省时不读文件，行为与之前一致。
+   */
+  moduleId: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
+  /**
+   * 复刻项目的当前阶段上下文（仅复刻工作区携带）。
+   *
+   * 复刻是 6 阶段的项目实践，同一句「我卡住了」发生在启动台还是在第三斧，
+   * 导师该说的完全不同。前端把阶段序号、标题与目标组装成一个短字符串带来，
+   * 后端原样注入系统提示词 —— 学生不必每次先自我介绍「我在第几步」。
+   *
+   * 只承载**位置信息**，不承载教材内容：教材走 moduleId 的概念页注入。
+   */
+  phaseContext: z.string().min(1).max(500).optional(),
+  /**
+   * 学生提交的截图（代码截图 / 终端输出 / 作品截图）。
+   *
+   * 每项为标准 data URL（`data:image/png;base64,...`）。最多 3 张；
+   * 每张在前端已做压缩与尺寸限制（≤ 5 MB / ≤ 4096px）。
+   *
+   * 有图片时后端走视觉评审管线（`vision-review.ts`），用多模态模型
+   * `doubao-seed-2-1-pro-260915` 点评；无图片时走原有文本管线。
+   */
+  images: z.array(z.string().startsWith("data:image/")).max(3).optional(),
 });
 
 /**
@@ -168,7 +234,7 @@ export const UpdateProfileSchema = z.object({
     .enum(["zero", "beginner", "intermediate"])
     .optional(),
   learningGoal: z.string().max(500).optional(),
-  preferredLanguage: z.enum(["typescript", "python"]).optional(),
+  preferredLanguage: z.enum(CODE_LANGUAGES).optional(),
   pace: z.enum(["slow", "normal", "fast"]).optional(),
   explanationStyle: z.enum(["analogy", "example", "theory"]).optional(),
   hintPreference: z.enum(["try_first", "hint_early", "direct"]).optional(),
@@ -186,3 +252,4 @@ export type GenerateQuestionInput = z.infer<typeof GenerateQuestionSchema>;
 export type AnswerInput = z.infer<typeof AnswerSchema>;
 export type AnswerGradeInput = z.infer<typeof AnswerGradeSchema>;
 export type WikiQueryInput = z.infer<typeof WikiQuerySchema>;
+export type WikiIngestInput = z.infer<typeof WikiIngestSchema>;

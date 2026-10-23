@@ -95,10 +95,10 @@ test("空代码不产生空代码围栏", () => {
   const withCode = composeUserPrompt({
     prompt: "帮我看看",
     code: "const a = 1;",
-    language: "python",
+    language: "typescript",
   });
   assert.ok(
-    withCode.includes("```python"),
+    withCode.includes("```typescript"),
     "语言后缀要带上（语法信息影响错误模式）",
   );
   assert.ok(withCode.includes("const a = 1;"));

@@ -24,6 +24,7 @@
  * 这不是疏忽，是刻意的：让误用立刻在构建期暴露，而不是留到运行期白屏。
  */
 
+import { cache } from "react";
 import { listPages } from "@/wiki";
 import type { SceneId } from "@/lib/agent/scene-ids";
 import type { WikiPage } from "@/wiki";
@@ -51,6 +52,16 @@ export const MODULE_SCENE_IDS: Readonly<Record<string, SceneId>> = {
   "ai-safety": "scene-attack-defense",
 };
 
+export type ModuleTaskType = "code" | "qa";
+
+const QA_TASK_MODULES = new Set([
+  "ts-basics",
+  "agent-loop",
+  "ai-safety",
+  "rag",
+  "vibe-coding",
+]);
+
 /** 概念页正文里承载「一句话定义」的小节标题（见 `wiki-schema.md` 概念页模板）。 */
 const DEFINITION_HEADING = "## 定义";
 
@@ -61,6 +72,12 @@ export interface TeachingModule {
   name: string;
   /** 正文「## 定义」的首段，用作模块卡片的一句话说明。 */
   summary: string;
+  /**
+   * 正文「## 关键步骤」下的 `###` 子节标题，本讲的步骤骨架。
+   * 讲稿预生成时随 prompt 送给模型（否则模型不知道该讲几步，见 extractKeySteps 注释）。
+   * 概念页没有该小节时为空数组。
+   */
+  keySteps: string[];
   /** 1~5，取自概念页 frontmatter。 */
   difficulty: number;
   /** 例如 `30min`，取自概念页 frontmatter。 */
@@ -72,8 +89,16 @@ export interface TeachingModule {
   sceneId: string | null;
   /** 相对教学顺序，从 0 开始。 */
   order: number;
+  /** 卡片上显示的序号文案。空串表示用默认「第 N 讲」。 */
+  orderLabel: string;
   /** 模块学习页路径。 */
   href: string;
+  /**
+   * 动手环节的任务类型：
+   * - "code"：写代码/Prompt/工具定义，使用代码编辑器 + 点评 Agent；
+   * - "qa"：纯文本问答（解释、标注、类比），使用文本输入区。
+   */
+  taskType: ModuleTaskType;
 }
 
 function asString(value: unknown, fallback = ""): string {
@@ -112,7 +137,49 @@ function extractDefinition(body: string): string {
     }
     paragraph.push(trimmed);
   }
-  return paragraph.join("");
+  /**
+   * 摘要是给学生看的纯文本：strip 掉行内强调标记（`**`）与行内代码反引号
+   * —— 卡片/工作区直接渲染字符串，markdown 星号会原样裸给学生
+   * （2026-10-04 学生走查实测「从零搭出一个**能跑的**单机版…」）。
+   */
+  return paragraph.join("").replace(/\*\*/g, "").replace(/`/g, "");
+}
+
+/**
+ * 提取概念页「## 关键步骤」下的 `###` 子节标题，作为该讲的**步骤骨架**。
+ *
+ * 为什么要提取（2026-10-08 实测的缺陷）：
+ * `generate-lecture-cache.ts` 调`lectureOpenerPrompt` 时只传了**模块名**，
+ * 概念页正文与关键步骤**全都没进prompt** —— 于是模型不知道这一讲该讲几步、
+ * 每步是什么。实测后果：`platform-replica` 概念页声明了 5 个关键步骤
+ * （三板斧 + 龙骨），讲稿里**一个都没出现**，整节讲成了别的东西（任务分解）。
+ *
+ * 所以步骤骨架必须随讲稿一起送到模型，否则**内容错位无法靠重试解决**。
+ *
+ * 找不到该小节时返回空数组：概念页结构由 `detect-lecture-gaps` 的
+ * `prerequisite`/`blindSpot` 判据单独检出，不该在此静默降级成"没步骤"。
+ */
+function extractKeySteps(body: string): string[] {
+  const lines = body.split(/\r?\n/);
+  let inSteps = false;
+  const steps: string[] = [];
+  for (const line of lines) {
+    if (/^##\s/.test(line)) {
+      inSteps = /关键步骤|详细步骤/.test(line);
+      continue;
+    }
+    if (!inSteps) continue;
+    const m = /^###\s+(.+)$/.exec(line);
+    if (m !== null) {
+      steps.push(
+        m[1]
+          .trim()
+          .replace(/[（(].*?[)）]/g, "")
+          .trim(),
+      );
+    }
+  }
+  return steps;
 }
 
 /**
@@ -169,34 +236,46 @@ function sortByPrerequisites(pages: WikiPage[]): WikiPage[] {
 }
 
 /** 读取全部概念页并组装成教学模块列表（按依赖顺序）。 */
-export async function loadModules(): Promise<TeachingModule[]> {
+export const loadModules = cache(async (): Promise<TeachingModule[]> => {
   const pages = await listPages();
-  const concepts = pages.filter((page) => page.type === "concept");
+  const concepts = pages
+    .filter((page) => page.type === "concept")
+    .filter(
+      (page) =>
+        typeof page.frontmatter.id === "string" &&
+        page.frontmatter.id.length > 0,
+    );
 
+  let regularNo = 0;
   return sortByPrerequisites(concepts).map((page, order) => {
     const id = asString(page.frontmatter.id);
+    const isLanguageModule = id === "ts-basics";
+    if (!isLanguageModule) regularNo++;
     return {
       id,
       name: asString(page.frontmatter.name, id),
       summary: extractDefinition(page.body),
+      keySteps: extractKeySteps(page.body),
       difficulty: Number(page.frontmatter.difficulty ?? 0),
       estimatedTime: asString(page.frontmatter.estimated_time),
       tags: asStringArray(page.frontmatter.tags),
       prerequisites: asStringArray(page.frontmatter.prerequisites),
       sceneId: MODULE_SCENE_IDS[id] ?? null,
       order,
+      orderLabel: isLanguageModule ? "0" : `${regularNo}`,
       href: `/learn/${id}`,
+      taskType: QA_TASK_MODULES.has(id) ? "qa" : "code",
     };
   });
-}
+});
 
 /** 按 id 取单个模块；不存在时返回 undefined（由调用方决定是 404 还是兜底）。 */
-export async function findModule(
-  id: string,
-): Promise<TeachingModule | undefined> {
-  const modules = await loadModules();
-  return modules.find((teachingModule) => teachingModule.id === id);
-}
+export const findModule = cache(
+  async (id: string): Promise<TeachingModule | undefined> => {
+    const modules = await loadModules();
+    return modules.find((teachingModule) => teachingModule.id === id);
+  },
+);
 
 /** 难度 1~5 的固定档位数量，用于掌握度条等需要满量程的地方。 */
 export const MAX_DIFFICULTY = 5;

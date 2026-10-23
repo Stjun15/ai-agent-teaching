@@ -21,3 +21,5 @@
 import { register } from "node:module";
 
 register("./ts-resolver.mjs", import.meta.url);
+// TSX hooks: esbuild 转译 JSX → 纯 JS。与 path resolver 互不干扰。
+register("./tsx-loader-hook.mjs", import.meta.url);

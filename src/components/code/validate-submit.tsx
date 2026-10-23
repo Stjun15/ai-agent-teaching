@@ -26,9 +26,11 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, CircleCheck, Loader2 } from "lucide-react";
 
 import { CodeEditor } from "@/components/code/code-editor";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ApiError, apiPost } from "@/lib/client-api";
@@ -88,7 +90,19 @@ function normalizeIssue(
   };
 }
 
-export function ValidateSubmit({ moduleId }: { moduleId: string }) {
+export function ValidateSubmit({
+  moduleId,
+  redirectOnComplete = true,
+}: {
+  moduleId: string;
+  /**
+   * 提交成功后是否跳转该模块的 validate 步。通用七步的 imitate/validate
+   * 卡里用默认跳转；platform-replica 结算阶段内嵌本组件时关掉 —— 复刻
+   * 没有 validate 步（跳过去是 404），检验单就地展示。
+   */
+  redirectOnComplete?: boolean;
+}) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   // 兜底点评标记：store 的 ValidationResult 没有这个字段（那是库行的形状），
   // 放在组件 state 里，随结果一起交给面板做「这次分数不算数」的提示。
@@ -104,6 +118,12 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
 
     setSubmitting(true);
     store.beginValidation();
+
+    // 先跳转，API 调用在后台继续 —— store 是全局的，validate 页会读到结果。
+    if (redirectOnComplete) {
+      router.push(`/learn/${moduleId}/validate`);
+    }
+
     try {
       const studentId = currentStudentId();
       if (studentId === "") {
@@ -129,8 +149,6 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
         content: store.code,
       });
       setUsedFallback(result.usedFallback);
-      // 响应不含 id / createdAt（那是库行的字段），面板展示用不到，
-      // 按类型要求补上占位值 —— 不为此造第二份展示类型。
       useCodeStore.getState().resolveValidation({
         id: "",
         studentId,
@@ -151,12 +169,12 @@ export function ValidateSubmit({ moduleId }: { moduleId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [moduleId, submitting]);
+  }, [moduleId, submitting, router, redirectOnComplete]);
 
   return (
     <div className="flex flex-col gap-4">
       <CodeEditor onSubmit={handleSubmit} submitting={submitting} />
-      <ValidationReport usedFallback={usedFallback} />
+      <ValidationReport usedFallback={usedFallback} moduleId={moduleId} />
     </div>
   );
 }
@@ -176,7 +194,14 @@ function ValidatingNotice() {
 }
 
 /** 点评结果面板：状态（批改中 / 失败 / 结果）三分支。 */
-function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
+function ValidationReport({
+  usedFallback,
+  moduleId,
+}: {
+  usedFallback: boolean;
+  moduleId: string;
+}) {
+  const router = useRouter();
   const status = useCodeStore((state) => state.validationStatus);
   const result = useCodeStore((state) => state.validationResult);
   const error = useCodeStore((state) => state.validationError);
@@ -293,6 +318,36 @@ function ValidationReport({ usedFallback }: { usedFallback: boolean }) {
           </ul>
         </div>
       ) : null}
+
+      {result.totalScore > 90 ? (
+        <Button
+          onClick={() => router.push(`/learn/${moduleId}/visualize`)}
+          className="self-start"
+        >
+          演示代码执行过程
+        </Button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              const ta = document.querySelector(
+                'textarea[aria-label="代码编辑区"]',
+              );
+              if (ta instanceof HTMLElement) {
+                ta.scrollIntoView({ behavior: "smooth", block: "center" });
+                ta.focus();
+              }
+            }}
+          >
+            根据点评修改代码，重新提交
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            编辑器在上方，修改后点击“提交点评”即可再评一次
+          </span>
+        </div>
+      )}
     </div>
   );
 }

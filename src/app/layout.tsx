@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { AuthGate } from "@/components/auth/auth-gate";
+import { FloatingChatBot } from "@/components/chat/floating-bot";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { TopNav } from "@/components/layout/top-nav";
 import { StudentBootstrap } from "@/components/student/student-bootstrap";
 import { ThemeBootstrap } from "@/components/settings/theme-choice";
@@ -33,11 +36,31 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang={siteConfig.locale}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  if (window.location.pathname.startsWith("/auth")) return;
+  var token = localStorage.getItem("ai-teaching:authToken");
+  if (token && token.length > 0) return;
+  var path = window.location.pathname;
+  var dest = path === "/" ? "/auth" : "/auth?redirect=" + encodeURIComponent(path);
+  window.location.replace(dest);
+})();
+            `.trim(),
+          }}
+        />
+      </head>
       <body className="flex min-h-dvh flex-col antialiased">
         <ThemeBootstrap />
-        <StudentBootstrap />
-        <TopNav />
-        {children}
+        <AuthGate>
+          <StudentBootstrap />
+          <TopNav />
+          {children}
+          <SiteFooter />
+          <FloatingChatBot />
+        </AuthGate>
       </body>
     </html>
   );

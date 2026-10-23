@@ -9,8 +9,9 @@
  * 为什么引用要在模型回答**之前**发
  * --------------------------
  * 学生在等第一个 token 的这段时间里，界面是空的。引用来自本地 Wiki 检索
- * （毫秒级），完全可以先到 —— 学生先看到「本节参考了哪几页」，再看到答案。
- * 反过来（答完再补引用）等于把这段时间白扔掉。
+ * （关键词路毫秒级；混合路多一次 embedding 调用，约数百毫秒，且与
+ * prelude 的其它工作并行），完全可以先到 —— 学生先看到「本节参考了
+ * 哪几页」，再看到答案。反过来（答完再补引用）等于把这段时间白扔掉。
  *
  * ⚠️ 相关度 `relevance` 是**经验值**，不是概率
  * ------------------------------------
@@ -27,9 +28,8 @@
  * 若发现引用经常不相关，应先来调这两个常量，而不是怀疑检索坏了。
  */
 
-import { DEFAULT_TOP_K, query, type WikiHit } from "@/wiki";
-
 import type { SSEEvent } from "../sse-server";
+import { retrieveHybrid, type RetrievalMode } from "./rag-hybrid";
 
 /** 见文件头：归一化用的参考分。 */
 const REFERENCE_SCORE = 40;
@@ -64,35 +64,40 @@ function toRelevance(score: number): number {
   );
 }
 
-function toDraft(hit: WikiHit): CitationDraft {
-  return {
-    source: hit.path,
-    snippet: hit.excerpt,
-    relevance: toRelevance(hit.score),
-  };
-}
-
 /**
- * 检索与问题相关的 Wiki 页面。
+ * 检索与问题相关的 Wiki 页面（混合路：关键词 + 向量，RRF 融合）。
  *
- * 检索失败（页面缺失、frontmatter 不合法）时**返回空数组而不是抛错**：
- * 引用是锦上添花，不该因为它让整轮对话失败。调用方拿到空数组就直接不发事件。
+ * 检索永不抛错：向量路失败自动降级为纯关键词并打 `usedFallback`（见
+ * `rag-hybrid.ts` 文件头）；关键词路也失败则返回空数组 —— 引用是锦上添花，
+ * 不该因为它让整轮对话失败。调用方拿到空数组就直接不发事件。
+ *
+ * 需要区分「混合」还是「降级」的调用方用 `retrieveCitationsDetailed`；
+ * 本函数保留旧签名，供既有调用方与守卫测试使用。
  */
 export async function retrieveCitations(
   question: string,
   topK: number = DEFAULT_CITATION_COUNT,
 ): Promise<CitationDraft[]> {
-  try {
-    const result = await query(question, {
-      topK: Math.max(topK, DEFAULT_TOP_K),
-    });
-    return result.hits
-      .map(toDraft)
+  const { drafts } = await retrieveCitationsDetailed(question, topK);
+  return drafts;
+}
+
+export async function retrieveCitationsDetailed(
+  question: string,
+  topK: number = DEFAULT_CITATION_COUNT,
+): Promise<{
+  drafts: CitationDraft[];
+  mode: RetrievalMode;
+  usedFallback: boolean;
+}> {
+  const result = await retrieveHybrid(question, topK, toRelevance);
+  return {
+    drafts: result.drafts
       .filter((draft) => draft.relevance >= MIN_RELEVANCE)
-      .slice(0, topK);
-  } catch {
-    return [];
-  }
+      .slice(0, topK),
+    mode: result.mode,
+    usedFallback: result.usedFallback,
+  };
 }
 
 /** 把引用转成 SSE 事件，供 `runAgentLoop` 的 `preludeEvents` 使用。 */

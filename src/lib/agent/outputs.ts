@@ -170,10 +170,32 @@ export const ReviewerOutputSchema = z
     ),
     progress_note: z.string().optional(),
     next_action: z.enum(["retry", "pass", "lower_difficulty"]),
+    /**
+     * Skill 个性通过条件的判定结果。
+     *
+     * 此前 `isPassing` 只守得分 >= 75、is_correct、无严重错误三条共性。
+     * 四个 Skill 各自有一条额外的通过线（如 validate-prompt 要求
+     * 「角色定义维度 >= 60% 权重分」），但这些条件的维度名依赖模型措辞
+     * （"角色定义""角色设定"变体），代码直接匹配脆弱且不可复现。
+     *
+     * 因此把判定权交还给模型（它读的就是那份评分标准，最清楚自己给
+     * 每个维度的分数），此处只要求它显式声明结果 —— 代码守卫从
+     *"匹配维度名"降级为"检查模型是否做了这个判断"。
+     */
+    skill_condition_check: z
+      .object({
+        met: z.boolean(),
+        detail: z.string(),
+      })
+      .optional(),
   })
-  .refine((v) => checkDimensionWeights(v.dimensions).ok, {
-    message: "dimensions 的 weight 之和必须约等于 1（当前评分标准残缺）",
-  });
+  .refine(
+    (v) => {
+      const { ok } = checkDimensionWeights(v.dimensions);
+      return ok;
+    },
+    { message: "dimensions 的 weight 之和必须约等于 1（当前评分标准残缺）" },
+  );
 
 /** 点评 Agent 输出的类型。 */
 export type ReviewerOutput = z.infer<typeof ReviewerOutputSchema>;

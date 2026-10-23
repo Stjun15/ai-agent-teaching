@@ -41,7 +41,7 @@ interface HealthResponse {
  *
  * | 项 | 现状 | 为什么 |
  * |---|---|---|
- * | 模型 | 只能看，不能改 | 实际模型来自服务端环境变量（`ARK_TEXT_MODEL`）；没有任何路由接受 per-request 的模型参数，做一个改不了任何东西的下拉框就是「看着能用、点了没反应」 |
+ * | 模型 | 只能看，不能改 | 实际模型来自服务端环境变量（`DASHSCOPE_TEXT_MODEL`）；没有任何路由接受 per-request 的模型参数，做一个改不了任何东西的下拉框就是「看着能用、点了没反应」 |
  * | 界面语言 | 未接入 | 界面文案当前只有中文；`locale` 影响的是文案而非内容，接它要先把文案抽出来 |
  * | 语音输入 | 未接入 | 需要录音与转写链路，属 Phase 7 |
  *
@@ -143,7 +143,7 @@ export function SettingsView() {
           </dl>
         )}
         <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          改模型要改服务端的 <code>ARK_TEXT_MODEL</code> 环境变量并重启 ——
+          改模型要改服务端的 <code>DASHSCOPE_TEXT_MODEL</code> 环境变量并重启 ——
           本页不提供下拉框，因为没有路由接受按请求指定模型，
           那样的下拉框点了不会有任何变化。
         </p>

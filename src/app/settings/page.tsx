@@ -17,17 +17,19 @@ export const metadata: Metadata = {
 export default function SettingsPage() {
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
-      <header className="max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight">设置</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          只列出真实生效的设置项。还没接入的功能会明确标出来并说明原因 ——
-          一个点了没反应的开关比没有这个开关更让人困惑。
-        </p>
-      </header>
+      <section className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-10 sm:px-6">
+        <header className="max-w-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight">设置</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            只列出真实生效的设置项。还没接入的功能会明确标出来并说明原因 ——
+            一个点了没反应的开关比没有这个开关更让人困惑。
+          </p>
+        </header>
 
-      <div className="mt-8">
-        <SettingsView />
-      </div>
+        <div className="mt-8">
+          <SettingsView />
+        </div>
+      </section>
     </main>
   );
 }

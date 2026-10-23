@@ -60,8 +60,8 @@ Step 5: 出题 Agent 给变式练习，循环
 | Agent 底座 | piagentSDK |
 | 知识层 | LLM Wiki (`@zosmaai/pi-llm-wiki`) + 轻量 RAG |
 | 模型平台 | 火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`） |
-| 主模型（文本推理） | `deepseek-v4-flash-ga-260731`，读环境变量 `ARK_TEXT_MODEL` |
-| 多模态模型（视觉理解） | `doubao-seed-2-1-pro-260915`，读环境变量 `ARK_VISION_MODEL` |
+| 主模型（文本推理） | `deepseek-v4.1-flash`，读环境变量 `ARK_TEXT_MODEL` |
+| 多模态模型（视觉理解） | `deepseek-v4.1-flash`（同模原生多模态），读环境变量 `ARK_VISION_MODEL` |
 | 后端平台 | 腾讯云 CloudBase（PostgreSQL 版） |
 | 数据库（开发期） | SQLite + repository 抽象层 |
 | 数据库（部署） | CloudBase PostgreSQL |
@@ -168,6 +168,22 @@ git log --stat --oneline | grep -E ".env|node_modules"
 - 所有 Prompt 和 Skill 文件放在 `prompts/` 目录。
 - 所有设计文档放在 `docs/` 目录。
 - Git 提交用 Conventional Commits。
+
+## 实现备注（与初版设计的已知差异）
+
+本文件是 2026-09 初版设计，落地时有多处与实现不一致，评审可能据此提问，统一说明：
+
+| 设计写 | 实际实现 | 说明 |
+|---|---|---|
+| Agent 底座 `piagentSDK`（:5 / :60） | `@earendil-works/pi-coding-agent@0.85.1` | 已跑通，能力等价 |
+| 前端 `Next.js 14+`（:51） | `Next.js 16.3.5` | 仅版本号演进 |
+| `9 个教学模块`（:161） | 11 个 | 模块随内容拆分调整 |
+| **预设 5 个工具**（:162） | **仅 1 个 `calculator`** | 见下，有意裁剪 |
+| （未提及）模拟学生 Agent | 离线「课程质量审计工具」 | 见下，定位裁定 |
+
+**预设工具只做 1 个是有意决策，不是遗漏。** 依据第一原则「不训练这些能力的功能，不做」（:20）：天气 / 文件读写 / 网络搜索 / 数据库查询四类工具，都不属于「意图表达、任务分解、上下文管理、质量判断、迭代调优」这六项 AI 协作能力，故未实现。若后续某模块要训练「让 Agent 调外部工具」的能力，再补对应工具。
+
+**模拟学生 Agent 定位 = 离线课程质量审计工具（非产品功能）。** `src/lib/agent/student/`（screen-describer / action-executor / comprehension-verifier）与 `scripts/student-agent/` 用子智能体模拟零基础学生走查课程、抓教学缺陷，是「用 Agent 审计 Agent 教学内容」的能力体现。产品用户是真·学生，模拟学生不接入产品运行时。
 
 ## 当前阶段
 见 `06-execution-plan.md`。

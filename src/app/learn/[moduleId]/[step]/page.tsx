@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
+import { RefreshOnMount } from "@/components/learn/refresh-on-mount";
 import { isStepType, LEARNING_STEPS } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
+import { readDemoCode } from "@/lib/teaching-script";
 
 interface ModuleStepPageProps {
   params: Promise<{ moduleId: string; step: string }>;
@@ -19,16 +21,21 @@ interface ModuleStepPageProps {
  * 非法的 step 一律 404，不做「静默回退到第一步」：URL 写错却看起来正常，
  * 会让人以为自己的操作生效了。step 取值的权威是 `data-models.md` 的 `StepType`
  * （7 个取值），`LEARNING_STEPS` 是它的界面映射，并在编译期与之双向钉死。
+ *
+ * **platform-replica 例外**：不是学概念，是做项目，没有七步教学法。
+ * 访问 `/learn/platform-replica/xxx` 一律重定向到专属页。
  */
 
 export async function generateStaticParams() {
   const modules = await loadModules();
-  return modules.flatMap((teachingModule) =>
-    LEARNING_STEPS.map((step) => ({
-      moduleId: teachingModule.id,
-      step: step.id,
-    })),
-  );
+  return modules
+    .filter((m) => m.id !== "platform-replica")
+    .flatMap((teachingModule) =>
+      LEARNING_STEPS.map((step) => ({
+        moduleId: teachingModule.id,
+        step: step.id,
+      })),
+    );
 }
 
 export async function generateMetadata({
@@ -53,11 +60,21 @@ export default async function ModuleStepPage({ params }: ModuleStepPageProps) {
 
   if (!teachingModule || !isStepType(step)) notFound();
 
+  if (moduleId === "platform-replica") {
+    redirect("/learn/platform-replica");
+  }
+
+  const demoCode = step === "observe" ? readDemoCode(moduleId) : "";
+
   return (
-    <ModuleWorkspace
-      teachingModule={teachingModule}
-      allModules={allModules}
-      currentStepId={step}
-    />
+    <>
+      <RefreshOnMount moduleId={moduleId} />
+      <ModuleWorkspace
+        teachingModule={teachingModule}
+        allModules={allModules}
+        currentStepId={step}
+        demoCode={demoCode}
+      />
+    </>
   );
 }

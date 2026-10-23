@@ -19,6 +19,8 @@
  * 两道防线都失效时，宁可少给一道题也不给重题 —— 重复练习对掌握度没有增量。
  */
 
+import { readPageSync } from "@/wiki";
+import { selectSections } from "@/lib/teaching-script";
 import { examinerFallback } from "../fallback";
 import type { ExaminerOutput } from "../outputs";
 import { runAgent } from "../runtime";
@@ -88,6 +90,23 @@ export async function runQuestionLoop(
     trace,
   } = input;
 
+  // 读概念页，提取核心教学内容，作为出题范围约束。
+  // 不传全文（浪费 token）：只取定义、关键点、常见误解三段 ——
+  // 这三段足以让模型知道「这门课教了什么边界」。
+  let moduleContext = "";
+  try {
+    const page = readPageSync(`concepts/${moduleId}.md`);
+    const sections = selectSections(page.body, [
+      "definition",
+      "keyPoints",
+      "misconceptions",
+    ]);
+    moduleContext = sections.join("\n\n");
+  } catch {
+    // 页面不存在时静默降级：出题 Agent 的 prompt 里 module_context 为空，
+    // 其约束条款要求它此时诚实声明而非编造题目。
+  }
+
   const result = await runAgent({
     agent: "examiner",
     skill: "generate-question",
@@ -98,6 +117,7 @@ export async function runQuestionLoop(
       count,
       // 把已有题干原文交给模型：让它自己先避开，比事后剔除更省 token。
       existing_questions: existingQuestions,
+      module_context: moduleContext,
     },
     ...(maxRetries === undefined ? {} : { maxRetries }),
     fallback: examinerFallback,

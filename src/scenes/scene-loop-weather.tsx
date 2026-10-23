@@ -63,8 +63,8 @@ export function SceneLoopWeather({
     <div className="flex flex-col gap-2">
       <SceneFrame label="Agent Loop 天气查询" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="text-[10px] text-muted-foreground">用户输入</p>
-          <p className="mt-0.5 text-xs">{city.value}今天天气怎么样？</p>
+          <p className="text-sm text-muted-foreground">用户输入</p>
+          <p className="mt-0.5 text-sm">{city.value}今天天气怎么样？</p>
         </div>
 
         <LoopBox
@@ -101,8 +101,8 @@ export function SceneLoopWeather({
         >
           {reached(4) ? <Thought text="我拿到数据了，可以回答" /> : <Waiting />}
           {reached(5) ? (
-            <div className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-xs dark:border-emerald-900 dark:bg-emerald-950/40">
-              <p className="text-[10px] text-muted-foreground">最终回复</p>
+            <div className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-2 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+              <p className="text-sm text-muted-foreground">最终回复</p>
               <p className="mt-1 leading-relaxed">
                 <Typewriter text={answer} />
               </p>
@@ -121,7 +121,7 @@ export function SceneLoopWeather({
           }))}
           onChange={(value) => setParam("city", value)}
         />
-        <p className="max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
           换一座城市，工具返回与最终回答会一起变 ——
           回答里的气温是从工具返回里取来的，不是模型自己记得的。
         </p>
@@ -152,8 +152,8 @@ function LoopBox({
           : "border-border bg-card/60 opacity-70",
       )}
     >
-      <p className="flex flex-wrap items-center gap-2 text-xs font-medium">
-        <span className="rounded bg-foreground px-1.5 py-0.5 text-[10px] text-background">
+      <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+        <span className="rounded bg-foreground px-1.5 py-0.5 text-sm text-background">
           Loop {index}
         </span>
         <span className="font-normal text-muted-foreground">{holdings}</span>
@@ -166,7 +166,7 @@ function LoopBox({
 /** 思考气泡。 */
 function Thought({ text }: { text: string }) {
   return (
-    <p className="flex items-start gap-1.5 rounded-md bg-muted/60 px-2 py-1.5 text-[11px] leading-relaxed">
+    <p className="flex items-start gap-1.5 rounded-md bg-muted/60 px-2 py-1.5 text-sm leading-relaxed">
       <MessageSquareQuote className="mt-0.5 size-3.5 shrink-0" />
       <span>{text}</span>
     </p>
@@ -175,5 +175,5 @@ function Thought({ text }: { text: string }) {
 
 /** 这一轮还没轮到时的一句话，避免盒子看起来「坏了」。 */
 function Waiting() {
-  return <p className="text-[11px] text-muted-foreground">还没轮到这里。</p>;
+  return <p className="text-sm text-muted-foreground">还没轮到这里。</p>;
 }

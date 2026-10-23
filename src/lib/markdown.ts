@@ -429,3 +429,77 @@ export function parseMarkdown(source: string): MarkdownBlock[] {
 
   return blocks;
 }
+
+// ---------------------------------------------------------------------------
+// 代码块 / 散文分段
+// ---------------------------------------------------------------------------
+
+/** 示范代码面板的一段：散文原文，或一个代码块。 */
+export type DocSegment =
+  | { kind: "prose"; source: string }
+  | { kind: "code"; language: string | null; value: string; ordinal: number };
+
+/**
+ * 把一段 Markdown 切成「散文段 / 代码段」交替的序列，代码段带序号。
+ *
+ * 为什么不用 `parseMarkdown` 再拼回去
+ * ----------------------------------
+ * `parseMarkdown` 产出的是结构化 token（段落/标题/列表…），从中还原
+ * Markdown 原文是有损的 —— 列表层级、引用嵌套、软换行都可能变形。
+ * 而本函数的使用场景（示范代码面板）需要**原样**渲染散文：那里的内容
+ * 正是给学生看的说明与类比，转述不得。
+ *
+ * 所以这里走行级切分，散文按原文保留，只把围栏块抽出来。
+ * 围栏判定复用 `parseMarkdown` 同一套正则，两处不会漂移。
+ *
+ * 用途背景：2026-10-07 扇出审计发现概念页「## 示范代码」小节里的
+ * 说明与类比被观察面板整段丢弃（8/10 讲命中）。
+ */
+export function segmentByCode(source: string): DocSegment[] {
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const segments: DocSegment[] = [];
+  let prose: string[] = [];
+  let ordinal = 0;
+  let i = 0;
+
+  const flushProse = (): void => {
+    // 丢掉纯空白的散文段，避免渲染出一堆空 margin。
+    const text = prose.join("\n").trim();
+    if (text !== "") segments.push({ kind: "prose", source: text });
+    prose = [];
+  };
+
+  while (i < lines.length) {
+    const fence = FENCE.exec(lines[i]);
+    if (fence === null) {
+      prose.push(lines[i]);
+      i += 1;
+      continue;
+    }
+
+    const marker = fence[1];
+    const body: string[] = [];
+    i += 1;
+    while (i < lines.length) {
+      const closing = FENCE_CLOSE.exec(lines[i]);
+      // 关闭围栏必须与开围栏同种字符（``` 不能用 ~~~ 关）。
+      if (closing !== null && closing[1].startsWith(marker.charAt(0))) {
+        i += 1;
+        break;
+      }
+      body.push(lines[i]);
+      i += 1;
+    }
+
+    flushProse();
+    segments.push({
+      kind: "code",
+      language: fence[2] === "" ? null : fence[2],
+      value: body.join("\n"),
+      ordinal: (ordinal += 1),
+    });
+  }
+
+  flushProse();
+  return segments;
+}

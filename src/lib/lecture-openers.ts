@@ -16,33 +16,48 @@
  */
 
 import type { LectureCacheStep } from "@/lib/db";
+import type { Expect } from "@/lib/type-assert";
 
-/** 允许自动开场（缓存或实时生成）的步骤。 */
-export const AUTO_LECTURE_STEPS = ["explain", "observe"] as const;
+/** 允许自动开场（缓存或实时生成）的步骤。2026-09-25 去掉 observe：示范代码改为从 wiki 页面直读，不走 LLM。 */
+export const AUTO_LECTURE_STEPS = ["explain"] as const;
 
 export type AutoLectureStep = (typeof AUTO_LECTURE_STEPS)[number];
 
-/** 编译期钉子：白名单必须是讲稿缓存表支持的两个步骤，不多不少。 */
-import type { Expect } from "@/lib/type-assert";
-
-type _Missing = Exclude<LectureCacheStep, AutoLectureStep>;
+/**
+ * 编译期提醒：`AUTO_LECTURE_STEPS` 的值必须都是 `LectureCacheStep` 的子集，
+ * 不能出现缓存表不支持却要自动开场的步骤。
+ */
 type _Extra = Exclude<AutoLectureStep, LectureCacheStep>;
-export type __AssertStepsAligned = Expect<
-  _Missing extends never ? (_Extra extends never ? true : false) : false
->;
+export type __AssertStepsAligned = Expect<_Extra extends never ? true : false>;
 
 /**
  * 按步骤取开场词。
  *
  * `explain` / `observe` 的措辞与 2026-09-19 首版（内联在 workspace 里）逐字
  * 一致 —— 改词等于换缓存键，必须同步重跑预生成脚本，所以不要随手润色。
+ *
+ * ⚠️ `keySteps` 是2026-10-08 新增的**步骤骨架注入**（措辞未变，只是多了这一段）：
+ * 此前 prompt 只传模块名，模型不知道这一讲该讲几步、每步是什么。实测后果：
+ * `platform-replica` 概念页声明 5 个关键步骤，讲稿里一个都没出现，整节讲成了
+ * 「任务分解」——**这不是重试能解决的问题，必须把骨架送进 prompt**。
+ *
+ * 传入空数组时行为与旧版逐字一致（不改变已有缓存键的语义，且空骨架不该
+ * 让prompt 变形）。
  */
 export function lectureOpenerPrompt(
   step: AutoLectureStep,
   moduleName: string,
+  keySteps: readonly string[] = [],
 ): string {
+  const skeleton =
+    keySteps.length === 0
+      ? ""
+      : `\n\n这一讲必须覆盖以下 ${keySteps.length} 个关键步骤，` +
+        `**每个步骤都要单独讲清楚（叫什么、做什么、怎么验收）**：\n` +
+        keySteps.map((s, i) => `${i + 1}. ${s}`).join("\n") +
+        `\n\n不要用别的结构替代这些步骤。`;
   if (step === "explain") {
-    return `请开始讲解「${moduleName}」这一讲的核心概念。`;
+    return `请开始讲解「${moduleName}」这一讲的核心概念。${skeleton}`;
   }
-  return `请给我看一个「${moduleName}」的完整示范：一段写得好的示例（Prompt 或代码），并逐段说明它为什么好、每个部分在起什么作用。`;
+  return `请给我看一个「${moduleName}」的完整示范：一段写得好的示例（Prompt 或代码），并逐段说明它为什么好、每个部分在起什么作用。${skeleton}`;
 }

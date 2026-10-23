@@ -1,13 +1,15 @@
 /**
- * 火山方舟（Volcengine Ark）模型 Provider
+ * LLM 模型 Provider — 火山方舟（Volcengine Ark）
  *
  * 设计依据
  * --------
- * `00-MASTER.md` 技术栈表：
- *   - 模型平台 = 火山方舟 Ark（OpenAI 兼容端点 `/api/v3`）
+ * 方舟提供 OpenAI 兼容端点：
+ *   - 平台 = 火山方舟 Volcengine Ark（OpenAI 兼容端点 `/api/v3`）
  *   - 主模型（文本推理）`deepseek-v4-flash-ga-260731`，读环境变量 `ARK_TEXT_MODEL`
  *   - 多模态模型（视觉理解）`doubao-seed-2-1-pro-260915`，读环境变量 `ARK_VISION_MODEL`
- * `00-MASTER.md` 约束：「API 密钥绝不进仓库，走环境变量」。
+ *
+ * ⚠️ 模型名与端点均以 `ark-config.ts` 的默认值为准。
+ * 约束：「API 密钥绝不进仓库，走环境变量」。
  *
  * 为什么不用 `models.json`
  * -----------------------
@@ -25,11 +27,11 @@
  *    空实现把「密钥不落盘」从**偶然成立**变成**结构保证**。
  * 3. `modelsPath: null` 切断对 `~/.pi/agent/models.json` 的读取，provider 完全由本文件声明。
  *
- * ⚠️ provider id 必须是 `ark`
+ * ⚠️ provider id 仍为 `ark`
  * -------------------------
- * SDK 由 provider id 推导环境变量名（`ark` → `ARK_API_KEY`）。改名会导致密钥解析不到，
- * 且表现为「模型存在但不可用」，不易排查。实测 `getProviderAuthStatus("ark")` 返回
- * `{ configured: true, source: "environment", label: "ARK_API_KEY" }`。
+ * 内部标识保持 `ark` 不变——改名会导致大面积重构且无功能收益。SDK 用 provider id 推导
+ * 环境变量名（`ark` → `ARK_API_KEY`），但我们**不依赖这个推导**：`apiKey` 显式传
+ * `$ARK_API_KEY`，SDK 优先使用它。
  *
  * ⚠️ 仅服务端可用
  * -------------
@@ -57,6 +59,8 @@ import {
   ARK_DEFAULT_TEXT_MODEL,
   ARK_DEFAULT_VISION_MODEL,
   ARK_PROVIDER_ID,
+  TEXT_MAX_TOKENS,
+  VISION_MAX_TOKENS,
   assertArkApiKey,
   readArkSettings,
   type ArkEnv,
@@ -78,21 +82,25 @@ export {
 export type { ArkEnv, ArkSettings };
 
 /**
- * 上下文窗口与最大输出 token 的保守取值。
+ * 上下文窗口与最大输出 token。
  *
- * 这两个数字**不参与请求构造**，只影响 pi 内部的上下文占用估算与自动压缩阈值，
- * 因此取保守值（宁可早压缩，也不要超出真实窗口）。待方舟控制台确认实际参数后对齐。
+ * `contextWindow` 只影响 pi 内部的上下文占用估算与自动压缩阈值，取保守值。
+ * `maxTokens` **参与请求构造**（传入 `max_tokens`），与模型实际输出上限一致。
+ *
+ * DeepSeek V4 Flash（方舟）：上下文 128K，输出上限按方舟文档取 16K。
+ *
+ * ⚠️ 上限常量本身定义在 `ark-config.ts`（纯逻辑、不 import SDK），这里只转出：
+ * `generate-lecture-cache.ts` 的截断守卫要用它，而那个脚本不该为了一个数字
+ * 把整个 pi-coding-agent 拖进来（理由见 ark-config 文件头）。
  */
 const TEXT_CONTEXT_WINDOW = 128_000;
-const TEXT_MAX_TOKENS = 8_192;
 const VISION_CONTEXT_WINDOW = 256_000;
-const VISION_MAX_TOKENS = 8_192;
 
 /**
- * 方舟计费单价（美元 / 百万 token）。
+ * 计费单价（美元 / 百万 token）。
  *
- * 暂全部取 0：本项目不依赖 pi 的成本统计，且单价会随方舟价格调整变化。
- * 保持 0 好过填一个会悄悄算错的数字——用途仅限于展示时，0 会明确显示为「未计费」。
+ * 暂全部取 0：本项目不依赖 pi 的成本统计。方舟模型
+ * 目前免费（500 次 / 5 小时），具体额度见平台控制台。
  */
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } as const;
 
@@ -121,12 +129,7 @@ export function buildArkProviderConfig(
 
   const text: ProviderModelConfig = {
     id: textModel,
-    name: "DeepSeek V4 Flash（方舟）",
-    // 声明为 false 的理由是「thinking 参数是否被支持尚未确认」，声明为 true 会让 pi
-    // 发出未经验证的思考参数（如 reasoning_effort / thinking.type）。
-    // 注意这不代表模型不思考：实测即使 `thinkingLevel: "off"`，方舟仍会流式返回
-    // `reasoning_content`，pi 也会照常把它转成 thinking 增量。也就是说思考是「附带的」，
-    // 关不掉也不需要额外参数。链路已能正常承载（见 loop.ts 的 thinking 事件映射）。
+    name: "DeepSeek V4 Flash（火山方舟）",
     reasoning: false,
     input: ["text"],
     cost: { ...ZERO_COST },
@@ -136,7 +139,7 @@ export function buildArkProviderConfig(
 
   const vision: ProviderModelConfig = {
     id: visionModel,
-    name: "Doubao Seed 2.1 Pro（方舟）",
+    name: "Doubao Seed 2.1 Pro（火山方舟）",
     reasoning: false,
     input: ["text", "image"],
     cost: { ...ZERO_COST },
@@ -145,9 +148,9 @@ export function buildArkProviderConfig(
   };
 
   return {
-    name: "Volcengine Ark",
+    name: "Ark",
     baseUrl,
-    // 方舟走 OpenAI 兼容协议，用 openai-completions 即可，无需自定义 streamSimple
+    // 方舟走 OpenAI 兼容协议，用 openai-completions 即可
     api: "openai-completions",
     // 传引用不传值：请求时由 SDK 从 process.env 解析，密钥不会出现在本对象中
     apiKey: `$${ARK_API_KEY_ENV}`,
@@ -190,28 +193,57 @@ export async function createArkModelRuntime(
 }
 
 /**
+ * ModelRuntime 单例缓存。
+ *
+ * 为什么需要缓存
+ * -------------
+ * 首 token 延迟实测瓶颈之一是 `ModelRuntime.create()` + `registerProvider()`，
+ * 每次请求各做一遍浪费启动时间。环境变量在进程运行期不变，ModelRuntime 内部
+ * 也不持任何请求级状态，因此一份单例可跨请求复用。只在模型名变更（`ARK_TEXT_MODEL` /
+ * `ARK_VISION_MODEL` 中途换过）时才重建。
+ */
+let cachedArkModels: Promise<ArkModels> | undefined;
+
+/**
  * 创建运行时并解析出两个模型。解析失败即抛错——模型名写错时应当立刻暴露，
  * 而不是等到第一次请求才报 404。
+ *
+ * 首次调用走完整的 `ModelRuntime.create()` + `registerProvider()`；
+ * 后续调用复用缓存的运行时（按模型名做 key，模型名不变就不重建）。
  */
 export async function createArkModels(
   env: ArkEnv = process.env,
 ): Promise<ArkModels> {
-  const modelRuntime = await createArkModelRuntime(env);
   const { textModel, visionModel } = readArkSettings(env);
+  const cacheKey = `${textModel}|${visionModel}`;
 
-  const text = modelRuntime.getModel(ARK_PROVIDER_ID, textModel);
-  if (!text) {
-    throw new Error(
-      `方舟主模型 ${textModel} 注册后无法解析，请检查 ARK_TEXT_MODEL 的值。`,
-    );
+  if (cachedArkModels && cacheKey === createArkModels._cacheKey) {
+    return cachedArkModels;
   }
 
-  const vision = modelRuntime.getModel(ARK_PROVIDER_ID, visionModel);
-  if (!vision) {
-    throw new Error(
-      `方舟多模态模型 ${visionModel} 注册后无法解析，请检查 ARK_VISION_MODEL 的值。`,
-    );
-  }
+  cachedArkModels = (async (): Promise<ArkModels> => {
+    const modelRuntime = await createArkModelRuntime(env);
 
-  return { modelRuntime, text, vision };
+    const text = modelRuntime.getModel(ARK_PROVIDER_ID, textModel);
+    if (!text) {
+      throw new Error(
+        `方舟主模型 ${textModel} 注册后无法解析，请检查 ARK_TEXT_MODEL 的值。`,
+      );
+    }
+
+    const vision = modelRuntime.getModel(ARK_PROVIDER_ID, visionModel);
+    if (!vision) {
+      throw new Error(
+        `方舟视觉模型 ${visionModel} 注册后无法解析，请检查 ARK_VISION_MODEL 的值。`,
+      );
+    }
+
+    return { modelRuntime, text, vision };
+  })();
+
+  createArkModels._cacheKey = cacheKey;
+  return cachedArkModels;
 }
+
+/** 只在模块闭包内使用；TS 不关心。 */
+createArkModels._cacheKey = "";

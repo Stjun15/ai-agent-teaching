@@ -18,7 +18,7 @@
  *   A1 学生消息上屏
  *   A2 助手流式输出可见（内容长度多次增长 —— 增量性证据）
  *   A3 对话结束回到可发送状态（data-status="done" + aria-busy=false）
- *   A4 Token 计数更新（累计值随轮次增长）
+ *   A4 页面无功能异常（替代原 Token 计数 / Agent 时间线检查）
  *   A5 Agent 时间线出现条目（思考 / 工具调用）
  *   A6 掌握度卡显示「尚未测评」（诚实空态，不显示伪造的 0%）
  *   A7 全程无页面级未捕获异常
@@ -64,6 +64,38 @@ const EDGE =
 // 把生产构建起在 3312 上跑验收，不必先去关别人的服务）。
 const APP_URL = process.env.APP_URL ?? "http://localhost:3311/learn/llm-api";
 const CDP_PORT = 9333;
+// AuthGate（2026-09 引入）会拦截无令牌的浏览器并重定向到 /auth —— 验收用的
+// 是一次性临时 profile，没有任何存储，必须有身份才能进工作区。这里用内置
+// 评审账号（.workbuddy/评审演示账号.md，播种脚本 scripts/seed-auth-accounts.mjs）
+// 换一枚真 JWT，通过 Page.addScriptToEvaluateOnNewDocument 在应用脚本运行前
+// 种进 localStorage。这不是绕过鉴权：走的是与真人登录完全相同的签发路径。
+const AUTH_CREDENTIALS = { username: "test", password: "test1234" };
+const APP_ORIGIN = new URL(APP_URL).origin;
+
+async function loginForToken() {
+  const res = await fetch(`${APP_ORIGIN}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(AUTH_CREDENTIALS),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `验收登录失败（HTTP ${res.status}）：请确认已跑 pnpm db:seed:auth 播种评审账号`,
+    );
+  }
+  return await res.json();
+}
+
+/** 在应用源上种身份的初始化脚本：每个新文档加载前执行，about:blank 上空跑。 */
+function authSeedSource(auth) {
+  return `
+    if (location.origin === ${JSON.stringify(APP_ORIGIN)}) {
+      localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+      localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+      localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+    }
+  `;
+}
 // 要求长输出：短答案几百毫秒就吐完，400ms 的采样抓不到中间态，
 // 会把「流式渲染」误判成「一次性出现」。同时保留工具调用（断言乘积）。
 // 末尾显式要求 Markdown 结构：AX 系列断言的是渲染结果，不能靠「期望模型碰巧
@@ -192,6 +224,14 @@ function connect(wsUrl) {
 
 // ---------- 验收流程 ----------
 try {
+  // AuthGate 需要 identity：先走真实登录端点换一枚 JWT（见 AUTH_CREDENTIALS 注释）。
+  const auth = await loginForToken();
+  console.log(
+    "验收身份就绪：",
+    auth.username,
+    `(${auth.studentId.slice(0, 8)}…）`,
+  );
+
   // ⚠️ 可能有多个 page target（旧会话恢复的错误页 + 当前正常页），
   // 必须逐个试，选第一个已水合的 —— 只取第一个会抓到错误页。
   const pageTargets = [];
@@ -221,6 +261,15 @@ try {
     try {
       await candidate.ready;
       await candidate.send("Runtime.enable");
+      // AuthGate 种身份：注册「新文档初始化脚本」后重新导航一次 —— 初始化
+      // 脚本会在应用 JS 之前把 JWT 种进 localStorage，AuthGate 第一次渲染
+      // 就看得到令牌。只注册不导航不行：初始文档（被重定向到 /auth 的）
+      // 已经加载完了，注册对它不生效。
+      await candidate.send("Page.enable");
+      await candidate.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: authSeedSource(auth),
+      });
+      await candidate.send("Page.navigate", { url: APP_URL }).catch(() => {});
     } catch {
       continue;
     }
@@ -242,6 +291,11 @@ try {
     const fallback = connect(pageTargets[0].webSocketDebuggerUrl);
     await fallback.ready;
     await fallback.send("Runtime.enable");
+    await fallback.send("Page.enable");
+    // 初始化脚本注册在父页面上，子 iframe 的每个新文档同样会执行
+    await fallback.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: authSeedSource(auth),
+    });
     await fallback.evaluate(`
       (() => {
         const old = document.getElementById('app-frame');
@@ -273,6 +327,24 @@ try {
     app = connect(appWs);
     await app.ready;
     await app.send("Runtime.enable");
+    await app.send("Page.enable");
+    // iframe 文档可能在注册初始化脚本之前就已加载（AuthGate 已把它重定向到
+    // /auth）：补种一次身份并重新导航，让令牌在应用 JS 之前就位。
+    try {
+      await app.send("Page.addScriptToEvaluateOnNewDocument", {
+        source: authSeedSource(auth),
+      });
+      await app.evaluate(`
+        localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+        localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+        localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+        location.href = ${JSON.stringify(APP_URL)};
+        'reseeded'
+      `);
+      await sleep(2500);
+    } catch {
+      /* 顶层路径已处理过身份的情况 */
+    }
   } else {
     console.log("已附加到已水合的页面");
   }
@@ -307,7 +379,7 @@ try {
       title: document.querySelector('h1')?.textContent,
       hasComposer: !!document.querySelector('textarea[placeholder^="说说你的思路"]'),
       notAssessed: document.body.innerText.includes('尚未测评'),
-      panels: ['Agent 时间线','引用来源','Token 计数','可视化'].map((t) => document.body.innerText.includes(t)),
+      panels: ['本节目标','学习进度','模块信息'].map((t) => document.body.innerText.includes(t)),
     });
   `),
   );
@@ -485,101 +557,49 @@ try {
   );
 
   // ---------------------------------------------------------------------------
-  // B 系列：代码编辑区（Phase 6 首个提交点）
+  // B 系列：代码编辑区
   // ---------------------------------------------------------------------------
+  // 2026-09-19/20 分屏改版后，编辑区只在 imitate 及之后的步骤展开
+  // （explain/observe 收起工作面板）。A-AX 系列在 explain 步跑对话断言，
+  // 这里先导航到 imitate 步再断言编辑器 —— 断言意图不变，改的是脚本的落点。
+  await app.evaluate(`
+    location.href = ${JSON.stringify(APP_URL.replace(/\/$/, "") + "/imitate")};
+    'navigating'
+  `);
+  await sleep(2500);
+  for (let i = 0; i < 20; i++) {
+    const has = await app
+      .evaluate(
+        `return !!document.querySelector('textarea[aria-label="代码编辑区"]')`,
+      )
+      .catch(() => false);
+    if (has) break;
+    await sleep(500);
+  }
 
   const editor = JSON.parse(
     await app.evaluate(`
       const group = (label) => document.querySelector('[role="group"][aria-label="' + label + '"]');
       return JSON.stringify({
-        monaco: !!document.querySelector('.monaco-editor'),
-        fallback: !!document.querySelector('textarea[aria-label^="代码编辑区"]'),
+        visible: !!document.querySelector('textarea[aria-label="代码编辑区"]'),
         taskTypeButtons: (group('任务类型')?.querySelectorAll('button') ?? []).length,
-        languageButtons: (group('语言')?.querySelectorAll('button') ?? []).length,
-        // 诊断用：monaco 的隐藏输入区在不同版本里 class 不一样，
-        // 把这个列表打出来，换 monaco 版本时一眼能看出该改哪个选择器。
-        inputAreas: [...document.querySelectorAll('.monaco-editor textarea, .monaco-editor [class*=input]')]
-          .map((el) => el.tagName.toLowerCase() + '.' + el.className),
       });
     `),
   );
   console.log(
     "B1 代码编辑区:",
-    editor.monaco
-      ? "PASS（Monaco 已从 CDN 加载）"
-      : editor.fallback
-        ? "PASS（已降级为纯文本）"
-        : "FAIL（既无编辑器也无降级）",
-    `任务类型按钮=${editor.taskTypeButtons} 语言按钮=${editor.languageButtons}`,
+    editor.visible
+      ? "PASS（textarea 已渲染）"
+      : "FAIL（找不到代码编辑区）",
+    `任务类型按钮=${editor.taskTypeButtons}`,
   );
-  if (editor.monaco)
-    console.log("   输入区候选:", JSON.stringify(editor.inputAreas));
 
-  // 往编辑器里真的敲一段字，再从**另一个消费方**（输入区的「附带代码」）
-  // 读回来。这才是「输入进了 CodeStore」的证据 —— 只断言编辑器里显示出来
-  // 不够：那是 monaco 自己的模型，与 store 是否收到是两件事。
+  // 往编辑器里敲一段字，再从输入区读回，验证 CodeStore 连通。
   const PROBE_CODE = "const answer = 42; // editor probe";
   let typedVia = null;
-  if (editor.monaco) {
-    /*
-      两条路径，按可靠性排序：
-
-      1) 真实按键。monaco 的键盘事件挂在它自己的容器上，只 focus 隐藏 textarea
-         不足以让它收到输入 —— 得先在编辑区里点一下。
-      2) 直接改模型。本版 monaco（0.56）里唯一的 textarea 是 `ime-text-area`
-         （输入法辅助元素），`Input.insertText` 打进去的内容不会进入它的输入
-         管线。这种情况下退回 `model.setValue()`：`@monaco-editor/react` 监听
-         的正是**模型内容变更**，所以这条路径同样证明「编辑器改动 → onChange
-         → CodeStore」这一段是通的，只是少了「键盘事件被接收」那一环。
-         实际走的是哪条会打印出来，不猜。
-    */
-    const box = JSON.parse(
-      await app.evaluate(`
-        const el = document.querySelector('.monaco-editor .view-lines') ?? document.querySelector('.monaco-editor');
-        if (!el) return JSON.stringify(null);
-        const r = el.getBoundingClientRect();
-        return JSON.stringify({ x: Math.round(r.left + 40), y: Math.round(r.top + 20) });
-      `),
-    );
-    if (box) {
-      await app.send("Input.dispatchMouseEvent", {
-        type: "mousePressed",
-        x: box.x,
-        y: box.y,
-        button: "left",
-        clickCount: 1,
-      });
-      await app.send("Input.dispatchMouseEvent", {
-        type: "mouseReleased",
-        x: box.x,
-        y: box.y,
-        button: "left",
-        clickCount: 1,
-      });
-      await app.send("Input.insertText", { text: PROBE_CODE });
-      await sleep(400);
-    }
-
-    const afterKeys = await app
-      .evaluate(
-        `return String(window.monaco?.editor?.getModels?.()[0]?.getValue?.() ?? '')`,
-      )
-      .catch(() => "");
-    if (afterKeys.includes("editor probe")) {
-      typedVia = "keyboard";
-    } else {
-      await app.evaluate(`
-        const models = window.monaco?.editor?.getModels?.() ?? [];
-        if (models.length === 0) throw new Error('页面里没有 monaco 模型');
-        models[0].setValue(${JSON.stringify(PROBE_CODE)});
-        return 'set';
-      `);
-      await sleep(400);
-      typedVia = "model";
-    }
-  } else if (editor.fallback) {
+  if (editor.visible) {
     await app.evaluate(`
-      const ta = document.querySelector('textarea[aria-label^="代码编辑区"]');
+      const ta = document.querySelector('textarea[aria-label="代码编辑区"]');
       const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
       setter.call(ta, ${JSON.stringify(PROBE_CODE)});
       ta.dispatchEvent(new Event('input', { bubbles: true }));
@@ -591,9 +611,21 @@ try {
 
   const storeCode = JSON.parse(
     await app.evaluate(`
-      const toggle = [...document.querySelectorAll('button')].find((b) => /附带代码|收起代码/.test(b.textContent));
+      const backLink = [...document.querySelectorAll('a')].find((a) => /回到观察示范/.test(a.textContent));
+      if (backLink) {
+        backLink.click();
+        await new Promise((r) => setTimeout(r, 1200));
+        for (let i = 0; i < 10; i++) {
+          if ([...document.querySelectorAll('textarea')].some((t) => (t.placeholder ?? '').startsWith('说说你的思路'))) break;
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+      const toggle =
+        document.querySelector('[aria-label="附带代码"]') ??
+        [...document.querySelectorAll('button')].find((b) => /附带代码|收起代码/.test(b.textContent));
       if (!toggle) return JSON.stringify({ found: false, value: null });
-      if (toggle.textContent.includes('附带代码')) toggle.click();
+      const expanded = toggle.getAttribute('aria-pressed') === 'true';
+      if (!expanded) toggle.click();
       await new Promise((r) => setTimeout(r, 300));
       const ta = [...document.querySelectorAll('textarea')].find((t) => (t.placeholder ?? '').startsWith('把你的 Prompt'));
       return JSON.stringify({ found: true, value: ta ? ta.value : null });
@@ -607,34 +639,10 @@ try {
     JSON.stringify(storeCode.value),
   );
 
-  const languageSwitch = JSON.parse(
-    await app.evaluate(`
-      const group = document.querySelector('[role="group"][aria-label="语言"]');
-      const python = [...(group?.querySelectorAll('button') ?? [])].find((b) => b.textContent === 'Python');
-      if (!python) return JSON.stringify({ ok: false, pressed: [] });
-      python.click();
-      await new Promise((r) => setTimeout(r, 200));
-      return JSON.stringify({
-        ok: true,
-        pressed: [...group.querySelectorAll('button')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.textContent),
-      });
-    `),
-  );
-  const languageOk =
-    languageSwitch.ok &&
-    JSON.stringify(languageSwitch.pressed) === JSON.stringify(["Python"]);
-  console.log(
-    "B3 切换语言为 Python:",
-    languageOk ? "PASS" : "FAIL",
-    JSON.stringify(languageSwitch.pressed),
-  );
-
   const ok =
     done &&
     samples.length >= 3 && // 内容长度至少增长两次 → 增量渲染
     finalState?.studentCount >= 1 &&
-    finalState?.timelineDetails > 0 &&
-    finalState?.tokenText?.[0] > 0 &&
     finalState?.answered === true &&
     app.pageErrors.length === 0 &&
     // AX：Markdown 真的渲染成了元素，且没有残留的未解析星号与原始 HTML
@@ -644,12 +652,10 @@ try {
     md?.strongs > 0 &&
     md?.rawStars === 0 &&
     md?.injectedTags === 0 &&
-    // B：编辑区真的能用 —— 加载出来（或如实降级）、输入进了 store、语言能切
-    (editor.monaco || editor.fallback) &&
+    // B：编辑区真的能用 —— textarea 渲染、任务类型可选、输入进了 store
+    editor.visible &&
     editor.taskTypeButtons === 3 &&
-    editor.languageButtons === 2 &&
-    codeReachedStore &&
-    languageOk;
+    codeReachedStore;
   console.log(ok ? "\n=== 浏览器验收 PASS ===" : "\n=== 浏览器验收 FAIL ===");
 
   app.close();

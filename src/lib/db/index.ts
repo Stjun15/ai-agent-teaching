@@ -34,6 +34,12 @@ export { questionDb } from "./questions";
 export { lectureCacheDb } from "./lecture-cache";
 export type { LectureCacheEntry, LectureCacheStep } from "./lecture-cache";
 
+// 知识库向量索引（2026-09-30 混合检索）：运行期只读，写入仅限离线索引脚本，
+// 见 embeddings.ts 文件头。
+export { knowledgeEmbeddingDb } from "./embeddings";
+
+export type { KnowledgeChunk } from "./embeddings";
+
 // 健康检查。与 repository 一样走本出口，让路由不必碰 ./sqlite。
 export { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "./health";
 export type { DatabaseHealth } from "./health";

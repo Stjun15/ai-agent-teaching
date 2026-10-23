@@ -54,7 +54,7 @@ export function AuditLogPanel({
 }) {
   return (
     <div className="flex animate-in flex-col gap-1.5 rounded-md border border-dashed border-border p-2 duration-300 fade-in">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
         <FileText className="size-3.5" />
         审计日志
         <span className="font-normal text-muted-foreground">{note}</span>
@@ -64,7 +64,7 @@ export function AuditLogPanel({
           <p
             key={entry.text}
             className={cn(
-              "animate-in rounded border px-2 py-1 text-[10px] leading-relaxed fade-in",
+              "animate-in rounded border px-2 py-1 text-sm leading-relaxed fade-in",
               LEVEL[entry.level],
             )}
           >

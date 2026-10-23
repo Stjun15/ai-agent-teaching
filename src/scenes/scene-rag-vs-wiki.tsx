@@ -70,15 +70,15 @@ export function SceneRagVsWiki({
         >
           {showRag ? (
             <SceneColumn className="rounded-md border border-border bg-card p-2.5">
-              <p className="text-xs font-medium">
+              <p className="text-sm font-medium">
                 传统 RAG · 解释器模式{reached(0) ? "" : "（还没出现）"}
               </p>
               {reached(0) ? (
                 <>
-                  <p className="rounded border border-dashed border-border px-2 py-1 text-[11px] text-muted-foreground">
+                  <p className="rounded border border-dashed border-border px-2 py-1 text-sm text-muted-foreground">
                     第一次查询：从零检索 {documents} 份资料 → 现场拼 Prompt
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     第二次、第三次：一模一样，再把全部资料读一遍
                   </p>
                 </>
@@ -88,7 +88,7 @@ export function SceneRagVsWiki({
 
           {showWiki ? (
             <SceneColumn className="rounded-md border border-border bg-card p-2.5">
-              <p className="flex items-center gap-1.5 text-xs font-medium">
+              <p className="flex items-center gap-1.5 text-sm font-medium">
                 <GitBranch className="size-3.5" />
                 LLM Wiki · 编译器模式{reached(1) ? "" : "（还没出现）"}
               </p>
@@ -100,7 +100,7 @@ export function SceneRagVsWiki({
                       onClick={() => setParam("node", item.id)}
                       aria-pressed={item.id === selected}
                       className={cn(
-                        "flex items-center gap-1.5 rounded border px-2 py-1 text-left font-mono text-[11px] transition-colors",
+                        "flex items-center gap-1.5 rounded border px-2 py-1 text-left font-mono text-sm transition-colors",
                         item.id === selected
                           ? "border-ring bg-accent font-medium"
                           : "border-border text-muted-foreground hover:text-foreground",
@@ -121,7 +121,7 @@ export function SceneRagVsWiki({
               <div
                 key={dimension}
                 className={cn(
-                  "grid gap-2 rounded border border-border px-2 py-1 text-[11px]",
+                  "grid gap-2 rounded border border-border px-2 py-1 text-sm",
                   twoUp ? "sm:grid-cols-[5rem_1fr_1fr]" : "grid-cols-1",
                 )}
               >
@@ -137,12 +137,12 @@ export function SceneRagVsWiki({
 
         {reached(3) ? (
           <div className="flex animate-in flex-col gap-1.5 rounded-md border border-ring bg-accent/30 p-2 duration-300 fade-in">
-            <p className="text-[10px] font-medium">
+            <p className="text-sm font-medium">
               复利效应 · 每次查询要读多少（资料 {documents} 份）
             </p>
             <RatioBar label="RAG" ratio={documents / 100} />
             <RatioBar label="Wiki" ratio={0.06} />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               左边线性增长（每次全读一遍），右边恒定（读已编译的知识结构）。资料从
               1 份加到 100 份，左边涨 100 倍，右边不变 ——
               这就是「一次编译、持续复用」。
@@ -172,7 +172,7 @@ export function SceneRagVsWiki({
           onChange={(value) => setParam("view", value)}
         />
         <div className="min-w-[14rem] flex-1">
-          <p className="text-[11px] font-medium text-muted-foreground">
+          <p className="text-sm font-medium text-muted-foreground">
             点节点看它是哪一页
           </p>
           <MonoBlock tone="boxed">
@@ -187,7 +187,7 @@ export function SceneRagVsWiki({
 /** 比例条：宽度就是「每次查询要读多少」。 */
 function RatioBar({ label, ratio }: { label: string; ratio: number }) {
   return (
-    <div className="flex items-center gap-2 text-[10px]">
+    <div className="flex items-center gap-2 text-sm">
       <span className="w-9 shrink-0 font-mono">{label}</span>
       <span className="h-3 min-w-0 flex-1 overflow-hidden rounded bg-muted">
         <span

@@ -1,14 +1,12 @@
 "use client";
 
 /**
- * 任务类型 / 语言切换 —— 代码编辑区的工具栏
+ * 任务类型切换 —— 代码编辑区的工具栏
  *
  * 为什么单独成组件
  * --------------
- * 这两组开关**不碰编辑器的任何东西**：它们只往 CodeStore 写两个字段，
- * 而 monaco 是从 CDN 加载的重组件。拆开之后，工具栏在编辑器还没加载出来
- * 时就已经可用了 —— 学生进页面先看到的是「能点的开关 + 一块占位」，
- * 而不是整片空白。
+ * 工具栏不碰编辑器的任何东西：只往 CodeStore 写任务类型字段。
+ * 拆开之后，工具栏在页面加载时就已经可用了。
  *
  * 为什么任务类型必须让学生自己选
  * ---------------------------
@@ -18,96 +16,59 @@
  * 这比多一次点击的代价大得多。
  */
 
-import { useCodeStore, type CodeLanguage, type TaskType } from "@/stores";
+import { useCodeStore, type TaskType } from "@/stores";
 import { cn } from "@/lib/utils";
 
-/** 任务类型的中文标签。键必须覆盖 `TaskType` 的全部取值。 */
 const TASK_TYPE_LABELS: Record<TaskType, string> = {
   prompt: "Prompt",
   tool: "工具描述",
   code: "代码",
 };
 
-/**
- * 语言标签。取值受 `api-spec.md` 限制，只有这两种。
- *
- * 这两个字符串同时也是 monaco 的语言 id，所以不需要另一张映射表 ——
- * 见 `monaco-surface.tsx` 里 `language` 的传法。
- */
-const LANGUAGE_LABELS: Record<CodeLanguage, string> = {
-  typescript: "TypeScript",
-  python: "Python",
-};
+const TASK_TYPE_OPTIONS = Object.keys(TASK_TYPE_LABELS) as TaskType[];
 
-/** 一组互斥的单选开关。两个 `role="group"` 里的结构相同，抽出来避免抄两遍。 */
-function Segmented<T extends string>({
-  label,
-  options,
-  value,
-  labels,
-  onChange,
-}: {
-  label: string;
-  options: readonly T[];
-  value: T;
-  labels: Record<T, string>;
-  onChange: (next: T) => void;
-}) {
+interface Props {
+  className?: string;
+}
+
+export function CodeToolbar({ className }: Props) {
+  const taskType = useCodeStore((state) => state.taskType);
+  const setTaskType = useCodeStore((state) => state.setTaskType);
+  const isCode = taskType === "code";
+
   return (
     <div
       role="group"
-      aria-label={label}
-      className="flex items-center gap-1 rounded-md border p-0.5"
+      aria-label="任务类型"
+      className={cn("flex items-center rounded-md border", className)}
     >
-      {options.map((option) => (
+      <span className="px-2 text-xs text-muted-foreground">类型</span>
+      {TASK_TYPE_OPTIONS.map((key) => (
         <button
-          key={option}
+          key={key}
           type="button"
-          onClick={() => onChange(option)}
-          aria-pressed={value === option}
+          aria-pressed={taskType === key}
+          onClick={() => setTaskType(key)}
           className={cn(
-            "rounded px-2 py-0.5 text-xs transition-colors",
-            value === option
+            "border-l px-3 py-1 text-xs transition-colors first:border-l-0",
+            taskType === key
               ? "bg-accent font-medium text-accent-foreground"
-              : "text-muted-foreground hover:text-foreground",
+              : "text-muted-foreground hover:bg-muted",
           )}
         >
-          {labels[option]}
+          {TASK_TYPE_LABELS[key]}
         </button>
       ))}
+      <span
+        className={cn(
+          "ml-2 border-l pl-2 text-xs transition-opacity",
+          isCode
+            ? "font-medium text-foreground"
+            : "text-muted-foreground opacity-40",
+        )}
+      >
+        TypeScript
+      </span>
     </div>
-  );
-}
-
-/**
- * 顺序固定为「任务类型在前、语言在后」：任务类型决定评分标准，是本栏里
- * 对学生影响最大的一个选择；语言只影响高亮与示例风格。
- */
-const TASK_TYPE_OPTIONS = Object.keys(TASK_TYPE_LABELS) as TaskType[];
-const LANGUAGE_OPTIONS = Object.keys(LANGUAGE_LABELS) as CodeLanguage[];
-
-export function CodeToolbar() {
-  const taskType = useCodeStore((state) => state.taskType);
-  const language = useCodeStore((state) => state.language);
-  const setTaskType = useCodeStore((state) => state.setTaskType);
-  const setLanguage = useCodeStore((state) => state.setLanguage);
-
-  return (
-    <>
-      <Segmented
-        label="任务类型"
-        options={TASK_TYPE_OPTIONS}
-        labels={TASK_TYPE_LABELS}
-        value={taskType}
-        onChange={setTaskType}
-      />
-      <Segmented
-        label="语言"
-        options={LANGUAGE_OPTIONS}
-        labels={LANGUAGE_LABELS}
-        value={language}
-        onChange={setLanguage}
-      />
-    </>
   );
 }

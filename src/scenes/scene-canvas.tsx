@@ -92,7 +92,7 @@ export function SceneFrame({
       <div className="flex min-h-[260px] flex-1 flex-col justify-center gap-3">
         {children}
       </div>
-      <p className="border-t border-border pt-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="border-t border-border pt-2 text-sm leading-relaxed text-muted-foreground">
         {caption}
       </p>
     </div>

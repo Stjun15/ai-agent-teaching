@@ -159,7 +159,12 @@ test("averageScore 不被 NULL 分数拉低", async () => {
 
 test("客观题评分结论不携带 review、不标兜底（错题只来自点评路径）", async () => {
   const assessment = await runAssessLoop({
-    question: { type: "选择题", correctAnswer: "A", explanation: "因为 A" },
+    question: {
+      type: "选择题",
+      text: "选出一项。",
+      correctAnswer: "A",
+      explanation: "因为 A",
+    },
     studentAnswer: "B",
     moduleId: "llm-api",
   });

@@ -60,10 +60,11 @@ export const errorDb = {
    * 写入一条错题（点评判为不通过时，见文件头「写入裁定」）。
    *
    * `question` 可空：`/api/agent/validate` 是学生自主提交，没有题面；
-   * `answer-grade` 从题库行带入。`is_corrected` / `variant_questions_generated` /
-   * `next_review_at` 固定写初始值 —— 订正与复习调度还没有实现路径，写假状态
+   * `answer-grade` 从题库行带入。`variant_questions_generated` /
+   * `next_review_at` 固定写初始值 —— 复习调度还没有实现路径，写假状态
    * 等于谎报。
-   */
+   *
+   * 订正路径：错题本页面提交订正答案 → `errorDb.markCorrected()`。 */
   async create(input: {
     studentId: string;
     moduleId: string;
@@ -107,6 +108,64 @@ export const errorDb = {
     return (rows as Row[]).map(mapError);
   },
 
+  /**
+   * 按模块筛选 + 分页的错题列表。
+   *
+   * moduleId 为空/null 时返回全量（所有模块）；offset/limit 做真正的
+   * 服务端分页 —— 错题表只增不减，不做分页时一次拖出几百行没必要。
+   */
+  async listByStudentFiltered(
+    studentId: string,
+    moduleId: string | null,
+    offset: number,
+    limit: number,
+  ): Promise<ErrorRecord[]> {
+    const where = moduleId
+      ? "WHERE student_id = ? AND module_id = ?"
+      : "WHERE student_id = ?";
+    const params: (string | number)[] = moduleId
+      ? [studentId, moduleId, limit, offset]
+      : [studentId, limit, offset];
+    const sql = `SELECT * FROM errors ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    const rows = getDb().prepare(sql).all(...params);
+    return (rows as Row[]).map(mapError);
+  },
+
+  /**
+   * 按模块筛选的错题总数（分页用）。
+   *
+   * moduleId 为空/null 时不筛选，返回该学生全部错题的总数。
+   */
+  async countByStudent(
+    studentId: string,
+    moduleId: string | null,
+  ): Promise<number> {
+    const where = moduleId
+      ? "WHERE student_id = ? AND module_id = ?"
+      : "WHERE student_id = ?";
+    const params: string[] = moduleId
+      ? [studentId, moduleId]
+      : [studentId];
+    const sql = `SELECT COUNT(*) as cnt FROM errors ${where}`;
+    const row = getDb().prepare(sql).get(...params) as Row | undefined;
+    return asNumber(row?.cnt ?? 0);
+  },
+
+  /**
+   * 某学生所有错题涉及的去重模块 id（下拉选项用）。
+   *
+   * 按模块名排序而不是按最近出错时间：下拉列表是给人选的，
+   * 稳定的字母序比「最近出错的模块飘在最上面」更容易定位。
+   */
+  async listDistinctModuleIds(studentId: string): Promise<string[]> {
+    const rows = getDb()
+      .prepare(
+        "SELECT DISTINCT module_id FROM errors WHERE student_id = ? ORDER BY module_id ASC",
+      )
+      .all(studentId);
+    return (rows as Row[]).map((row) => asString(row.module_id));
+  },
+
   /** 某学生**尚未订正**的错题。出题 Agent 优先出这些概念。 */
   async listUncorrected(studentId: string, limit = 20): Promise<ErrorRecord[]> {
     const rows = getDb()
@@ -125,5 +184,22 @@ export const errorDb = {
       )
       .all(studentId, limit);
     return (rows as Row[]).map((row) => asString(row.concept_id));
+  },
+
+  /** 将指定错题标记为已订正，同时保存订正后的答案。 */
+  markCorrected(id: string, correctedAnswer: string): void {
+    getDb()
+      .prepare(
+        "UPDATE errors SET is_corrected = 1, student_answer = ? WHERE id = ?",
+      )
+      .run(correctedAnswer, id);
+  },
+
+  /** 按 id 获取单条错题。 */
+  getById(id: string): ErrorRecord | null {
+    const row = getDb()
+      .prepare("SELECT * FROM errors WHERE id = ?")
+      .get(id) as Row | undefined;
+    return row ? mapError(row) : null;
   },
 };

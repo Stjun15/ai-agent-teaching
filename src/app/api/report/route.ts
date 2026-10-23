@@ -8,25 +8,30 @@
  * 从真实数据聚合一份学习报告：掌握度、错题、Prompt 历史、答题数。
  * 全部字段都来自数据库里**真实存在**的表，不编造。
  *
- * subAbilities 的处理（推断，需你知悉）
- * ------------------------------------
- * api-spec 的 subAbilities 列了 6 个分项能力（意图表达 / 任务分解 / 上下文管理 /
- * 质量判断 / 迭代优化 / 理解 AI）。本项目**没有把掌握度按这 6 项建模** ——
- * `mastery` 表是「概念 → 分数」，不是「能力 → 分数」。所以这里暂时用
- * 「总体平均掌握度」填充这 6 项，作为占位。等 Phase 6 把分项能力建模出来，
- * 只需替换这一段映射，其余聚合不动。前端拿到相同数值时应理解为「暂无分项数据」。
+ * subAbilities 的处理
+ * -------------------
+ * 六项能力不再用「总体平均掌握度」占位：`src/lib/sub-abilities.ts` 按
+ * `module-specs.md` 的「训练子能力」映射，把每个能力对应模块的真实掌握度
+ * 聚合成分数与样本数。没有证据的能力是 `null`（界面显示「未测评」），
+ * 不是 0 分 —— 0 分是一个测量结论，null 才是「没测」。
  */
 
 import { resolveStudent } from "@/lib/api-auth";
 import { jsonError } from "@/lib/api-error";
 import {
   errorDb,
+  learningPathDb,
   masteryDb,
   promptHistoryDb,
   questionResultDb,
 } from "@/lib/db";
 import { summarizeDimensions } from "@/lib/report-dimensions";
-import type { ReportResponse } from "@/schemas";
+import {
+  SUB_ABILITY_KEYS,
+  SUB_ABILITY_LABELS,
+  aggregateSubAbilities,
+} from "@/lib/sub-abilities";
+import type { ReportResponse, ReportSubAbilities } from "@/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,12 +48,14 @@ export async function GET(request: Request): Promise<Response> {
   const studentId = auth.student.id;
 
   try {
-    const [mastery, errors, prompts, totalQuestions] = await Promise.all([
-      masteryDb.get(studentId),
-      errorDb.listByStudent(studentId),
-      promptHistoryDb.listByStudent(studentId),
-      questionResultDb.countByStudent(studentId),
-    ]);
+    const [mastery, errors, prompts, totalQuestions, learningPath] =
+      await Promise.all([
+        masteryDb.get(studentId),
+        errorDb.listByStudent(studentId),
+        promptHistoryDb.listByStudent(studentId),
+        questionResultDb.countByStudent(studentId),
+        learningPathDb.get(studentId),
+      ]);
 
     const averageMastery = mastery.length
       ? round2(
@@ -66,15 +73,16 @@ export async function GET(request: Request): Promise<Response> {
         )
       : 0;
 
-    // 分项能力：暂无分维度建模，暂以总体平均掌握度近似（见文件头）。
-    const subAbilities = {
-      intentExpression: averageMastery,
-      taskDecomposition: averageMastery,
-      contextManagement: averageMastery,
-      qualityJudgment: averageMastery,
-      iterativeOptimization: averageMastery,
-      understandingAI: averageMastery,
-    };
+    // 分项能力：按「模块 → 能力」映射聚合真实掌握度（见文件头）。
+    const evidence = aggregateSubAbilities(mastery);
+    const subAbilities = Object.fromEntries(
+      SUB_ABILITY_KEYS.map((key) => [key, evidence[key].score]),
+    ) as ReportSubAbilities;
+    const subAbilityEvidence = SUB_ABILITY_KEYS.map((key) => ({
+      key,
+      label: SUB_ABILITY_LABELS[key],
+      ...evidence[key],
+    }));
 
     // 掌握度趋势：按日期聚合「当天平均分」。
     const byDate = new Map<string, { sum: number; count: number }>();
@@ -120,6 +128,12 @@ export async function GET(request: Request): Promise<Response> {
         )
       : ["保持当前节奏，继续完成下一模块的学习与练习。"];
 
+    // 路径调整：取最近 3 条，按日期降序（与 PathAdjustmentList 组件口径一致）
+    const adjustments = (learningPath?.adjustments ?? [])
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 3);
+
     // 返回体用 `ReportResponse` 标注：报告页消费的就是这个类型，
     // 字段名或层级写错会在这里编译报错，而不是变成页面上的一块空白。
     const payload: ReportResponse = {
@@ -130,10 +144,12 @@ export async function GET(request: Request): Promise<Response> {
         averagePromptScore,
       },
       subAbilities,
+      subAbilityEvidence,
       promptDimensions,
       masteryTrend,
       weaknesses,
       recommendations,
+      adjustments,
     };
 
     return Response.json(payload);

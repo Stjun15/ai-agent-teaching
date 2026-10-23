@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ModuleWorkspace } from "@/components/learn/module-workspace";
+import { PlatformReplicaWorkspace } from "@/components/learn/platform-replica-workspace";
 import { FIRST_STEP_ID } from "@/lib/learning-steps";
 import { findModule, loadModules } from "@/lib/modules";
 
@@ -14,6 +15,9 @@ interface ModulePageProps {
  *
  * 只做三件事：取模块 → 取全量模块（用于把前置依赖显示成名称）→ 交给工作区渲染。
  * 布局与分栏职责在 `ModuleWorkspace`，与 `/learn/[moduleId]/[step]` 共用一份。
+ *
+ * **platform-replica 例外**：不是学概念，是做项目。有自己专属的
+ * 「三板斧 + 一条龙骨」六阶段布局，不走通用七步教学法。
  *
  * 预渲染全部模块页：内容来自仓库里的 markdown，构建期就确定，
  * 没有理由让每次访问都去读一遍磁盘。
@@ -41,6 +45,15 @@ export default async function ModulePage({ params }: ModulePageProps) {
   ]);
 
   if (!teachingModule) notFound();
+
+  if (moduleId === "platform-replica") {
+    return (
+      <PlatformReplicaWorkspace
+        teachingModule={teachingModule}
+        allModules={allModules}
+      />
+    );
+  }
 
   return (
     <ModuleWorkspace

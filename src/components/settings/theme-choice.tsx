@@ -26,11 +26,9 @@ const OPTIONS: readonly { value: ThemeMode; label: string; hint: string }[] = [
  * 「跟随系统」是真实诉求，用布尔表达不了 —— 事后补第三态要改所有消费方，
  * 所以 `ThemeMode` 一开始就是三态（见 `stores/settings.ts`）。
  *
- * 设置页是 `applyTheme` 的第一个真实消费方
- * -------------------------------------
- * 在此之前 `applyTheme` 没有任何调用方：主题只被代码编辑器读去选 monaco 的
- * `vs` / `vs-dark`，而 `<html>` 上的 `dark` class 从来没被加上过。也就是说
- * 「深色模式」此前只是一半 —— 编辑器变深、界面仍是浅色。这里补上另一半。
+ * 设置页是 `applyTheme` 的消费方
+ * ---------------------------
+ * `<html>` 上的 `dark` class 由此处写入，全局 CSS 变量随之切换。
  *
  * 点击即生效，不经过 effect
  * ----------------------

@@ -56,11 +56,11 @@ export function SceneMcpFlow({
     <div className="flex flex-col gap-2">
       <SceneFrame label="MCP 调用流程" caption={caption}>
         <div className="rounded-md border border-border bg-background px-2.5 py-1.5">
-          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <Bot className="size-3" />
             Agent
           </p>
-          <p className="mt-0.5 text-xs">{INTENT}</p>
+          <p className="mt-0.5 text-sm">{INTENT}</p>
         </div>
 
         <SceneArrow
@@ -71,14 +71,14 @@ export function SceneMcpFlow({
 
         {reached(1) ? (
           <div className="flex animate-in flex-col gap-1.5 rounded-md border border-border bg-card px-2.5 py-2 duration-300 fade-in">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
               <Plug className="size-3.5" />
               MCP Client
               <span className="font-mono font-normal text-muted-foreground">
                 {server.name} · {server.url}
               </span>
             </p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               listTools() 拿到的工具 —— Agent 不必预先知道有什么可用
             </p>
             <SceneRow className="items-stretch">
@@ -103,7 +103,7 @@ export function SceneMcpFlow({
         ) : null}
 
         {reached(1) && stalled ? (
-          <p className="flex animate-in items-start gap-1.5 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-rose-900 duration-300 fade-in dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          <p className="flex animate-in items-start gap-1.5 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-sm leading-relaxed text-rose-900 duration-300 fade-in dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             描述为空，模型只能靠名字猜该不该用它 ——
             这个工具等于不存在。调用链在第二步就断了。
@@ -147,7 +147,7 @@ export function SceneMcpFlow({
 
         {reached(4) ? (
           <div className="flex animate-in flex-col gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-2 duration-300 fade-in dark:border-emerald-900 dark:bg-emerald-950/40">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               结果流回 Agent —— 它拿到的是内容，看不到中间经过了谁
             </span>
             <MonoBlock tone="boxed">{tool.result}</MonoBlock>

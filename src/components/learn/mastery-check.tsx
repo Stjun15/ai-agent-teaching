@@ -23,6 +23,8 @@
  * —— 同一份掌握度左栏卡片也在用，多一处取数就多一处「两边数字不一样」的可能。
  */
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { ArrowRight, BookOpen, CircleCheck, RotateCcw } from "lucide-react";
 
 import { MasteryIndicator } from "@/components/learn/mastery-indicator";
@@ -43,9 +45,20 @@ export function MasteryCheck({
   /** 依赖顺序的下一讲；当前已是最后一讲时为 null。 */
   nextModule: TeachingModule | null;
 }) {
+  const router = useRouter();
+  const ran = useRef(false);
+
   const mastery = useStudentStore((state) =>
     selectMastery(state, teachingModule.id),
   );
+
+  // 进入掌握判定这一步时刷新服务端数据：前面几步（校验点评、变式练习）
+  // 可能已经把掌握度写进数据库了，只有这一步需要拿到最新分数做判定。
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    router.refresh();
+  }, [router]);
 
   const passed = mastery !== null && mastery.score >= MASTERY_PASS_SCORE;
   const notStarted = mastery === null;
