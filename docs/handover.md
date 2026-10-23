@@ -58,7 +58,7 @@ d:\ai-agent-teaching/
 │   │   └── hooks/              # 6 个自定义 Hook
 │   └── components/             # UI 组件（chat/code/learn/layout/report/settings/ui）
 ├── scripts/                    # 60+ 测试 spec + 运维脚本
-│   ├── run-tests.mjs           # 自研测试编排器（55 组并行→TAP 解析→汇总）
+│   ├── run-tests.mjs           # 自研测试编排器（53 组串行→TAP 解析→汇总）
 │   ├── ts-loader.mjs           # Node 直接跑 TS 源码的钩子
 │   └── *-spec.ts               # 按模块划分的测试文件
 ├── docs/
@@ -120,10 +120,10 @@ pnpm dev          # → http://localhost:3000
 ### 4.3 质量门禁
 
 ```bash
-pnpm typecheck    # tsc --noEmit（当前有 54 个类型错误，见 §12 已知问题）
+pnpm typecheck    # tsc --noEmit（0 error）
 pnpm lint         # ESLint
 pnpm check        # eslint + prettier --check + tsc --noEmit（提交前必跑）
-pnpm test         # 55 组测试（scripts/run-tests.mjs 编排）
+pnpm test         # 53 组测试（scripts/run-tests.mjs 编排）
 ```
 
 ---
@@ -312,17 +312,17 @@ Skill 机制的作用：在回答学生问题时，先判定问题属于哪个�
 | 指标 | 数值 |
 |------|------|
 | 测试编排器 | `scripts/run-tests.mjs`（自研，TAP 解析 + 超时兜底） |
-| 测试套件数 | 55 组（`run-tests.mjs` 中 `SUITES` 数组） |
+| 测试套件数 | 53 组（`run-tests.mjs` 中 `SUITES` 数组；2026-10-23 移除已删模块的死测试 playground / editor-focus） |
 | 测试文件数 | 60+ 个 `*-spec.ts` / `*-spec.mjs` |
 | 运行时框架 | `node:test` + `node:assert/strict` |
 | 运行时通过率 | ✅ 全部通过（纯函数秒级，真模型依赖 ARK_API_KEY） |
-| TypeScript 类型检查 | ❌ 54 个类型错误（见 §12 已知问题） |
+| TypeScript 类型检查 | ✅ 0 error（2026-10-23 修完 54 个历史错误） |
 | 标准测试框架 | ✅ Vitest 5 已落地最小闭环：`tests/` 7 个文件 26 个用例 + `pnpm test:unit` / `test:coverage`；旧 `node:test` 并存不迁 |
 
 ### 10.2 运行方式
 
 ```bash
-pnpm test                          # 跑全部 55 组（纯函数秒级，不含真模型）
+pnpm test                          # 跑全部 53 组（纯函数秒级，不含真模型）
 pnpm test:scores                   # 单跑分数量纲
 pnpm test:security                 # 单跑安全过滤
 pnpm test:agent:reviewer           # 真模型回归（需 ARK_API_KEY）
@@ -367,9 +367,9 @@ pnpm vitest run                    # Vitest 入口（新）
 | `package.json` → `@vitejs/plugin-react ^6.1.2` | JSX 支持 |
 | `package.json` → `@vitest/coverage-v8 ^5.0.5` | 覆盖率 |
 | `tests/` | 7 个标准用例文件（分数/安全/鉴权/维度聚合/Agent 输出校验/子能力/MCP 端到端，26 个用例） |
-| `.github/workflows/ci.yml` | CI：`pnpm test:coverage`（Vitest + V8 覆盖率；暂不含 eslint/tsc） |
+| `.github/workflows/ci.yml` | CI：ESLint + `tsc --noEmit` + Vitest 覆盖率 |
 
-**当前状态**：`scripts/` 下 55 组 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。⚠️ CI 暂不跑 `tsc` / `pnpm build`：已知的 54 个类型错误会让流水线假红，先修类型错误再补这两步。
+**当前状态**：`scripts/` 下 53 组 `node:test` 用例仍由 `scripts/run-tests.mjs` 编排（`pnpm test`），**标准框架与旧运行器并存、互不覆盖**。新测试一律写进 `tests/*.test.ts`，用 `pnpm test:unit` 或 `pnpm test:coverage`（覆盖率报告输出到 `coverage/`）。2026-10-23 修完历史类型/规则问题后，CI 已纳入 eslint、tsc 与覆盖率；`prettier --check .` 仍不在 CI（Windows 工作区的 CRLF 会让它误报，见 §12 #1）。
 
 ### 11.3 大赛技术文档
 
@@ -383,8 +383,8 @@ pnpm vitest run                    # Vitest 入口（新）
 
 | # | 问题 | 详情 | 验证命令 |
 |---|------|------|----------|
-| 1 | **54 个 TypeScript 类型错误** | `scripts/` 中 15 个测试文件有类型错误（类型漂移：`"python"` vs `"typescript"`、`ValidationResult` 缺少字段、未使用变量等），另有 4 个组件/store 的未使用导入与泛型不匹配。运行时全部通过，但 tsc 门禁报红。 | `pnpm typecheck` |
-| 2 | ~~**无 CI 流水线**~~（2026-10-23 已补 `/.github/workflows/ci.yml`：跑 `pnpm test:coverage`） | 因未修的 54 个类型错误 + 10 个 eslint error，CI 暂不跑 eslint / `tsc` / build | `gh run list` |
+| 1 | ~~**54 个 TypeScript 类型错误**~~（2026-10-23 已清零：完整 fixture 工厂替代 `as any`，`"python"`→`"typescript"`，PersistStorage 用 `Pick` 对齐 partialize） | `pnpm typecheck` 0 error；`pnpm lint` 0 error（24 条历史 warning）；`pnpm test` 53/53 全绿 | `pnpm check` 仍被 prettier 全仓 CRLF 误报挡住 |
+| 2 | ~~**无 CI 流水线**~~（2026-10-23 已补 `/.github/workflows/ci.yml`：ESLint + `tsc --noEmit` + `pnpm test:coverage`） | 不含 prettier 与 `next build`（前者受 CRLF 干扰，后者耗时；本地四级门禁照跑） | `gh run list` |
 | 3 | **Windows 会话池测试进程不退出** | `node:test` 跑完后 CPU 不释放，`run-tests.mjs` 已加 15s 超时兜底 kill | `pnpm test` |
 
 ### 🟡 警告级
@@ -401,7 +401,7 @@ pnpm vitest run                    # Vitest 入口（新）
 
 | # | 问题 | 详情 |
 |---|------|------|
-| 9 | **Vitest 与旧运行器并存** | `pnpm test` 仍走 `node:test`（55 组）；新增测试写 `tests/*.test.ts`，用 `pnpm test:unit`。不强制迁移，避免一次性改动 60+ 文件 |
+| 9 | **Vitest 与旧运行器并存** | `pnpm test` 仍走 `node:test`（53 组）；新增测试写 `tests/*.test.ts`，用 `pnpm test:unit`。不强制迁移，避免一次性改动 60+ 文件 |
 | 10 | **MCP Server 作为子进程启动** | 每次对话需启动 Node 子进程，首次有数百毫秒延迟（`globalThis` 缓存 5 分钟缓解） |
 | 11 | **`useSpeechRecognition` 实验特性** | 浏览器兼容性有限 |
 
@@ -477,7 +477,7 @@ pnpm typecheck 2>&1 | Select-String "error TS" | Measure-Object | Select-Object 
 ## 十四、接手后建议的前 5 步
 
 1. **跑通质量门禁**：`pnpm install → pnpm typecheck → pnpm test`，确认基线状态
-2. **修 54 个类型错误**：`pnpm typecheck` 输出里的 15 个文件，逐一修复（主要是测试 mock 类型漂移）
+2. ~~**修 54 个类型错误**~~（2026-10-23 已完成，`pnpm typecheck` 0 error）
 3. **启动 dev server**：`pnpm dev`，登录 `test/test1234`，走一遍 `/learn/llm-api/0` 看教学流程
 4. **读核心文件**：`src/app/api/chat/route.ts`（入口）→ `src/lib/agent/loop.ts`（循环）→ `src/lib/agent/session.ts`（工具白名单）
 5. **Vitest 策略已定**：新测试一律写 `tests/*.test.ts`（`pnpm test:unit`），旧 `node:test` 保持不动，不强制迁移

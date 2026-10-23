@@ -471,21 +471,21 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### 6.1 质量门禁
 
-四级门禁（tsc 尚有历史类型错误，未绿；其余已绿）：
+四级门禁（2026-10-23 实测：eslint / tsc / 构建 / 测试全绿）：
 
 | 级别 | 命令 | 当前结果 |
 |---|---|---|
-| TypeScript | `tsc --noEmit` | 54 个类型错误，集中在 `scripts/` 测试的类型漂移与 4 个组件/store 的未使用导入；运行时测试全绿，修复工作已列入 HANDOVER §12 |
-| ESLint | `eslint` | 7条warning(历史遗留，非阻塞) |
-| Prettier | `prettier --check .` | **全部通过** |
-| 全量测试 | `node scripts/run-tests.mjs` | **55 组全绿** (含3组真模型) |
+| TypeScript | `tsc --noEmit` | **0 error**（2026-10-23 修完 54 个历史错误） |
+| ESLint | `eslint src scripts tests` | **0 error**（24 条历史 warning，非阻塞） |
+| Prettier | `prettier --check .` | 源码按配置格式化；全仓检查在 Windows CRLF 工作区会误报行尾差异，CI 未纳入该步 |
+| 全量测试 | `node scripts/run-tests.mjs` | **53 组全绿** (含3组真模型) |
 | 标准测试框架 | `pnpm test:unit`（Vitest） | **7 个用例文件 / 26 条用例全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
 
 组合命令：`pnpm check` = eslint + prettier + tsc。
 
 ### 6.2 测试体系
 
-55 组测试用例覆盖全部关键路径：
+53 组测试用例覆盖全部关键路径：
 
 | 分类 | 测试组 | 用例数 |
 |---|---|---|
@@ -562,7 +562,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 点评闭环 | **100%** | 提交→批改→维度分→掌握度更新→路径调整完成 |
 | 路径调整 | **100%** | 4规则引擎+去重+限流+UI展示 |
 | 安全防护 | **100%** | 输入过滤+输出打码+限流+权限四道门 |
-| 测试体系 | **100%** | 55组全绿，含3组真模型回归；另有 Vitest 标准套件与 CI |
+| 测试体系 | **100%** | 53组全绿，含3组真模型回归；另有 Vitest 标准套件与 CI |
 | 课程审计 | **100%** | 12讲0缺陷 |
 | 部署套件 | **100%** | deploy/就绪，已部署至阿里云ECS（8.149.130.30），systemd+nginx+SSE关缓冲，`/api/health`正常 |
 | Phase 7收尾 | **100%** | 12/12闭环：9完成+2项perf(ui)实测负收益已回退+部署完成 |
@@ -627,9 +627,9 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 文本模型 | deepseek-v4-flash-ga-260731 | 火山方舟 Ark |
 | 视觉模型 | doubao-seed-2-1-pro-260915 | 火山方舟 Ark |
 | Embedding | qwen3.7-text-embedding (1024维) | 百炼 DashScope |
-| 代码编辑器 | Monaco Editor | — |
+| 代码编辑器 | 自研轻量编辑区（textarea + 行号） | — |
 | 包管理 | pnpm | — |
-| 质量门禁 | ESLint + Prettier + tsc | — |
+| 质量门禁 | ESLint + tsc + Vitest + CI | — |
 
 ### B. 项目仓库
 
