@@ -136,14 +136,14 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 ### 待办（2026-10-24 凌晨更新；**部署类已由作者搁置，不在下面推进**）
 
-**A. 当前在推进的（非部署）** —— 表里「教学闭环的两个真缺口」「测试行覆盖率 5.67%」两行是**留给下一轮 Agent 的正式待办**，其余行为存档。
+**A. 当前在推进的（非部署）** —— 两条 P1 已于 10-24 完成，**剩余可写代码的正式待办为零**；下表的未完成项都是作者侧动作（报名提交 / 视频 / PDF）。
 
 | 级别 | 事项 | 具体怎么做 | 谁能做 |
 |---|---|---|---|
 | P0 | ~~仓库可见性~~ **已完成（10-24 凌晨确认）** | 仓库已改 **Public**：`github.com/Stjun15/ai-agent-teaching`（作者换过一次用户名，`deploy/*.sh` 的 `REPO_URL` 已同步）。公开前做过泄密审计：当前 tree 与全部历史均无真实密钥，`.env.local` / `dev.db` / `.workbuddy` 从未提交；仅「服务器 IP」与「提交作者邮箱」两个暴露面，IP 已在文档里占位化为 `<ECS-IP>`（**历史提交仍含旧 IP，无法在不改写历史的前提下清除**） | 作者 |
 | P0 | 报名 + 缴费 + 提交 | 2026-11-18 当天截止，**提交后不得修改**，全部改动要在这之前完成 | 作者 |
-| P1 | **教学闭环的两个真缺口**（剩余唯一要写代码的产品级缺口） | ① **错题订正与复习调度**：`question_results.is_corrected` / `next_review_at` 两列**有表无实现路径**，「第 1/3/7/14 天复习」这个教学卖点目前推不动 —— 要补「标记订正」的写入点、到期复习的取数查询、报告页 / 学习页的入口；② **`attemptNumber` 仍从请求体取**（`AGENTS.md` 第八节 #2 记录），教学状态机接入后应改为从会话状态读。改完按四级验收复跑，重点看报告页明细（R0–R7）与掌握度卡（M0–M3） | 我 |
-| P1 | **测试行覆盖率 5.67%** | CI 子集 28 组 + Vitest 12 文件 69 用例，行覆盖率仅 5.67%（`pnpm test:coverage`）。优先补**纯函数与聚合层**：`sub-abilities` 的 `buildSubAbilityTimeline`（跨日累积、只在新证据日取点）、`path-adjuster` 四规则、`uuid` 降级、限流桶、SSE 翻译器三层缓冲。**别为凑数字测 UI 像素**；断言必须拿数据源真值对账（参见 `AGENTS.md` 第九节「0 分」教训） | 我 |
+| P1 | ~~教学闭环的两个真缺口~~ **已完成（10-24）** | ① 错题复习调度已接线：排期规则 `src/lib/review-schedule.ts`（第 1/3/7/14 天，锚定创建时间；纯函数 11 例单测），写入在 `errorDb.create` / `markCorrected`（提交一次答案 = 完成一档，四档走完置 NULL 退出队列），取数 `GET /api/student/errors?due=1`，入口是学习页 `ReviewDueCard` + 报告页错题本「今日待复习 N 条」筛选；历史未订正行由 `006_review_schedule.sql` 按同一规则回填（超 14 天留 NULL，不伪造进度）。⚠️ **原文「`question_results.is_corrected` / `next_review_at`」表名写错了 —— 两列实际在 `errors` 表**，`question_results` 只有 `is_correct` / `attempts`。② `attemptNumber` 已改为从 `validation_results` 的会话内条数推导（`validate/route.ts`，10-21 落地，本轮复核确认），不再取请求体 | 我 |
+| P1 | **测试行覆盖率 14.58%**（原 5.67% 口径已过期） | 本轮新增 `review-schedule`（11 例）、`thinking-filter`（7 例，跨块拆词每个切分点都对账）、`fallback`（9 例，「兜底必须诚实」四条原则）→ 语句 15.25% / 分支 12.03% / 函数 17.15% / 行 14.58%。**剩下的空间在服务端路由与 React 组件**（`pnpm test:coverage` 逐文件表可见），纯函数层已基本吃干净；若继续推，下一步是给 `client-api` / `sse` 解析这类「无浏览器依赖的客户端逻辑」补测，别去断言像素 | 我 |
 | P1 | ~~`main` 合并 `dev`~~ **已完成（10-23 晚）** | 首合并 `cb1a39f`（`merge-tree` 无冲突），CI 修正后再合并一次，最终 `main=661a875`（与 dev 同一 tree）；`v0.5.0` tag 指向该提交并已推送。全程 plumbing、未切分支 | 我 |
 | P1 | ~~CI 首跑核验~~ **已完成（10-23 晚；首跑是红的）** | 最初 5 条 run 全在 11–13s 失败：`pnpm 9` 撞纯配置型 `pnpm-workspace.yaml`（无 `packages` 字段），`setup-node` 的 `pnpm store path` 报 `packages field missing or empty`。`dac10e0` 钉 `pnpm 12` 后 dev/main 双绿（ESLint / tsc / Vitest 7 文件 26 用例）。⚠️ 行覆盖率仅 **5.67%** | 我 |
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
@@ -162,10 +162,45 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 **下一步建议（新对话开场可直接照做）**：
 
-1. **先跑一遍门禁确认起点没漂**：`npx tsc --noEmit` → `npx eslint src scripts tests` → `pnpm test:unit`（12 文件 69 用例）→ 需要时 `pnpm build`。⚠️ 跑全量 `run-tests.mjs` 前先起服务器（冷启动组打 `localhost:3000`）；本机 3000 端口常被残留进程占用，先 `Get-NetTCPConnection -LocalPort 3000` 看一眼。
-2. **然后做「待办 A」里那两条 P1**（教学闭环两个真缺口 / 覆盖率），一次只做一件事、做完即提交。
+1. **先跑一遍门禁确认起点没漂**：`npx tsc --noEmit` → `npx eslint src scripts tests` → `pnpm test:unit`（16 文件 97 用例）→ 需要时 `pnpm build`。⚠️ 跑全量 `run-tests.mjs` 前先起服务器（冷启动组打 `localhost:3000`）；本机 3000 端口常被残留进程占用，先 `Get-NetTCPConnection -LocalPort 3000` 看一眼。⚠️ 在本机判断格式别用裸 `prettier --check .`（CRLF 全红），加 `--end-of-line auto` 才是真判据。
+2. **代码侧待办已清空**（10-24）；真要继续做，下一块是「`question_results.attempts` 恒为 1」与客户端模块（`client-api` / SSE 解析）的单测，**都不属于产品级缺口**。一次只做一件事、做完即提交。
 3. 部署与 HTTPS 属作者搁置项，**不要主动推进**；线上当前 `status=ok`，若需换版按「1C1G 小机不要在服务器上 build」的五步走（切记不要在服务器上 `pnpm build`）。
 4. 作者侧剩余：报名缴费提交（11-18 截止，提交后不可改）、演示视频录制、技术文档 PDF 转档。
+
+### 错题复习闭环（10-24：第 1 / 3 / 7 / 14 天复习终于能跑）
+
+**在此之前的状态**：`errors.is_corrected` / `next_review_at` 两列从 001 建表起就存在，
+`listUncorrected` 也只读 `is_corrected`；`next_review_at` **没有任何写入方**，
+`markCorrected()` 也不碰它 —— 「第 1/3/7/14 天复习」只在文档里成立。
+
+**这轮补的四块**：
+
+| 块 | 位置 | 说明 |
+|---|---|---|
+| 排期规则 | `src/lib/review-schedule.ts` | 纯函数：`nextReviewAt`（锚定创建时间取下一个未到档期，四档走完返回 `null`）、`isReviewDue`、`reviewStageOf`（界面措辞用）。**规则只写这一份**，理由同 `paths.ts` 只许一处拼路径 |
+| 写入 | `errorDb.create` / `errorDb.markCorrected` | 新错题排第 1 天；提交一次答案就推进一档 |
+| 取数 | `GET /api/student/errors?due=1` + 响应里的 `dueCount` | `dueCount` 不受 moduleId/offset 筛选影响，专供筛选角标 |
+| 入口 | 学习页 `ReviewDueCard` + 报告页错题本「今日待复习 N 条」 | 学习页入口带 `?review=1` 直达待复习视图；取不到数据时整块不渲染，**不显示 0 条** |
+
+**四个裁定（改之前先读，别凭直觉推翻）**：
+
+1. **「订正」与「复习」是同一条写路径**。平台不自动判定订正答案对不对，所以「这次复习
+   算不算过」只能自报 —— 既然分不出来，就别造两套状态：交一次答案 = 完成一档。
+   已订正的错题到第 3/7/14 天会重新出现在待复习里，靠的就是这条。
+2. **档期锚定创建时间，不锚定上次复习时间**。否则学生拖两天再来，进度整体后移，
+   「第 7 天复习」永远追不上。
+3. **超过 14 天的历史错题不进队列**（`nextReviewAt` 返回 `null`）。回填迁移
+   `006_review_schedule.sql` 用同一套 CASE 实现，**不是**简单的 `created_at + 1 天` ——
+   一条 30 天前的错题不该先冒充「逾期 30 天」、复习一次又瞬间结课。
+   已订正的历史行不回填：学生是第几天订正的不可考，补日期等于编进度。
+4. **`PUT /api/student/errors` 补了归属校验**。错题 id 是全局主键，原先只查存在、
+   不查归属，等于知道 id 就能改别人的错题。现在归属不符返回 404（不是 403 ——
+   连「这条错题存在」都不该确认）。
+
+**验收证据**：接口层临时脚本（已删）跑通「到期可见 → 提交推进到 created+7d → 退出待复习
+→ 跨学生 404 → 重复提交允许」；界面层临时 CDP 脚本（已删）学习页入口 / `?review=1` 直达 /
+「该复习了」徽标 / 排期文案 6/6；四级验收全跑：`browser-acceptance` PASS、报告页明细 8/8、
+掌握度 4/4、Vitest 16 文件 97 用例、`run-tests.mjs --ci` 28/28。
 
 ### 教师端 / 模拟器（10-23 夜间：实现后整体下线）
 
