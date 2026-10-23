@@ -1,29 +1,30 @@
-# 接手文档 — 2026-10-23（参赛审计五项补齐 + 部署实况记录 + 待办重排；部署类已搁置）
+# 接手文档 — 2026-10-24（参赛审计五项补齐 + 线上换版实况 + 语音入口撤下；部署类已搁置）
 
 > 上一份（2026-10-11）是讲稿优化专项，记录仍保留在「〇一」节，内容依然有效。
-> 本轮（10-21 ~ 10-23）针对一份参赛作品审计清单逐项核验并补齐：**最新一轮的完整移交记录在「〇〇」节，接手先读那节**。
+> 本轮（10-21 ~ 10-24）针对一份参赛作品审计清单逐项核验并补齐，随后完成线上换版与两处线上故障修复：
+> **最新一轮的完整移交记录在「〇〇」节，接手先读那节**（其中「2026-10-24 凌晨追加」小节是本轮最后一段）。
 > 基础盘（这是什么、四条铁律、硬约束、四级验收）在 `AGENTS.md`，不重复。
 
 ---
 
-## 〇、当前状态速查（2026-10-23 更新）
+## 〇、当前状态速查（2026-10-24 更新）
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已持续与 dev 同步**（10-23 晚首合并 `661a875`，之后每次 docs 提交后再 plumbing 合并一次；**合并提交 SHA 以 `git log -1 main` 为准，不写死**，判据是 `git rev-parse 'main^{tree}'` 等于 `'dev^{tree}'`）；`v0.5.0` 指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
+| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已持续与 dev 同步**（10-23 晚首合并 `661a875`，之后每次 docs 提交后再 plumbing 合并一次；**合并提交 SHA 以 `git log -1 main` 为准，不写死**，判据是 `git rev-parse 'main^{tree}'` 等于 `'dev^{tree}'`）；`v0.5.0` 指向 `661a875`。`main` 仍不是工作分支，别在上面提交。10-24 凌晨最后一次同步：dev `662fc71` → main `d72fdea`（tree 相同；总提交 672，数字会过期，别照抄） |
 | 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 列出的 `dev` / `main` / `v0.5.0` 与本地一致（核验方式：逐字符比对 `git rev-parse` 与 `ls-remote` 输出，别用 `rev-list origin/dev..HEAD`）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
 | CI           | ✅ **已绿（10-23 晚首绿；10-23 深夜再绿）**：`dev` / `main` 每次 push 均 success，ESLint + `tsc --noEmit` + Vitest 三步全过（首绿时 7 文件 26 用例，现 **12 文件 69 用例**）。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
-| 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
+| 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-24 凌晨复核仍干净；10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
 | 门禁         | **2026-10-23 深夜实测（下线教师端 + 子能力成长曲线之后）**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 21 warning**（原 10 error）、`node scripts/run-tests.mjs --ci` **28/28**（CI 子集）、`node scripts/run-tests.mjs` 全量 **53 组**（需先起服务）、`vitest run` **12 文件 69 用例全绿**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
-| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://<ECS-IP>`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
+| 部署（生产） | **已上线并已两次换版（2026-10-24 凌晨实测）**：阿里云 ECS `http://<ECS-IP>`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。应用目录 **`/opt/ai-agent-teaching-app`**（git clone 自公开仓库），SQLite `dev.db` 就在应用目录内，环境变量 `/etc/ai-teaching.env`（`ARK_API_KEY` 已配）。`/api/health` = **`status=ok`**、`arkApiKeyConfigured=true`；线上 `BUILD_ID=fB3VS03E_qV8VNCT2gPHm` 与本地构建一致。域名与 HTTPS 未配置（nginx 里已写好 `server_name ai-agent-teaching.duckdns.org`，只差证书） |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
 | 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
-| 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` 7 文件 **26 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
-| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——20+ 个提交、参赛审计五项的核验结论、CI 首绿、P1 收尾、踩过的坑、遗留待办，**本轮移交重点** |
+| 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` **12 文件 69 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
+| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——20+ 个提交、参赛审计五项的核验结论、CI 首绿、P1 收尾、踩过的坑、遗留待办，**本轮移交重点**。该节末尾的「2026-10-24 凌晨追加」是最后一次改动（线上换版两轮 + 讲稿空态修复 + 语音入口撤下） |
 
-> ⚠️ 提交数以 `git rev-list --count HEAD` 实时值为准（10-23 晚约 640）。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
+> ⚠️ 提交数以 `git rev-list --count HEAD` 实时值为准（10-24 凌晨 672）。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
 
 ### 远端推送状态（2026-10-23 更新）：✅ 已同步
 
@@ -93,6 +94,14 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 - 环境变量：`/etc/ai-teaching.env`，**`ARK_API_KEY` 已配**，`/api/health` = **`status=ok`**、`arkApiKeyConfigured=true`
 - 换版核验：`BUILD_ID` 本地与线上一致（`0bUYIel-VMmh5Fb-nUWyT`）；`/` 200、`/teacher` **404**（证明是下线教师端之后的新构建）；登录 `test/test1234` 后打 `/api/chat` 真实流式吐字正常
 - 回滚：旧目录 `/opt/ai-agent-teaching` 原样保留，把 systemd 的 `WorkingDirectory` 改回去 + `daemon-reload` + `restart` 即可
+- 后续换版（10-24 凌晨共两轮）：`BUILD_ID` `0bUYIel-…`（下线教师端后）→ `C6u38dd4b-…`（语音入口撤下）→ 现 `fB3VS03E_qV8VNCT2gPHm`（设置页文案对齐）。每轮都是「本机构建 → 传 `.next` → 改 manifest 路径 → restart」
+
+### 2026-10-24 凌晨追加（线上换版两轮 + 讲稿空态修复 + 语音入口撤下）
+
+- **讲稿空态真因**：`crypto.randomUUID` 在 `http://` 明文页面是 `undefined`（安全上下文 API），store 建消息 id 抛 `TypeError` → `seedLecture` 没执行 → 讲解页恒显示「还没有对话」。修法是 `src/lib/uuid.ts` 的 `randomUuid()` 降级拼 UUID v4，守卫在 `tests/uuid.test.ts`（提交 `2b8ed06`）。**教训：本地 `localhost` 算安全上下文，四级验收全绿也抓不到这类问题** —— 部署到明文 http 后必须再上线验一次。
+- **语音输入入口撤下**（`1642e8d` + `662fc71`）：`http://` 下 Chrome / Edge 按安全上下文策略不允许请求麦克风；360 等国产壳放宽了策略所以能弹授权，属**浏览器差异**，因此不能用 `isSecureContext === false` 一刀切禁用（会误杀可用环境）。UI 入口（麦克风按钮 / 空格 PTT / 占位文案 / 错误提示）整体撤下，实现在 `src/hooks/use-speech-recognition.ts` 原样保留（含四条降级文案），配好 HTTPS 后**只恢复 UI** 即可。设置页文案同步改为如实说明。
+- **线上核验的正确姿势（别只信 curl 与 browser_use）**：`curl` 只能证明服务端 HTML 是新的；browser_use 曾被残留标签页 / 缓存污染，两次误报「麦克风按钮还在」。可靠做法 = 本机 CDP 起**干净会话**（`scripts/lib/cdp-browser.mjs`）→ 调 `/api/auth/login` 拿真 JWT → `Page.addScriptToEvaluateOnNewDocument` 种 `ai-teaching:authToken` → 打开目标页直接读 DOM。本轮用它实测：`mic=false`、placeholder 已更新、讲稿正常、`/settings` 新文案生效、无页面异常。
+- **nginx 现状**：`sites-enabled` 只有 `ai-teaching` 一个（`sites-available/default` 里那份 `server_name ai-agent-teaching.duckdns.org` 是残留、**未启用**）；`ai-teaching` 已 `proxy_cache off`。换版后「浏览器仍看旧 UI」的锅不在 nginx。
 
 ### 🔴 1C1G 小机不要在服务器上 build（本轮踩实）
 
@@ -125,14 +134,16 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 6. **提交信息规范要回原文看**：本轮 21 个提交里 7 条 subject 超 50 字符、正文写成散文而非 `-` 列表、scope 用了表外的 `core/learn/report/test`。历史已推送不改（rebase 属禁项），**后续按 `agent-prompts/references/git-conventions.md` 原文执行**：subject ≤50、正文 `-` 列表且每行 ≤72、scope 只用表内值。
 7. **CI 的 pnpm 版本必须与本仓库 workspace 写法匹配**：`pnpm 9` 要求 `pnpm-workspace.yaml` 有 `packages` 字段，本仓库是纯配置型（只有 `nodeLinker` / `allowBuilds` 等），于是 `setup-node` 的 `pnpm store path` 直接报 `packages field missing or empty` —— 失败点在装依赖**之前**，看着像 workflow 语法错，实际是版本不兼容。已改钉 `pnpm 12`（与本地一致）。另：给 `package.json` 加 `packageManager` 会让 pnpm 12 要求同步锁文件里的 `packageManagerDependencies`，`--frozen-lockfile` 当场失败，**别走那条路**。
 
-### 待办（2026-10-23 收尾时点；**部署类已由作者搁置，不在下面推进**）
+### 待办（2026-10-24 凌晨更新；**部署类已由作者搁置，不在下面推进**）
 
-**A. 当前在推进的（非部署）**
+**A. 当前在推进的（非部署）** —— 表里「教学闭环的两个真缺口」「测试行覆盖率 5.67%」两行是**留给下一轮 Agent 的正式待办**，其余行为存档。
 
 | 级别 | 事项 | 具体怎么做 | 谁能做 |
 |---|---|---|---|
-| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（`dev` / `main` 均已推送至最新） | 作者 |
+| P0 | ~~仓库可见性~~ **已完成（10-24 凌晨确认）** | 仓库已改 **Public**：`github.com/Stjun15/ai-agent-teaching`（作者换过一次用户名，`deploy/*.sh` 的 `REPO_URL` 已同步）。公开前做过泄密审计：当前 tree 与全部历史均无真实密钥，`.env.local` / `dev.db` / `.workbuddy` 从未提交；仅「服务器 IP」与「提交作者邮箱」两个暴露面，IP 已在文档里占位化为 `<ECS-IP>`（**历史提交仍含旧 IP，无法在不改写历史的前提下清除**） | 作者 |
 | P0 | 报名 + 缴费 + 提交 | 2026-11-18 当天截止，**提交后不得修改**，全部改动要在这之前完成 | 作者 |
+| P1 | **教学闭环的两个真缺口**（剩余唯一要写代码的产品级缺口） | ① **错题订正与复习调度**：`question_results.is_corrected` / `next_review_at` 两列**有表无实现路径**，「第 1/3/7/14 天复习」这个教学卖点目前推不动 —— 要补「标记订正」的写入点、到期复习的取数查询、报告页 / 学习页的入口；② **`attemptNumber` 仍从请求体取**（`AGENTS.md` 第八节 #2 记录），教学状态机接入后应改为从会话状态读。改完按四级验收复跑，重点看报告页明细（R0–R7）与掌握度卡（M0–M3） | 我 |
+| P1 | **测试行覆盖率 5.67%** | CI 子集 28 组 + Vitest 12 文件 69 用例，行覆盖率仅 5.67%（`pnpm test:coverage`）。优先补**纯函数与聚合层**：`sub-abilities` 的 `buildSubAbilityTimeline`（跨日累积、只在新证据日取点）、`path-adjuster` 四规则、`uuid` 降级、限流桶、SSE 翻译器三层缓冲。**别为凑数字测 UI 像素**；断言必须拿数据源真值对账（参见 `AGENTS.md` 第九节「0 分」教训） | 我 |
 | P1 | ~~`main` 合并 `dev`~~ **已完成（10-23 晚）** | 首合并 `cb1a39f`（`merge-tree` 无冲突），CI 修正后再合并一次，最终 `main=661a875`（与 dev 同一 tree）；`v0.5.0` tag 指向该提交并已推送。全程 plumbing、未切分支 | 我 |
 | P1 | ~~CI 首跑核验~~ **已完成（10-23 晚；首跑是红的）** | 最初 5 条 run 全在 11–13s 失败：`pnpm 9` 撞纯配置型 `pnpm-workspace.yaml`（无 `packages` 字段），`setup-node` 的 `pnpm store path` 报 `packages field missing or empty`。`dac10e0` 钉 `pnpm 12` 后 dev/main 双绿（ESLint / tsc / Vitest 7 文件 26 用例）。⚠️ 行覆盖率仅 **5.67%** | 我 |
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
@@ -149,7 +160,12 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：我侧可做的项已全部完成（`main` 合并 `dev`、CI 核验、`/report` 生产走查、P2 思维链 B 核验、跨日种子数据、线上换版与密钥补齐，均 10-23 深夜）。**仓库已改 Public**（`github.com/Stjun15/ai-agent-teaching`，用户名换过一次，`deploy/*.sh` 里的 REPO_URL 已同步）。剩余全在作者侧：报名缴费提交（11-18 截止）、演示视频录制与技术文档 PDF 转档。
+**下一步建议（新对话开场可直接照做）**：
+
+1. **先跑一遍门禁确认起点没漂**：`npx tsc --noEmit` → `npx eslint src scripts tests` → `pnpm test:unit`（12 文件 69 用例）→ 需要时 `pnpm build`。⚠️ 跑全量 `run-tests.mjs` 前先起服务器（冷启动组打 `localhost:3000`）；本机 3000 端口常被残留进程占用，先 `Get-NetTCPConnection -LocalPort 3000` 看一眼。
+2. **然后做「待办 A」里那两条 P1**（教学闭环两个真缺口 / 覆盖率），一次只做一件事、做完即提交。
+3. 部署与 HTTPS 属作者搁置项，**不要主动推进**；线上当前 `status=ok`，若需换版按「1C1G 小机不要在服务器上 build」的五步走（切记不要在服务器上 `pnpm build`）。
+4. 作者侧剩余：报名缴费提交（11-18 截止，提交后不可改）、演示视频录制、技术文档 PDF 转档。
 
 ### 教师端 / 模拟器（10-23 夜间：实现后整体下线）
 
