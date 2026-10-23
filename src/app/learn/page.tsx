@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModuleCard } from "@/components/learn/module-card";
 import { RefreshOnMount } from "@/components/learn/refresh-on-mount";
+import { ReviewDueCard } from "@/components/learn/review-due-card";
 import { loadModules } from "@/lib/modules";
 
 export const metadata: Metadata = {
@@ -48,6 +49,8 @@ export default async function LearnPage() {
           这是掌握式学习的顺序，不建议跳讲。
         </p>
       </header>
+
+      <ReviewDueCard />
 
       {modules.length === 0 ? (
         <p className="mt-10 text-sm text-muted-foreground">
