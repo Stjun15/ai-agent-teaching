@@ -110,6 +110,18 @@ function settleSessions(
   return result;
 }
 
+/**
+ * 落盘的字段子集 —— 与 `partialize` 的返回类型逐字段对齐。
+ *
+ * `persist` 的第二参泛型是 `PersistStorage<partialize 的返回类型>`，
+ * 而不是整个 `FloatingChatState`；用 `Pick` 表达子集，避免把 storage
+ * 断言成完整 State 导致的泛型不匹配。
+ */
+type PersistedFloatingChatState = Pick<
+  FloatingChatState,
+  "sessions" | "sessionOrder" | "activeSessionId"
+>;
+
 export const useFloatingChatStore = create<FloatingChatState>()(
   persist(
     (set, get) => {
@@ -350,7 +362,7 @@ export const useFloatingChatStore = create<FloatingChatState>()(
             // silently ignore
           }
         },
-      } as PersistStorage<FloatingChatState>,
+      } as PersistStorage<PersistedFloatingChatState>,
       partialize: (state) => ({
         sessions: settleSessions(state.sessions),
         sessionOrder: state.sessionOrder,

@@ -491,6 +491,26 @@ export function settleStreamingMessages(
   return changed ? next : (messages as ChatMessage[]);
 }
 
+/**
+ * 落盘的字段子集 —— 与 `partialize` 的返回类型逐字段对齐。
+ *
+ * `persist` 对 storage 的泛型要求是「partialize 的返回类型」，不是完整的
+ * `SessionState`（status / error 不落盘）。用 `Pick` 表达子集，避免把
+ * storage 断言成完整 State 造成的泛型不匹配。
+ */
+type PersistedSessionState = Pick<
+  SessionState,
+  | "messages"
+  | "thinking"
+  | "tools"
+  | "citations"
+  | "tokens"
+  | "invalidFrames"
+  | "turnStep"
+  | "activeModuleId"
+  | "byModule"
+>;
+
 export const useSessionStore = create<SessionState>()(
   persist(
     (set) => ({
@@ -830,7 +850,7 @@ export const useSessionStore = create<SessionState>()(
             // silently ignore
           }
         },
-      } as PersistStorage<SessionState>,
+      } as PersistStorage<PersistedSessionState>,
       // 只持久化对话数据，函数与瞬时态（status/error）不落盘。
       // 一次性把「当前激活桶 + 各模块缓存桶」都存在 localStorage：
       // 刷新后 rehydrate 回内存，切回来还能看到上次对话。
