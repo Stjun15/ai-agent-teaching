@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { jsonError } from "@/lib/api-error";
 import { createToken, verifyPassword } from "@/lib/auth";
-import { studentDb, type StudentRole } from "@/lib/db";
+import { studentDb } from "@/lib/db";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { username, password } = parsed.data;
 
-  let stored: { id: string; passwordHash: string; role: StudentRole } | null;
+  let stored: { id: string; passwordHash: string } | null;
   try {
     stored = await studentDb.getPasswordHash(username.trim());
   } catch (error) {
@@ -51,11 +51,10 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError("UNAUTHORIZED", "用户名或密码不正确。");
   }
 
-  const token = createToken(stored.id, stored.role);
+  const token = createToken(stored.id);
   return Response.json({
     token,
     studentId: stored.id,
     username: username.trim(),
-    role: stored.role,
   });
 }

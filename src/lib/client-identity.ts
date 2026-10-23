@@ -159,39 +159,6 @@ export function currentAuthToken(): string | null {
   return resolveAuthToken(browserStorage());
 }
 
-/**
- * 从令牌 payload 里读角色。
- *
- * ⚠️ **只用于界面显隐，不是鉴权**。payload 是 base64url，谁都能改；真正的判权
- * 在服务端（`api-auth.ts` 的 `requireTeacher` 读数据库里的 role）。这里多一个
- * 「解不出来就按 student」的兜底，是为了让旧令牌（不带 role）不会误显示教师入口。
- */
-export function currentAuthRole(): "student" | "teacher" {
-  const token = currentAuthToken();
-  if (token === null) return "student";
-
-  const payload = decodeJwtPayload(token);
-  return payload?.role === "teacher" ? "teacher" : "student";
-}
-
-/** 解出 JWT 的 payload 段。任何一步失败都返回 null（不抛异常）。 */
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-
-  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-
-  try {
-    const parsed: unknown = JSON.parse(atob(padded));
-    return typeof parsed === "object" && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 /** 读写当前浏览器的存储；不可用时返回 null（见 `currentStudentId` 的注释）。 */
 function browserStorage(): StudentIdStorage | null {
   if (typeof window === "undefined") return null;
