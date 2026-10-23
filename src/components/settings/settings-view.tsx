@@ -43,7 +43,7 @@ interface HealthResponse {
  * |---|---|---|
  * | 模型 | 只能看，不能改 | 实际模型来自服务端环境变量（`DASHSCOPE_TEXT_MODEL`）；没有任何路由接受 per-request 的模型参数，做一个改不了任何东西的下拉框就是「看着能用、点了没反应」 |
  * | 界面语言 | 未接入 | 界面文案当前只有中文；`locale` 影响的是文案而非内容，接它要先把文案抽出来 |
- * | 语音输入 | 未接入 | 需要录音与转写链路，属 Phase 7 |
+ * | 语音输入 | 已实现，入口已撤下 | 链路是现成的（Web Speech API），但生产是 `http://` 明文页面，Chrome / Edge 按安全上下文策略不允许请求麦克风；见下方说明 |
  *
  * 把它们显示成可点的开关会让评审以为功能齐了 —— 所以这里显示为不可点的
  * 徽标 + 一句原因。这与顶栏「规划中」的处理是同一种做法。
@@ -170,7 +170,7 @@ export function SettingsView() {
       {/* ---------- 未接入 ---------- */}
       <SettingsSection
         title="界面语言 · 语音输入"
-        description="这两项尚未接入。"
+        description="界面语言尚未接入；语音输入入口已撤下。"
         badge={<Badge variant="levelMid">未接入</Badge>}
       >
         <ul className="flex flex-col gap-2 text-xs leading-relaxed text-muted-foreground">
