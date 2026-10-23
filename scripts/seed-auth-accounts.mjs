@@ -510,7 +510,17 @@ function resolveDbPath() {
   return path.resolve(process.cwd(), relative);
 }
 
-function fillMastery(db, studentId, mastery, now) {
+/**
+ * 掌握度时间线需要多个证据日才能画出成长曲线（`buildSubAbilityTimeline`
+ * 只在出现新证据的日期取点，同日写入只会有「首次记录」一个点）。
+ * 已学模块按课程顺序每两天一个证据日；未开始模块落在建档日 ——
+ * 语义：账号建立时写入「未开始 = 0 分证据」，此后每学一讲产生新证据日，
+ * 曲线随学习抬升。全部确定性偏移，重跑不漂移。
+ */
+const CREATED_OFFSET_DAYS = 14;
+const SCORED_OFFSET_DAYS = [12, 10, 8, 6, 4, 2, 0];
+
+function fillMastery(db, studentId, mastery) {
   const upsert = db.prepare(
     `INSERT INTO mastery (student_id, concept_id, score, error_count, status, last_reviewed_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -521,21 +531,23 @@ function fillMastery(db, studentId, mastery, now) {
        last_reviewed_at = excluded.last_reviewed_at,
        updated_at = excluded.updated_at`,
   );
+  let scoredIndex = 0;
   for (const [conceptId, score, errorCount, status] of mastery) {
-    const reviewedAt =
+    const offsetDays =
       status === "not_started"
-        ? null
-        : new Date(
-            Date.now() - 86400000 * (Math.random() * 7 + 1),
-          ).toISOString();
+        ? CREATED_OFFSET_DAYS
+        : SCORED_OFFSET_DAYS[
+            Math.min(scoredIndex++, SCORED_OFFSET_DAYS.length - 1)
+          ];
+    const at = new Date(Date.now() - offsetDays * 86400000).toISOString();
     upsert.run(
       studentId,
       conceptId,
       score,
       errorCount,
       status,
-      reviewedAt,
-      now,
+      status === "not_started" ? null : at,
+      at,
     );
   }
 }
@@ -720,7 +732,7 @@ function main() {
       console.log(`\n--- ${account.username} (id=${account.id}) ---`);
 
       const demo = DEMO[account.username];
-      fillMastery(db, account.id, demo.mastery, now);
+      fillMastery(db, account.id, demo.mastery);
       fillQuestionResults(db, account.id, accountIndex, demo.questionResults);
       fillErrors(db, account.id, accountIndex, demo.errors);
       fillPromptHistory(db, account.id, accountIndex, demo.promptHistory);
