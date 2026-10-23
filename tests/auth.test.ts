@@ -25,9 +25,16 @@ describe("密码哈希", () => {
 });
 
 describe("JWT 令牌", () => {
-  it("签发后可验证并还原学生 id", () => {
+  it("签发后可验证并还原学生 id 与角色", () => {
     const token = createToken("student-1");
-    expect(verifyToken(token)).toEqual({ studentId: "student-1" });
+    expect(verifyToken(token)).toEqual({ studentId: "student-1", role: "student" });
+
+    // 教师角色必须往返回来；否则教师控制台永远进不去。
+    const teacherToken = createToken("teacher-1", "teacher");
+    expect(verifyToken(teacherToken)).toEqual({
+      studentId: "teacher-1",
+      role: "teacher",
+    });
   });
 
   it("篡改签名或结构不合法时返回 null", () => {

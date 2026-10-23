@@ -24,7 +24,7 @@ import {
   type Row,
   type UpdateSpec,
 } from "./helpers";
-import type { Student, StudentProfile } from "./types";
+import type { Student, StudentProfile, StudentRole } from "./types";
 
 /**
  * 可更新字段白名单 —— 注意 id / createdAt 不在表内：
@@ -120,17 +120,24 @@ export const studentDb = {
     };
   },
 
-  /** 按用户名取密码哈希与 id —— 仅供登录验证使用。 */
+  /**
+   * 按用户名取密码哈希、id 与角色 —— 仅供登录验证使用。
+   *
+   * 角色随登录一并返回，令牌签发时写进 claim；但**判权不读 claim**，
+   * 以 `students.role` 当前值为准（见 `api-auth.ts` 的 `requireTeacher`）。
+   */
   async getPasswordHash(
     username: string,
-  ): Promise<{ id: string; passwordHash: string } | null> {
+  ): Promise<{ id: string; passwordHash: string; role: StudentRole } | null> {
     const row = getDb()
-      .prepare("SELECT id, password_hash FROM students WHERE username = ?")
+      .prepare("SELECT id, password_hash, role FROM students WHERE username = ?")
       .get(username);
     if (!row) return null;
+    const typed = row as Row;
     return {
-      id: asString((row as Row).id),
-      passwordHash: asString((row as Row).password_hash),
+      id: asString(typed.id),
+      passwordHash: asString(typed.password_hash),
+      role: asString(typed.role) === "teacher" ? "teacher" : "student",
     };
   },
 

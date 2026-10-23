@@ -28,6 +28,7 @@ const ACCOUNTS = [
     nickname: "评审演示 (test)",
     password: "test1234",
     email: "test@demo.local",
+    role: "student",
   },
   {
     id: "aaaaaaaa-0000-4000-8000-000000000002",
@@ -35,6 +36,18 @@ const ACCOUNTS = [
     nickname: "评审演示 (eval)",
     password: "eval1234",
     email: "eval@demo.local",
+    role: "student",
+  },
+  {
+    // 教师账号：只用于 /teacher 控制台。这里是**唯一**写入 role='teacher' 的地方，
+    // 产品里没有任何自助升级入口（见 api-auth.ts 的 requireTeacher）。
+    // 它不灌演示学习数据 —— 教师不是学习者，报表页不该出现他的「掌握度」。
+    id: "aaaaaaaa-0000-4000-8000-000000000003",
+    username: "teacher",
+    nickname: "教师控制台 (teacher)",
+    password: "teacher1234",
+    email: "teacher@demo.local",
+    role: "teacher",
   },
 ];
 
@@ -697,13 +710,14 @@ function main() {
   db.exec("BEGIN");
   try {
     const upsertStudent = db.prepare(
-      `INSERT INTO students (id, nickname, username, password_hash, email, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO students (id, nickname, username, password_hash, email, role, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          nickname = excluded.nickname,
          username = excluded.username,
          password_hash = excluded.password_hash,
          email = excluded.email,
+         role = excluded.role,
          updated_at = excluded.updated_at`,
     );
 
@@ -714,12 +728,17 @@ function main() {
         account.username,
         hashPassword(account.password),
         account.email,
+        account.role,
         now,
         now,
       );
-      console.log(`\n--- ${account.username} (id=${account.id}) ---`);
+      console.log(`\n--- ${account.username} (id=${account.id}, role=${account.role}) ---`);
 
       const demo = DEMO[account.username];
+      if (!demo) {
+        console.log("  无演示学习数据（教师账号），仅写入登录凭据与角色");
+        return;
+      }
       fillMastery(db, account.id, demo.mastery, now);
       fillQuestionResults(db, account.id, accountIndex, demo.questionResults);
       fillErrors(db, account.id, accountIndex, demo.errors);
