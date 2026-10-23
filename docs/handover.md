@@ -379,7 +379,7 @@ pnpm vitest run                    # Vitest 入口（新）
 
 | 项 | 事实 |
 |----|------|
-| 入口 | `http://8.149.130.30`（仅 80 端口，**无域名、无 HTTPS**） |
+| 入口 | `http://<ECS-IP>`（仅 80 端口，**无域名、无 HTTPS**） |
 | 链路 | nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`（SSE 关缓冲） |
 | 目录 | 应用 `/opt/ai-agent-teaching`；数据 `/var/lib/ai-teaching`；环境变量 `/etc/ai-teaching.env` |
 | 运行 | Node `v22.23.3`；SQLite 19 张表；迁移 `001`–`005` 全部执行；`/` 与 `/api/health` 均 200 |

@@ -15,7 +15,7 @@
 | CI           | ✅ **已绿（10-23 晚首绿；10-23 深夜再绿）**：`dev` / `main` 每次 push 均 success，ESLint + `tsc --noEmit` + Vitest 三步全过（首绿时 7 文件 26 用例，现 **12 文件 69 用例**）。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`，**无未跟踪脚本**（10-23 晚已裁定：`seed-demo-accounts.mjs` 合并进 `scripts/seed-auth-accounts.mjs` 并修幂等、`split-platform-replica.mjs` 删除）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 仍待裁定 |
 | 门禁         | **2026-10-23 深夜实测（下线教师端 + 子能力成长曲线之后）**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 21 warning**（原 10 error）、`node scripts/run-tests.mjs --ci` **28/28**（CI 子集）、`node scripts/run-tests.mjs` 全量 **53 组**（需先起服务）、`vitest run` **12 文件 69 用例全绿**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
-| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
+| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://<ECS-IP>`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
@@ -87,7 +87,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 ### 部署实况（2026-10-23 实测）
 
-- 入口：`http://8.149.130.30`（只有 80 端口，无域名、无 HTTPS）
+- 入口：`http://<ECS-IP>`（只有 80 端口，无域名、无 HTTPS）
 - 链路：nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`，应用目录 `/opt/ai-agent-teaching`
 - 数据：SQLite `dev.db` 落在 `/var/lib/ai-teaching`，19 张表，迁移 `001_init`–`005_audit_score_columns` 全执行
 - 自查：`/` 200、`/api/health` 200、Node `v22.23.3`、uptime 正常
@@ -125,7 +125,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 | 事项 | 现状（备查，别当待办推进） |
 |---|---|
-| 生产环境 `ARK_API_KEY` | `http://8.149.130.30/api/health` 返回 `status=degraded`、`arkApiKeyConfigured=false`，线上模型能力不可用；修法见「部署实况」 |
+| 生产环境 `ARK_API_KEY` | `http://<ECS-IP>/api/health` 返回 `status=degraded`、`arkApiKeyConfigured=false`，线上模型能力不可用；修法见「部署实况」 |
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
