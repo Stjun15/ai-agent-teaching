@@ -11,9 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 版本必须与 pnpm-workspace.yaml 的写法匹配：pnpm 9 要求 packages 字段，
+      # 本仓库是纯配置型 workspace（无 packages），且本地开发用 pnpm 12。
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 12
 
       - uses: actions/setup-node@v4
         with:
