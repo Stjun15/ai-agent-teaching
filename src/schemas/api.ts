@@ -26,7 +26,6 @@
 
 import { z } from "zod";
 
-import { SIMULATION_LIMITS } from "@/lib/agent/student/limits";
 import { CODE_LANGUAGES } from "@/lib/languages";
 
 // ---------------------------------------------------------------------------
@@ -241,25 +240,6 @@ export const UpdateProfileSchema = z.object({
   hintPreference: z.enum(["try_first", "hint_early", "direct"]).optional(),
   feedbackPreference: z.enum(["encouraging", "strict", "neutral"]).optional(),
   visualPreference: z.enum(["animation", "static", "text"]).optional(),
-});
-
-/**
- * `POST /api/teacher/simulate` 的请求体（教师端学生模拟）。
- *
- * 三个字段都**按字面量收紧**，没有 `string` 兜底：
- * - `step` 只允许三步：其余步骤（validate/practice/mastery/visualize）的产物是
- *   结构化 JSON 或前端场景，不是「学生提问 → 导师回答」的对话，模拟不了。
- * - `persona` 只校验形状，具体 id 是否存在由路由用 `findPersona` 判 ——
- *   人设表在 `lib/agent/student/personas.ts`，schema 不 import 它（保持
- *   「schema 只依赖 zod + 纯常量」的边界）。
- * - `maxTurns` 的上限直接取成本边界常量，避免「schema 放行 10 轮、路由再砍到 4」
- *   这种两处口径。
- */
-export const SimulateRequestSchema = z.object({
-  moduleId: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
-  step: z.enum(["explain", "observe", "imitate"]),
-  persona: z.string().min(1).max(64),
-  maxTurns: z.number().int().min(1).max(SIMULATION_LIMITS.maxTurnsPerRun).default(2),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;

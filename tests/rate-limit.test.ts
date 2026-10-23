@@ -24,10 +24,6 @@ describe("限流规则表", () => {
     );
     // 注册按小时计窗口，挡住批量造号
     expect(RATE_LIMIT_RULES["auth-register"].windowMs).toBe(60 * 60_000);
-    // 教师端模拟一次最多 8 次模型调用，额度必须低于任何对话类端点
-    expect(RATE_LIMIT_RULES.simulation.limit).toBeLessThan(
-      RATE_LIMIT_RULES.message.limit,
-    );
   });
 });
 

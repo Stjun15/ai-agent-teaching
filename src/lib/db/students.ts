@@ -24,7 +24,7 @@ import {
   type Row,
   type UpdateSpec,
 } from "./helpers";
-import type { Student, StudentProfile, StudentRole } from "./types";
+import type { Student, StudentProfile } from "./types";
 
 /**
  * 可更新字段白名单 —— 注意 id / createdAt 不在表内：
@@ -55,9 +55,6 @@ function mapStudent(row: Row): Student {
     id: asString(row.id),
     nickname: asString(row.nickname),
     email: asOptionalString(row.email),
-    // 迁移 006 之前建的库行没有 role 列值 —— 一律回退为 student，
-    // 而不是把空串当成第三种角色。判权只认 "teacher" 这一个字面量。
-    role: asString(row.role) === "teacher" ? "teacher" : "student",
     createdAt: asString(row.created_at),
     updatedAt: asString(row.updated_at),
   };
@@ -113,31 +110,22 @@ export const studentDb = {
       id,
       nickname: username,
       email: undefined,
-      // 注册接口永远产出学生账号；教师只能由种子脚本写入（见迁移 006 注释）。
-      role: "student",
       createdAt: now,
       updatedAt: now,
     };
   },
 
-  /**
-   * 按用户名取密码哈希、id 与角色 —— 仅供登录验证使用。
-   *
-   * 角色随登录一并返回，令牌签发时写进 claim；但**判权不读 claim**，
-   * 以 `students.role` 当前值为准（见 `api-auth.ts` 的 `requireTeacher`）。
-   */
+  /** 按用户名取密码哈希与 id —— 仅供登录验证使用。 */
   async getPasswordHash(
     username: string,
-  ): Promise<{ id: string; passwordHash: string; role: StudentRole } | null> {
+  ): Promise<{ id: string; passwordHash: string } | null> {
     const row = getDb()
-      .prepare("SELECT id, password_hash, role FROM students WHERE username = ?")
+      .prepare("SELECT id, password_hash FROM students WHERE username = ?")
       .get(username);
     if (!row) return null;
-    const typed = row as Row;
     return {
-      id: asString(typed.id),
-      passwordHash: asString(typed.password_hash),
-      role: asString(typed.role) === "teacher" ? "teacher" : "student",
+      id: asString((row as Row).id),
+      passwordHash: asString((row as Row).password_hash),
     };
   },
 

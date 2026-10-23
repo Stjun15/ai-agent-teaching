@@ -328,7 +328,7 @@ async function executeAgent<Id extends AgentId>(
         : {}),
     });
 
-    const turn = await runTextCompletion({
+    const turn = await collectCompletion({
       systemPrompt,
       userMessage,
       env,
@@ -405,15 +405,10 @@ async function executeAgent<Id extends AgentId>(
 /**
  * 跑一轮非流式对话，收集文本与 token 用量。
  *
- * 为什么导出：教师端「学生模拟」需要一段**纯文本**回复（不是结构化 JSON，
- * 也不是 SSE 流）。它和 `runAgent` 用的是同一个会话工厂与同一条收集逻辑，
- * 复制一份会让「事件解析口径」出现第二处实现 —— token 统计最容易在复制时漂移。
- *
- * 调用方**必须**自己给出完整的 systemPrompt：本函数不做身份层/技能层拼装、
- * 不做 Zod 校验、不写 trace。它不是绕过 `runAgent` 的捷径，而是「本就没有
- * 结构化输出契约」的那一类调用的公共底座。
+ * 不对外导出：它是 `runAgent` 的实现细节，单独暴露会让人绕过权限检查与
+ * Zod 校验直接调模型 —— 那正是本文件要防的事。
  */
-export async function runTextCompletion(options: {
+async function collectCompletion(options: {
   systemPrompt: string;
   userMessage: string;
   env?: ArkEnv;

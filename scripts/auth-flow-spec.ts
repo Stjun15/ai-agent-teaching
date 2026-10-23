@@ -67,7 +67,6 @@ test("createToken → verifyToken 往返通过", () => {
   const result = verifyToken(token);
   assert.ok(result, "合法令牌应通过验证");
   assert.equal(result!.studentId, TEST_STUDENT_ID);
-  assert.equal(result!.role, "student", "不传角色时默认 student");
 });
 
 test("verifyToken：三段格式之外（少于或多余三段）返回 null", () => {
