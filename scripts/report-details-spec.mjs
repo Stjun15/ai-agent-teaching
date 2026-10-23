@@ -29,16 +29,43 @@ import { DatabaseSync } from "node:sqlite";
 
 import { openBrowser, sleep } from "./lib/cdp-browser.mjs";
 import { BROWSERS } from "./lib/browser-registry.mjs";
-import demoStudent from "../src/lib/demo-student.json" with { type: "json" };
 
 const APP = process.env.APP_URL ?? "http://localhost:3000";
 const DB_PATH = process.env.DB_PATH ?? "dev.db";
 const PORT = 9345;
 
+// AuthGate（v0.5.0 起）会拦无令牌的浏览器 —— 报告页是客户端取数，必须先有身份。
+// 与 browser-acceptance.mjs 同一套路：内置评审账号换真 JWT，导航前种进 localStorage。
+const AUTH_CREDENTIALS = { username: "test", password: "test1234" };
+const APP_ORIGIN = new URL(APP).origin;
+
+async function loginForToken() {
+  const res = await fetch(`${APP_ORIGIN}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(AUTH_CREDENTIALS),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `验收登录失败（HTTP ${res.status}）：请确认已跑 pnpm db:seed:auth 播种评审账号`,
+    );
+  }
+  return await res.json();
+}
+
+function authSeedSource(auth) {
+  return `
+    if (location.origin === ${JSON.stringify(APP_ORIGIN)}) {
+      localStorage.setItem('ai-teaching:authToken', ${JSON.stringify(auth.token)});
+      localStorage.setItem('ai-teaching:studentId', ${JSON.stringify(auth.studentId)});
+      localStorage.setItem('ai-teaching:currentUsername', ${JSON.stringify(auth.username)});
+    }
+  `;
+}
+
 /** 从库里读出「页面上应该出现的那一行」。读不到就退不出断言，直接失败。 */
-function readExpectedRows() {
+function readExpectedRows(sid) {
   const db = new DatabaseSync(DB_PATH);
-  const sid = demoStudent.studentId;
   const error = db
     .prepare(
       "SELECT concept_id FROM errors WHERE student_id = ? ORDER BY created_at DESC LIMIT 1",
@@ -82,7 +109,8 @@ async function readText(session) {
 }
 
 async function main() {
-  const { error, prompt, dimension } = readExpectedRows();
+  const auth = await loginForToken();
+  const { error, prompt, dimension } = readExpectedRows(auth.studentId);
   const checks = [];
   const record = (name, ok, detail = "") => checks.push({ name, ok, detail });
 
@@ -113,6 +141,11 @@ async function main() {
 
   try {
     await session.send("Page.enable");
+    // 身份要在应用脚本运行前就位：每个新文档加载前种 localStorage（与真人
+    // 登录同一签发路径换来的真 JWT，不是绕过鉴权）。
+    await session.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: authSeedSource(auth),
+    });
     await session.send("Page.navigate", { url: `${APP}/report` });
 
     // 报告页是客户端取数（身份在浏览器里），所以要等：等到「正在汇总…」消失。

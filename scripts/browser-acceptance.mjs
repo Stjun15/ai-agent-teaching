@@ -379,6 +379,9 @@ try {
       title: document.querySelector('h1')?.textContent,
       hasComposer: !!document.querySelector('textarea[placeholder^="说说你的思路"]'),
       notAssessed: document.body.innerText.includes('尚未测评'),
+      // 评审账号（v0.5.0 起）自带种子掌握度，讲解页大概率走「真实数据」分支；
+      // 诚实空态由 MasteryIndicator 的双分支结构性保证（没有行才显示「尚未测评」）。
+      hasMastery: /\\d+ \\/ 100/.test(document.body.innerText),
       panels: ['本节目标','学习进度','模块信息'].map((t) => document.body.innerText.includes(t)),
     });
   `),
@@ -527,8 +530,12 @@ try {
   );
   console.log("A4 token 计数:", JSON.stringify(finalState?.tokenText));
   console.log(
-    "A6 掌握度空态:",
-    sanity.notAssessed ? "PASS（尚未测评）" : "FAIL",
+    "A6 掌握度卡:",
+    sanity.notAssessed
+      ? "PASS（尚未测评，诚实空态）"
+      : sanity.hasMastery
+        ? "PASS（真实掌握度数据）"
+        : "FAIL",
   );
   console.log(
     "A7 页面异常:",
@@ -615,6 +622,12 @@ try {
       if (backLink) {
         backLink.click();
         await new Promise((r) => setTimeout(r, 1200));
+        // observe 对话默认收起（分屏三步分离后）：先点开对话，Composer 才挂载
+        const openChat = [...document.querySelectorAll('button')].find((b) => /对示范代码有疑问/.test(b.textContent));
+        if (openChat) {
+          openChat.click();
+          await new Promise((r) => setTimeout(r, 800));
+        }
         for (let i = 0; i < 10; i++) {
           if ([...document.querySelectorAll('textarea')].some((t) => (t.placeholder ?? '').startsWith('说说你的思路'))) break;
           await new Promise((r) => setTimeout(r, 500));
