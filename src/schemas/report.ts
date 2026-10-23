@@ -89,6 +89,28 @@ export interface ReportSubAbilityEvidence {
   modules: readonly string[];
 }
 
+/**
+ * 一项子能力成长曲线上的一点。
+ *
+ * ⚠️ 量纲与 `subAbilities` 相同（0~5）。`samples` 是「当天可见的模块数」，
+ * 累积重算的口径见 `sub-abilities.ts` 的 `buildSubAbilityTimeline`。
+ */
+export interface ReportSubAbilityTrendPoint {
+  /** `YYYY-MM-DD`。 */
+  date: string;
+  /** 0~5。 */
+  score: number;
+  /** 当天参与平均的模块数。 */
+  samples: number;
+}
+
+/** 一项能力的成长曲线（点只出现在「该能力真有新证据」的日期上）。 */
+export interface ReportSubAbilityTrend {
+  key: SubAbilityKey;
+  label: string;
+  points: ReportSubAbilityTrendPoint[];
+}
+
 /** 掌握度趋势上的一点：某天的平均分。 */
 export interface ReportTrendPoint {
   /** `YYYY-MM-DD`（由 `updatedAt` 截取）。 */
@@ -127,6 +149,13 @@ export interface ReportResponse {
   subAbilities: ReportSubAbilities;
   /** 每一项子能力的证据（样本数 + 来源模块），供界面解释数字的来路。 */
   subAbilityEvidence: ReportSubAbilityEvidence[];
+  /**
+   * 六项子能力的成长曲线（按截至当日的累积掌握度重算）。
+   *
+   * 某项能力一个点都没有时是空数组 —— 界面显示「暂无时间点」，
+   * 不要用 0 分补齐。
+   */
+  subAbilityTrends: ReportSubAbilityTrend[];
   /** 真实评分维度的汇总；一次点评都没有时是空数组。 */
   promptDimensions: ReportPromptDimension[];
   masteryTrend: ReportTrendPoint[];
