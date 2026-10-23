@@ -13,7 +13,6 @@ import {
   FolderOpen,
   List,
   MessageSquare,
-  Terminal,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -86,9 +85,14 @@ export function PlatformReplicaWorkspace({
     });
   }, []);
 
+  /**
+   * 拉取完整教案。
+   *
+   * 注意：这里**不**在开头同步置 `wikiLoading` —— 挂载时初值本来就是 true，
+   * 而重试按钮自己负责置位（见 `retryWikiContent`）。effect 里只 await
+   * 网络结果再落状态，不会造成 effect 内同步 setState 的级联渲染。
+   */
   const fetchWikiContent = useCallback(async () => {
-    setWikiLoading(true);
-    setWikiError(null);
     try {
       const res = await fetch(
         "/api/module-content?moduleId=" + encodeURIComponent(teachingModule.id),
@@ -108,10 +112,20 @@ export function PlatformReplicaWorkspace({
     }
   }, [teachingModule.id]);
 
+  const retryWikiContent = useCallback(() => {
+    setWikiLoading(true);
+    setWikiError(null);
+    void fetchWikiContent();
+  }, [fetchWikiContent]);
+
   const loadedPhaseRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    fetchWikiContent();
+    // 用 async IIFE 表达「只在 await 之后落状态」：effect 体内没有同步
+    // setState（fetchWikiContent 的 loading/error/content 更新都在 await 之后）。
+    void (async () => {
+      await fetchWikiContent();
+    })();
   }, [fetchWikiContent]);
 
   useEffect(() => {
@@ -308,7 +322,7 @@ export function PlatformReplicaWorkspace({
               variant="outline"
               size="sm"
               className="ml-2"
-              onClick={fetchWikiContent}
+              onClick={retryWikiContent}
             >
               重试
             </Button>

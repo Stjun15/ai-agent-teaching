@@ -26,6 +26,19 @@ import {
 
 type Tab = "script" | "agent-check" | "validate";
 
+/**
+ * 一次 skill 拉取的结果快照。
+ *
+ * 快照自带 `skillId`：阶段切换后旧快照的 id 对不上，派生出来的
+ * `skillRaw` / `skillError` 自动回落为 null，不再需要 effect 去「清空」
+ * （清空是渲染期派生，不触发级联渲染）。
+ */
+type SkillSnapshot = {
+  skillId: string;
+  raw: string | null;
+  error: string | null;
+};
+
 export function ReplicaToolbox({
   phase,
   moduleId,
@@ -37,9 +50,7 @@ export function ReplicaToolbox({
     phase.acceptanceScript ? "script" : "agent-check",
   );
   const [scriptCopied, setScriptCopied] = useState(false);
-  const [skillRaw, setSkillRaw] = useState<string | null>(null);
-  const [skillLoading, setSkillLoading] = useState(false);
-  const [skillError, setSkillError] = useState<string | null>(null);
+  const [skill, setSkill] = useState<SkillSnapshot | null>(null);
   const [copiedSections, setCopiedSections] = useState<Record<number, boolean>>({});
   const [standaloneCopied, setStandaloneCopied] = useState(false);
 
@@ -48,12 +59,12 @@ export function ReplicaToolbox({
 
   const skillId = `platform-replica-${String(phase.index).padStart(2, "0")}-check`;
 
-  // 切换阶段时清空旧的 skill 数据，防止 Phase 1 的独立脚本内容
-  // 泄漏到 Phase 2+ 的 Agent 自查面板中。
-  useEffect(() => {
-    setSkillRaw(null);
-    setSkillError(null);
-  }, [phase.index]);
+  // 只认 skillId 对得上的快照：Phase 1 的独立脚本内容不会泄漏到 Phase 2+。
+  const currentSkill = skill?.skillId === skillId ? skill : null;
+  const skillRaw = currentSkill?.raw ?? null;
+  const skillError = currentSkill?.error ?? null;
+  // 面板已打开但既没有内容也没有错误 → 正在拉取。
+  const skillLoading = activeTab === "agent-check" && currentSkill === null;
 
   const skillParsed = useMemo(() => {
     if (!skillRaw) return null;
@@ -63,30 +74,42 @@ export function ReplicaToolbox({
     return parseAgentTool(skillRaw);
   }, [skillRaw, isStandalone]);
 
-  const loadSkill = useCallback(async () => {
-    if (skillRaw !== null || skillLoading) return;
-    setSkillLoading(true);
-    setSkillError(null);
-    try {
-      const res = await fetch(`/api/skill?skillId=${skillId}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? String(res.status));
-      }
-      const data = (await res.json()) as { content: string };
-      setSkillRaw(data.content);
-    } catch (err: unknown) {
-      setSkillError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSkillLoading(false);
-    }
-  }, [skillRaw, skillLoading, skillId]);
-
+  /**
+   * 打开「自查」Tab 且当前阶段还没有快照时拉取一次。
+   *
+   * setState 只发生在 await 之后（成功/失败两条路径），effect 内没有
+   * 同步状态更新；`cancelled` 同时兜住「切走阶段后旧响应回来」的竞态。
+   */
   useEffect(() => {
-    if (activeTab === "agent-check" && skillRaw === null) {
-      loadSkill();
-    }
-  }, [activeTab, skillRaw, loadSkill]);
+    if (activeTab !== "agent-check" || currentSkill !== null) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/skill?skillId=${skillId}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            (body as { message?: string }).message ?? String(res.status),
+          );
+        }
+        const data = (await res.json()) as { content: string };
+        if (!cancelled) setSkill({ skillId, raw: data.content, error: null });
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setSkill({
+            skillId,
+            raw: null,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, currentSkill, skillId]);
 
   const copyScript = useCallback(async () => {
     if (!phase.acceptanceScript) return;
@@ -210,11 +233,7 @@ export function ReplicaToolbox({
                   variant="outline"
                   size="sm"
                   className="ml-2"
-                  onClick={() => {
-                    setSkillRaw(null);
-                    setSkillError(null);
-                    setSkillLoading(false);
-                  }}
+                  onClick={() => setSkill(null)}
                 >
                   重试
                 </Button>
