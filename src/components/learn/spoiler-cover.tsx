@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 

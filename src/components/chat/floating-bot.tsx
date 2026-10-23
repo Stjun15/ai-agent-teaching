@@ -17,7 +17,13 @@
  * - Enter 发送、Shift+Enter 换行
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
@@ -54,6 +60,15 @@ const SUGGESTED_QUESTIONS = [
   "System Prompt 怎么写才有效？",
 ];
 
+/**
+ * 「客户端是否已 hydrate」的订阅：没有外部事件源，快照恒定。
+ *
+ * 服务端快照为 false、客户端快照为 true —— 服务端与首次 hydrate 渲染因此
+ * 一致（悬浮球先占位隐藏），挂载后自动切到真实坐标，不需要在 effect 里
+ * setState（React 19 的 set-state-in-effect 规则）。
+ */
+const subscribeNoop = () => () => {};
+
 type PanelView = "chat" | "history";
 
 const BUBBLE_SIZE = 56;
@@ -71,7 +86,11 @@ export function FloatingChatBot() {
   const mountedRef = useRef(true);
 
   // --- 拖动 ----
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
 
   const [pos, setPos] = useState(() => {
     if (typeof window !== "undefined") {
@@ -83,13 +102,6 @@ export function FloatingChatBot() {
     return { x: 0, y: 0 };
   });
 
-  useEffect(() => {
-    setPos({
-      x: window.innerWidth - BUBBLE_SIZE - 24,
-      y: window.innerHeight - BUBBLE_SIZE - 24,
-    });
-    setHydrated(true);
-  }, []);
   const dragRef = useRef({ dragging: false, startX: 0, startY: 0, startPosX: 0, startPosY: 0, moved: false });
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {

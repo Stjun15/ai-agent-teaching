@@ -396,6 +396,10 @@ export function PromptHistorySection() {
 
   useEffect(() => {
     if (currentStudentId() === "") {
+      // 学生身份只存在于 localStorage，服务端读不到；渲染期判断会让服务端
+      // 渲染错误态、客户端渲染正常态 → 水合不一致（React #418）。只能在
+      // 挂载后的 effect 里判断，且只落一次状态，不构成级联渲染。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError("还没有学生身份，刷新页面后再试。");
       setLoading(false);
       return;

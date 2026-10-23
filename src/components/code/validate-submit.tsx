@@ -335,14 +335,16 @@ function ValidationReport({
               const ta = document.querySelector(
                 'textarea[aria-label="代码编辑区"]',
               );
-              ta?.scrollIntoView({ behavior: "smooth", block: "center" });
-              ta?.focus();
+              if (ta instanceof HTMLElement) {
+                ta.scrollIntoView({ behavior: "smooth", block: "center" });
+                ta.focus();
+              }
             }}
           >
             根据点评修改代码，重新提交
           </Button>
           <span className="text-xs text-muted-foreground">
-            编辑器在上方，修改后点击"提交点评"即可再评一次
+            编辑器在上方，修改后点击“提交点评”即可再评一次
           </span>
         </div>
       )}

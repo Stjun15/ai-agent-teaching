@@ -141,6 +141,11 @@ export function KnowledgeCard({
   );
 
   useEffect(() => {
+    // 挂载后一次性从 localStorage 恢复草稿：服务端没有 localStorage，
+    // 渲染期读会让服务端空表单 / 客户端已填内容 → 水合不一致
+    // （React #418）。组件在 mounted 前只渲染骨架，所以这次同步落状态
+    // 不会造成可见的级联渲染。同类先例见 src/hooks/use-speech-recognition.ts。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const cards = loadCards();
     const existing = cards[moduleId];

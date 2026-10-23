@@ -132,6 +132,12 @@ export function ModuleWorkspace({
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
   useEffect(() => {
+    // 必须在挂载后同步，不能在渲染期读：服务端读不到 localStorage，
+    // 渲染期读会让服务端渲染默认宽度、客户端渲染持久宽度 → 水合不一致
+    // （React #418，本仓库曾因同类问题整站白屏）。这是一次性初始化、
+    // 不产生级联渲染，属于「订阅外部存储后更新状态」的例外。
+    // 同类处理的先例见 src/hooks/use-speech-recognition.ts。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLeftWidth(readPersistedWidth(STORAGE_KEY_LEFT, DEFAULT_LEFT));
     setRightWidth(readPersistedWidth(STORAGE_KEY_RIGHT, DEFAULT_RIGHT));
     setRightCollapsed(() => {
