@@ -14,6 +14,7 @@
 | 与远端       | ✅ **已同步（2026-10-23 实测）**：`ls-remote origin dev` 返回 `3efd9f5`，与本地 `git rev-parse HEAD` 一致；远端另有 `main`（001dcd3）与 4 个 tag。10-11 记录的「0 个 ref」异常已消失，`01dce84..HEAD` 区间积压的提交也已全部推上去。推送姿势仍按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`（已完成轮次无残留改动）。两个**未跟踪、有意未提交**的脚本待作者裁定：`scripts/seed-demo-accounts.mjs`（给 test/eval 演示账号灌真实学习数据，幂等）、`scripts/split-platform-replica.mjs`（一次性拆页脚本，产物已在 `llm-wiki/concepts/` 里）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待作者裁定                                                                                                                               |
 | 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
+| 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用，修法见「〇〇」遗留表 P0。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
 | 产品内审计员 | **12 讲 0 缺陷**（10-11 本轮清零）。改任何讲稿/概念页后重跑：起服务 → POST `/api/audit`，或看 `/audit` 页                                                                                                                                                                                                                                                                                                       |
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
@@ -82,6 +83,16 @@ npx vitest run                           # 7 文件 / 26 用例
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 ```
 
+### 部署实况（2026-10-23 实测）
+
+- 入口：`http://8.149.130.30`（只有 80 端口，无域名、无 HTTPS）
+- 链路：nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`，应用目录 `/opt/ai-agent-teaching`
+- 数据：SQLite `dev.db` 落在 `/var/lib/ai-teaching`，19 张表，迁移 `001_init`–`005_audit_score_columns` 全执行
+- 自查：`/` 200、`/api/health` 200、Node `v22.23.3`、uptime 正常
+- 🔴 **`status=degraded`：`arkApiKeyConfigured=false`** → 线上所有模型能力不可用（对话 / 点评 / 出题全废）。修法：
+  在服务器 `/etc/ai-teaching.env` 补 `ARK_API_KEY=...` → `systemctl restart ai-teaching` → 复查
+  `curl -s http://127.0.0.1:3000/api/health` 应转 `ok`
+
 ### 踩过的坑（本轮新增，别再踩）
 
 1. **MCP 静默失效**：工具发现失败会被吞成空数组，症状是「Agent 一切正常，但永远不用 MCP 工具」。任何 `discover*()` 必须有失败日志或端到端测试，别只看主流程绿。
@@ -95,6 +106,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 | 级别 | 事项 | 具体怎么做 |
 |---|---|---|
+| P0 | 生产环境补 `ARK_API_KEY` | 线上 `status=degraded`，模型全不可用。SSH 到 8.149.130.30 → 在 `/etc/ai-teaching.env` 补密钥 → `systemctl restart ai-teaching` → `curl -s http://127.0.0.1:3000/api/health` 应转 `ok`。**这是演示视频与评委验收的前置条件** |
 | P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（当前 `dev` 已推到 `3efd9f5`） |
 | P1 | `main` 落后 | `main` 仍停在 `v0.4.0`。本机禁止切分支/rebase，合并走 plumbing：`git merge-tree --write-tree main dev` → `git commit-tree` → `git update-ref refs/heads/main <new>`；或作者在 GitHub 网页开 PR 合并 |
 | P1 | 两个未跟踪脚本去留 | `scripts/seed-demo-accounts.mjs`（建议入库，评审演示灌数据用）、`scripts/split-platform-replica.mjs`（一次性拆页，可删）—— **作者裁定** |

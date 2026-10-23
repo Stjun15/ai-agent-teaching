@@ -339,11 +339,11 @@ pnpm vitest run                    # Vitest 入口（新）
 
 ### 10.4 测试分组摘要（run-tests.mjs）
 
-55 组涵盖：Markdown 解析、客户端身份、分数量纲、主题偏好、沙箱清单、可视化场景、项目模板、教学循环 DB、教学结果 DB、教学闭环 DB、Trace 接线、提示词预算、安全过滤、限流、混合检索、学生记录、评分维度、提交点评接线、讲解步骤、讲稿缓存、练习判定、编辑器焦点、鉴权流程、数据隔离、SSE 协议、分屏消息过滤、思维链归属/封口/过滤、观察面板分段、冷启动、概念页注入、Composer 发送链路/边缘、ChatRequestSchema、ChatStream、Chat 事件分发、Chat abort/reset、中断注册表、会话池、Agent/Skill 注册表、Agent Loop、代码编辑状态、练习面板、学习路径调整、悬浮球会话、知识卡片、模块会话隔离、SSE dispatch、教学有效性、Chat 渲染、学生漫游、部署自检。
+53 组涵盖（原 55 组；playground 与编辑器焦点两组已随模块删除）：Markdown 解析、客户端身份、分数量纲、主题偏好、沙箱清单、可视化场景、项目模板、教学循环 DB、教学结果 DB、教学闭环 DB、Trace 接线、提示词预算、安全过滤、限流、混合检索、学生记录、评分维度、提交点评接线、讲解步骤、讲稿缓存、练习判定、鉴权流程、数据隔离、SSE 协议、分屏消息过滤、思维链归属/封口/过滤、观察面板分段、冷启动、概念页注入、Composer 发送链路/边缘、ChatRequestSchema、ChatStream、Chat 事件分发、Chat abort/reset、中断注册表、会话池、Agent/Skill 注册表、Agent Loop、代码编辑状态、练习面板、学习路径调整、悬浮球会话、知识卡片、模块会话隔离、SSE dispatch、教学有效性、Chat 渲染、学生漫游、部署自检。
 
 ---
 
-## 十一、近期重要改动（2026-10-21 → 2026-10-22）
+## 十一、近期重要改动（2026-10-21 → 2026-10-23）
 
 ### 11.1 MCP 协议集成（新功能）
 
@@ -375,6 +375,17 @@ pnpm vitest run                    # Vitest 入口（新）
 
 `docs/competition/technical-document.md` 已覆盖全部评分维度（13,188 中文字，预估 PDF 22-26 页），所有断言有源码锚点。
 
+### 11.4 生产部署（2026-10-23 实测）
+
+| 项 | 事实 |
+|----|------|
+| 入口 | `http://8.149.130.30`（仅 80 端口，**无域名、无 HTTPS**） |
+| 链路 | nginx 80 → `127.0.0.1:3000` → systemd `ai-teaching`（SSE 关缓冲） |
+| 目录 | 应用 `/opt/ai-agent-teaching`；数据 `/var/lib/ai-teaching`；环境变量 `/etc/ai-teaching.env` |
+| 运行 | Node `v22.23.3`；SQLite 19 张表；迁移 `001`–`005` 全部执行；`/` 与 `/api/health` 均 200 |
+| 状态 | 🔴 `status=degraded`：`arkApiKeyConfigured=false` —— **线上模型能力全不可用** |
+| 修复 | 在 `/etc/ai-teaching.env` 补 `ARK_API_KEY=...` → `systemctl restart ai-teaching` → 复查 health 应转 `ok` |
+
 ---
 
 ## 十二、已知问题（按严重程度）
@@ -393,7 +404,7 @@ pnpm vitest run                    # Vitest 入口（新）
 |---|------|------|
 | 4 | **Turbopack `useEffect` 可能不触发** | 已通过 layout.tsx 原生 `<script>` IIFE 绕开 |
 | 5 | **真模型测试混在主流程** | 无密钥时报"无摘要"，建议拆到独立 `test:model` 脚本 |
-| 6 | **Playground / Report 页功能不完整** | 路由存在但内容为占位 |
+| 6 | ~~**Playground / Report 页功能不完整**~~（2026-10-23 核验：Playground 已随 `8ae50bd` 删除，Report 页已接真实数据） | 无剩余动作，页面路由以 §5.1 为准 |
 | 7 | **依赖 `ARK_API_KEY`** | 无密钥时 Agent 对话不可用（`/api/health` 会报缺少密钥） |
 | 8 | **Tunnel 域名不固定** | Cloudflare Tunnel 每次重启换域名 |
 
