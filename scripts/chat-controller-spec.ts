@@ -8,7 +8,7 @@
  */
 
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { test } from "node:test";
 
 import { createElement, useEffect, useRef } from "react";
 import { act } from "react";
@@ -109,14 +109,11 @@ test("useChatStream 控制器：abort / 并发防护 / reset", async () => {
     globalThis.fetch = blockFn;
 
     // 发起 send（startSend() 坑：send 内部 setState 依赖 rAF，需 act 包裹）
-    let sendDone = false;
     const sendP = act(() =>
       send(
         { content: "你好", moduleId: "ts-basics" },
         { moduleId: "ts-basics" },
-      )
-        .then(() => { sendDone = true; })
-        .catch(() => { sendDone = true; }),
+      ).catch(() => undefined),
     );
 
     // 等 send 进入 streaming 态
@@ -153,14 +150,11 @@ test("useChatStream 控制器：abort / 并发防护 / reset", async () => {
     globalThis.fetch = blockFn;
 
     // 第一条 send 卡住（保存 promise 等完成后释放 activeController）
-    let resolved = false;
     const firstSendP = act(() =>
       send(
         { content: "第一条", moduleId: "ts-basics" },
         { moduleId: "ts-basics" },
-      )
-        .then(() => { resolved = true; })
-        .catch(() => { resolved = true; }),
+      ).catch(() => undefined),
     );
 
     await new Promise((r) => setTimeout(r, 200));

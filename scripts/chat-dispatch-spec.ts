@@ -92,13 +92,13 @@ test("tool_result 事件 → addToolResult 补齐结果与耗时", () => {
 
   dispatch({
     type: "tool_result",
-    data: { callId: "c1", result: "42", duration: 100 },
+    data: { callId: "c1", result: { text: "42" }, duration: 100 },
   });
 
   const calls = useSessionStore.getState().tools;
   const call = calls.find((c) => c.callId === "c1");
   assert.ok(call);
-  assert.equal(call.result, "42");
+  assert.deepEqual(call.result, { text: "42" });
   assert.equal(call.durationMs, 100);
 });
 
@@ -114,13 +114,22 @@ test("citation 事件 → addCitation", () => {
 });
 
 test("validation 事件 → CodeStore.resolveValidation", () => {
+  // `validation` 事件的 data 就是完整的 `ValidationResult`（11 个字段），
+  // 少字段在传输契约里不合法，因此 fixture 必须写全。
   dispatch({
     type: "validation",
     data: {
+      id: "vr-1",
+      studentId: "00000000-0000-4000-8000-000000000001",
+      sessionId: "00000000-0000-4000-8000-000000000002",
+      taskType: "code",
       totalScore: 85,
+      level: "良好",
       isCorrect: true,
+      dimensions: [],
       issues: [],
       suggestions: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
     },
   });
 
@@ -133,7 +142,7 @@ test("validation 事件 → CodeStore.resolveValidation", () => {
 test("visualization 事件 → VisualizationStore.selectScene", () => {
   dispatch({
     type: "visualization",
-    data: { sceneId: "scene-loop-weather" },
+    data: { sceneId: "scene-loop-weather", params: {} },
   });
 
   assert.equal(useVisualizationStore.getState().sceneId, "scene-loop-weather");

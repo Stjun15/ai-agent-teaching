@@ -15,6 +15,7 @@ import {
   poolSize,
   resetPool,
 } from "@/lib/agent/session-pool";
+import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import type { AgentSessionHandle } from "@/lib/agent/session";
 
 // 每个用例前清空全局池。
@@ -29,7 +30,7 @@ class MockHandle implements AgentSessionHandle {
   static instances = 0;
   static disposed: string[] = [];
 
-  private listeners: Array<(event: unknown) => void> = [];
+  private listeners: Array<(event: AgentSessionEvent) => void> = [];
   readonly tag: string;
 
   constructor(tag: string) {
@@ -42,7 +43,7 @@ class MockHandle implements AgentSessionHandle {
     MockHandle.disposed.push(this.tag);
   };
   abort = async (): Promise<void> => {};
-  subscribe = (listener: (event: unknown) => void): (() => void) => {
+  subscribe = (listener: (event: AgentSessionEvent) => void): (() => void) => {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
@@ -58,8 +59,7 @@ function stubFactory(tag: string) {
   return async () => new MockHandle(tag);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function noopListener(_event: any): void {}
+function noopListener(_event: AgentSessionEvent): void {}
 
 test("poolSize → 初始 0，resetPool 后仍为 0", () => {
   assert.equal(poolSize(), 0);
@@ -108,13 +108,13 @@ test("systemPrompt 改变 → 销毁旧 handle，建新的", async () => {
 });
 
 test("tools 改变 → 销毁旧 handle，建新的", async () => {
-  const h1 = await getOrCreateHandle(
+  await getOrCreateHandle(
     "s1",
     { systemPrompt: "你是助教", tools: ["calc"] },
     noopListener,
     stubFactory("A"),
   );
-  const h2 = await getOrCreateHandle(
+  await getOrCreateHandle(
     "s1",
     { systemPrompt: "你是助教", tools: ["calc", "search"] },
     noopListener,

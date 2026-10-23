@@ -46,11 +46,11 @@ test("composeUserPrompt：有代码 → 拼入代码围栏与说明", () => {
 test("composeUserPrompt：显式 language → 围栏用指定语言", () => {
   const result = composeUserPrompt({
     prompt: "review",
-    code: "print('hello')",
-    language: "python",
+    code: "let x: number = 1;",
+    language: "typescript",
   });
-  assert.ok(result.includes("```python"));
-  assert.ok(result.includes("python"));
+  assert.ok(result.includes("```typescript"));
+  assert.ok(result.includes("typescript"));
 });
 
 test("composeUserPrompt：空代码 → 等价无代码", () => {
@@ -126,6 +126,7 @@ test("composeHistory：单条超预算 → 仍保留（最新轮次无条件留�
 
 /** 对接 createEventTranslator 的最小假流：只记录 send 调用。 */
 class RecordingStream implements SSEStream {
+  stream = new ReadableStream<Uint8Array>({ start() {} });
   events: SSEEvent[] = [];
   closed = false;
 
@@ -440,10 +441,9 @@ test("turn_end (非 assistant) → 不累加 token", () => {
 
   t.handle({
     type: "turn_end",
-    message: {
-      role: "user",
-      usage: { input: 999, output: 999 },
-    },
+    turnIndex: 0,
+    message: { role: "user", content: "你好", timestamp: 0 },
+    toolResults: [],
   } as AgentSessionEvent);
 
   const summary = t.summary();

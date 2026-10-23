@@ -12,7 +12,7 @@ import { test } from "node:test";
 
 import { SKILLS, getSkill } from "@/lib/agent/skills";
 import { AGENTS, getAgent } from "@/lib/agent/prompts";
-import { SKILL_IDS, AGENT_IDS, type SkillId, type AgentId } from "@/lib/agent/types";
+import { SKILL_IDS, AGENT_IDS, type SkillId } from "@/lib/agent/types";
 
 // -- Skill 注册表 ----------------------------------------------------------
 

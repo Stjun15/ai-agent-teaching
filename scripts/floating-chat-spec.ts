@@ -53,7 +53,7 @@ test("ensureSession：无活跃会话 → 自动创建", () => {
 
 test("switchSession → 切换活跃会话并重置状态", () => {
   const s1 = useFloatingChatStore.getState().createSession();
-  const s2 = useFloatingChatStore.getState().createSession();
+  useFloatingChatStore.getState().createSession();
 
   useFloatingChatStore.setState({ status: "error", errorMessage: "oops" });
   useFloatingChatStore.getState().switchSession(s1);
@@ -75,7 +75,7 @@ test("switchSession：不存在的 id → 不动", () => {
 
 test("deleteSession → 删除会话 + 清理顺序列表", () => {
   const s1 = useFloatingChatStore.getState().createSession();
-  const s2 = useFloatingChatStore.getState().createSession();
+  useFloatingChatStore.getState().createSession();
 
   useFloatingChatStore.getState().deleteSession(s1);
 
@@ -223,6 +223,7 @@ test("completeTurn → 流式助手转 done，状态回 idle", () => {
     .getState()
     .sessions[sessionId].messages;
   const assistant = messages.find((m) => m.id === "a1");
+  assert.ok(assistant);
   assert.equal(assistant.status, "done");
   assert.equal(useFloatingChatStore.getState().status, "idle");
 });
@@ -255,6 +256,7 @@ test("failTurn → 流式助手转 error，记录错误信息", () => {
 
   const messages = state.sessions[sessionId].messages;
   const assistant = messages.find((m) => m.id === "a1");
+  assert.ok(assistant);
   assert.equal(assistant.status, "error");
 });
 
@@ -286,6 +288,7 @@ test("abortTurn → 流式助手转 done（非 error），状态回 idle", () =>
 
   const messages = state.sessions[sessionId].messages;
   const assistant = messages.find((m) => m.id === "a1");
+  assert.ok(assistant);
   assert.equal(assistant.status, "done", "中断的流应标记为 done 而非 error");
 });
 
