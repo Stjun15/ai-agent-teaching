@@ -10,8 +10,8 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（最新提交以 `git rev-list --count HEAD` 为准，工作分支）。**`main` 已于 10-23 晚合并 dev**（`286ed78`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；已打 `v0.5.0`。`main` 仍不是工作分支，别在上面提交 |
-| 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 返回 `dev`=`dac10e0`、`main`=`286ed78`，与本地一致。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| 分支 / HEAD  | `dev`（工作分支，最新提交以 `git rev-list --count HEAD` 为准）。**`main` 已于 10-23 晚合并 dev**（合并提交 `661a875`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；`v0.5.0` 已打并推送，指向 `661a875`。`main` 仍不是工作分支，别在上面提交 |
+| 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 列出的 `dev` / `main` / `v0.5.0` 与本地一致（核验方式：逐字符比对 `git rev-parse` 与 `ls-remote` 输出，别用 `rev-list origin/dev..HEAD`）。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
 | CI           | ✅ **首跑已绿（2026-10-23 晚）**：`dev` / `main` 两次 push 均 success，ESLint + `tsc --noEmit` + Vitest（7 文件 26 用例）三步全过。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
 | 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`。两个**未跟踪、有意未提交**的脚本待作者裁定（核查结论见「〇〇」待办 A 表）：`scripts/seed-demo-accounts.mjs`（能跑，但**实测非幂等**：裸 INSERT 表连跑会翻倍）、`scripts/split-platform-replica.mjs`（一次性拆页，产物已在 `llm-wiki/concepts/`）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待裁定 |
 | 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
@@ -23,13 +23,14 @@
 | 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` 7 文件 **26 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
 | 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——25 个提交、参赛审计五项的核验结论、CI 首绿、踩过的坑、遗留待办，**本轮移交重点** |
 
-> ⚠️ 提交数 633 是 2026-10-23 推送后的实测值（`git rev-list --count HEAD`），每轮新提交后以该命令为准。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
+> ⚠️ 提交数 638 是 2026-10-23 晚推送后的实测值（`git rev-list --count HEAD`），每轮新提交后以该命令为准。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
 
 ### 远端推送状态（2026-10-23 更新）：✅ 已同步
 
-10-23 用四开关姿势实测：`ls-remote origin` 正常返回 `dev`（`3efd9f5`）/ `main`（`001dcd3`）/ 4 个 tag；
-`push origin dev` 成功（`7203a35..3efd9f5`），推后 `ls-remote origin dev` 与本地 `git rev-parse HEAD` 逐字符一致。
+10-23 晚用四开关姿势实测：`ls-remote origin` 正常返回 `dev` / `main` / `v0.5.0`（共 5 个发布 tag）；
+`push origin dev main` 与 `push origin refs/tags/v0.5.0` 均成功，推后 `ls-remote` 与本地 `git rev-parse` 逐字符一致。
 **10-11 那次「0 个 ref + push --dry-run 静默」的异常没有复现，无需重建远端。**
+⚠️ `git push origin dev main` 是**非原子**推送：`main` 若被拒（例如本地 main 与远端已分叉），`dev` 可能已经推上去了 —— 报错后先 `ls-remote` 看两边真实状态，别以为整条命令白跑。
 ⚠️ PowerShell 5 没有 `env -u`，清代理变量的写法是 `Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue`（连 `HTTPS_PROXY` / 小写变体 / `ALL_PROXY` 一起清），之后照 `AGENTS.md` 第八节带 `-c http.schannelCheckRevoke=false -c http.sslVerify=false -c http.postBuffer=524288000`。
 
 ### 已闭合（原「等作者裁定」的两项均已解决）
@@ -110,9 +111,9 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 
 | 级别 | 事项 | 具体怎么做 | 谁能做 |
 |---|---|---|---|
-| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（`dev` 已推到 `f916ddc`） | 作者 |
+| P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（`dev` / `main` 均已推送至最新） | 作者 |
 | P0 | 报名 + 缴费 + 提交 | 2026-11-18 当天截止，**提交后不得修改**，全部改动要在这之前完成 | 作者 |
-| P1 | ~~`main` 合并 `dev`~~ **已完成（10-23 晚）** | 首合并 `cb1a39f`（`merge-tree` 无冲突），CI 修正后补一次同步合并 `286ed78`；远端已用 `ls-remote` 核对：`main=286ed78`、与 `dev` 同一 tree `b3abef9`，全程 plumbing、未切分支。`v0.5.0` 已打并推送 | 我 |
+| P1 | ~~`main` 合并 `dev`~~ **已完成（10-23 晚）** | 首合并 `cb1a39f`（`merge-tree` 无冲突），CI 修正后再合并一次，最终 `main=661a875`（与 dev 同一 tree）；`v0.5.0` tag 指向该提交并已推送。全程 plumbing、未切分支 | 我 |
 | P1 | ~~CI 首跑核验~~ **已完成（10-23 晚；首跑是红的）** | 最初 5 条 run 全在 11–13s 失败：`pnpm 9` 撞纯配置型 `pnpm-workspace.yaml`（无 `packages` 字段），`setup-node` 的 `pnpm store path` 报 `packages field missing or empty`。`dac10e0` 钉 `pnpm 12` 后 dev/main 双绿（ESLint / tsc / Vitest 7 文件 26 用例）。⚠️ 行覆盖率仅 **5.67%** | 我 |
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
 | P1 | 两个未跟踪脚本去留 | 已逐行核查（10-23 晚）：`split-platform-replica.mjs` 硬编码行号切原稿，产物 `platform-replica-0{0..5}.md` 已在库 → **一次性脚本，建议删**；`seed-demo-accounts.mjs` 能跑通（temp 库实测 exit 0），但注释声称的「幂等」是**假的**——`question_results`/`errors`/`prompt_history` 走裸 INSERT，连跑两次实测 +32/+8/+12 行；且账号写入与已入库的 `seed-auth-accounts.mjs` 重复 → 待裁定：合并进 auth 脚本，或入库并修幂等 | 作者裁定 |
