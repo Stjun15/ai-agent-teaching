@@ -28,14 +28,27 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ApiError, apiGet, apiPut } from "@/lib/client-api";
 import { currentStudentId } from "@/lib/client-identity";
 import { PROMPT_SCORE_MAX } from "@/lib/scores";
-import type { ErrorRecord, PromptHistory, StudentErrorsResponse, StudentPromptsResponse } from "@/schemas";
+import { isReviewDue, reviewStageOf } from "@/lib/review-schedule";
+import type {
+  ErrorRecord,
+  PromptHistory,
+  StudentErrorsResponse,
+  StudentPromptsResponse,
+} from "@/schemas";
 
 /** 每页条数。 */
 const PAGE_SIZE = 10;
@@ -51,18 +64,21 @@ type CorrectionState = {
 /** 错题本。数据自取，内部管理模块筛选与分页状态。 */
 export function ErrorBookSection() {
   const [moduleId, setModuleId] = useState<string | null>(null);
+  /** true = 只看已到复习档期的（`?due=1`），false = 全部错题。 */
+  const [dueOnly, setDueOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [data, setData] = useState<{
     errors: ErrorRecord[];
     total: number;
     moduleIds: string[];
+    dueCount: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const signalRef = useRef<AbortController | null>(null);
 
   const fetchErrors = useCallback(
-    async (modId: string | null, pg: number) => {
+    async (modId: string | null, pg: number, showDueOnly: boolean) => {
       signalRef.current?.abort();
       const controller = new AbortController();
       signalRef.current = controller;
@@ -74,6 +90,7 @@ export function ErrorBookSection() {
         const params = new URLSearchParams();
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String(pg * PAGE_SIZE));
+        if (showDueOnly) params.set("due", "1");
         if (modId) params.set("moduleId", modId);
 
         const res = await apiGet<StudentErrorsResponse>(
@@ -99,65 +116,82 @@ export function ErrorBookSection() {
       setLoading(false);
       return;
     }
-    void fetchErrors(moduleId, page);
+    void fetchErrors(moduleId, page, dueOnly);
     return () => signalRef.current?.abort();
-  }, [moduleId, page, fetchErrors]);
+  }, [moduleId, page, dueOnly, fetchErrors]);
 
-  const handleModuleChange = useCallback(
-    (value: string) => {
-      const modId = value === "__all__" ? null : value;
-      setModuleId(modId);
-      setPage(0);
-    },
-    [],
-  );
+  // 学习页「今日复习」入口带 `?review=1` 进来时，直接落在待复习视图。
+  // 只在挂载时读一次：之后筛选由用户点切换控制，URL 不承担状态。
+  const reviewEntryApplied = useRef(false);
+  useEffect(() => {
+    if (reviewEntryApplied.current) return;
+    reviewEntryApplied.current = true;
+    if (new URLSearchParams(window.location.search).get("review") === "1") {
+      setDueOnly(true);
+    }
+  }, []);
+
+  const handleModuleChange = useCallback((value: string) => {
+    const modId = value === "__all__" ? null : value;
+    setModuleId(modId);
+    setPage(0);
+  }, []);
+
+  const toggleDueOnly = useCallback(() => {
+    setDueOnly((prev) => !prev);
+    setPage(0);
+  }, []);
 
   const [corrections, setCorrections] = useState<
     Record<string, CorrectionState>
   >({});
 
-  const handleCorrect = useCallback(async (errorId: string, originalAnswer: string) => {
-    const entry = corrections[errorId];
-    if (!entry || !entry.answer.trim()) return;
+  const handleCorrect = useCallback(
+    async (errorId: string, originalAnswer: string) => {
+      const entry = corrections[errorId];
+      if (!entry || !entry.answer.trim()) return;
 
-    const trimmed = entry.answer.trim();
-    if (trimmed === originalAnswer.trim()) {
+      const trimmed = entry.answer.trim();
+      if (trimmed === originalAnswer.trim()) {
+        setCorrections((prev) => ({
+          ...prev,
+          [errorId]: {
+            ...entry,
+            error:
+              "订正答案不能和原来的错误答案一模一样，请重新思考后写出正确答案。",
+          },
+        }));
+        return;
+      }
+
       setCorrections((prev) => ({
         ...prev,
-        [errorId]: { ...entry, error: "订正答案不能和原来的错误答案一模一样，请重新思考后写出正确答案。" },
+        [errorId]: { ...entry, submitting: true, error: null },
       }));
-      return;
-    }
 
-    setCorrections((prev) => ({
-      ...prev,
-      [errorId]: { ...entry, submitting: true, error: null },
-    }));
-
-    try {
-      await apiPut("/api/student/errors", {
-        id: errorId,
-        correctedAnswer: trimmed,
-      });
-      setCorrections((prev) => ({
-        ...prev,
-        [errorId]: { ...prev[errorId], submitting: false, done: true },
-      }));
-      void fetchErrors(moduleId, page);
-    } catch (err) {
-      setCorrections((prev) => ({
-        ...prev,
-        [errorId]: {
-          ...prev[errorId],
-          submitting: false,
-          error:
-            err instanceof ApiError
-              ? err.message
-              : "提交失败，请重试。",
-        },
-      }));
-    }
-  }, [corrections, moduleId, page, fetchErrors]);
+      try {
+        await apiPut("/api/student/errors", {
+          id: errorId,
+          correctedAnswer: trimmed,
+        });
+        setCorrections((prev) => ({
+          ...prev,
+          [errorId]: { ...prev[errorId], submitting: false, done: true },
+        }));
+        void fetchErrors(moduleId, page, dueOnly);
+      } catch (err) {
+        setCorrections((prev) => ({
+          ...prev,
+          [errorId]: {
+            ...prev[errorId],
+            submitting: false,
+            error: err instanceof ApiError ? err.message : "提交失败，请重试。",
+          },
+        }));
+      }
+    },
+    [corrections, moduleId, page, dueOnly, fetchErrors],
+  );
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -166,8 +200,20 @@ export function ErrorBookSection() {
       <div className="flex flex-wrap items-baseline gap-2">
         <h2 className="text-sm font-semibold">错题本</h2>
         <span className="text-[11px] text-muted-foreground">
-          点评判为不通过时记录，兜底输出不写
+          点评判为不通过时记录，兜底输出不写；按第 1 / 3 / 7 / 14 天排复习
         </span>
+        {data !== null && data.dueCount > 0 ? (
+          <Button
+            type="button"
+            variant={dueOnly ? "default" : "outline"}
+            size="sm"
+            className="ml-auto h-7 text-[11px]"
+            aria-pressed={dueOnly}
+            onClick={toggleDueOnly}
+          >
+            {dueOnly ? "看全部错题" : `今日待复习 ${data.dueCount} 条`}
+          </Button>
+        ) : null}
       </div>
 
       {/* 模块筛选下拉 */}
@@ -175,7 +221,7 @@ export function ErrorBookSection() {
         <div className="flex items-center gap-2">
           <label
             htmlFor="error-book-module"
-            className="text-xs text-muted-foreground shrink-0"
+            className="shrink-0 text-xs text-muted-foreground"
           >
             模块
           </label>
@@ -183,7 +229,7 @@ export function ErrorBookSection() {
             id="error-book-module"
             value={moduleId ?? "__all__"}
             onChange={(e) => handleModuleChange(e.target.value)}
-            className="h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-8 rounded-md border bg-background px-2 text-xs focus:ring-1 focus:ring-ring focus:outline-none"
           >
             <option value="__all__">全部模块</option>
             {data.moduleIds.map((id) => (
@@ -217,7 +263,7 @@ export function ErrorBookSection() {
             variant="outline"
             size="sm"
             className="w-fit"
-            onClick={() => fetchErrors(moduleId, page)}
+            onClick={() => fetchErrors(moduleId, page, dueOnly)}
           >
             <RefreshCw className="size-4" />
             重试
@@ -225,9 +271,11 @@ export function ErrorBookSection() {
         </div>
       ) : data === null || data.errors.length === 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          {moduleId !== null
-            ? "该模块还没有错题记录。"
-            : "还没有错题记录。这项只统计真实点评判为不通过的提交。"}
+          {dueOnly
+            ? "现在没有到期该复习的错题 —— 第 1 / 3 / 7 / 14 天的档期到了，这里会自动出现。"
+            : moduleId !== null
+              ? "该模块还没有错题记录。"
+              : "还没有错题记录。这项只统计真实点评判为不通过的提交。"}
         </p>
       ) : (
         <>
@@ -250,10 +298,17 @@ export function ErrorBookSection() {
                   ) : (
                     <Badge variant="levelMid">未订正</Badge>
                   )}
+                  {isReviewDue(item.nextReviewAt) ? (
+                    <Badge variant="levelHigh">该复习了</Badge>
+                  ) : null}
                   <span className="ml-auto text-[11px] text-muted-foreground">
                     {formatTime(item.createdAt)}
                   </span>
                 </div>
+
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {reviewScheduleText(item)}
+                </p>
 
                 {item.question ? (
                   <p className="mt-2 text-muted-foreground">
@@ -295,16 +350,30 @@ export function ErrorBookSection() {
                   </p>
                 ) : null}
 
-                {/* 订正区：未订正的错题才显示 */}
-                {!item.isCorrected ? (
+                {/* 订正/复习区：未订正的错题，以及已到复习档期的错题 */}
+                {!item.isCorrected || isReviewDue(item.nextReviewAt) ? (
                   <CorrectForm
                     errorId={item.id}
-                    originalAnswer={item.studentAnswer}
-                    state={corrections[item.id] ?? { answer: "", submitting: false, done: false, error: null }}
+                    originalAnswer={item.isCorrected ? "" : item.studentAnswer}
+                    submitLabel={item.isCorrected ? "提交复习答案" : "提交订正"}
+                    state={
+                      corrections[item.id] ?? {
+                        answer: "",
+                        submitting: false,
+                        done: false,
+                        error: null,
+                      }
+                    }
                     onAnswerChange={(v) =>
                       setCorrections((prev) => ({
                         ...prev,
-                        [item.id]: { ...prev[item.id], answer: v, submitting: false, done: false, error: null },
+                        [item.id]: {
+                          ...prev[item.id],
+                          answer: v,
+                          submitting: false,
+                          done: false,
+                          error: null,
+                        },
                       }))
                     }
                     onSubmit={handleCorrect}
@@ -314,8 +383,8 @@ export function ErrorBookSection() {
             ))}
           </ul>
 
-          {/* 分页控件 */}
-          {totalPages > 1 ? (
+          {/* 分页控件：待复习视图一次取全（条数天然有限），不分页 */}
+          {!dueOnly && totalPages > 1 ? (
             <nav
               aria-label="错题本分页"
               className="flex items-center justify-center gap-2 pt-1"
@@ -329,7 +398,7 @@ export function ErrorBookSection() {
               >
                 <ChevronLeft className="size-4" />
               </Button>
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {page + 1} / {totalPages}
               </span>
               <Button
@@ -362,37 +431,36 @@ export function PromptHistorySection() {
   const [error, setError] = useState<string | null>(null);
   const signalRef = useRef<AbortController | null>(null);
 
-  const fetchPrompts = useCallback(
-    async (modId: string | null, pg: number) => {
-      signalRef.current?.abort();
-      const controller = new AbortController();
-      signalRef.current = controller;
+  const fetchPrompts = useCallback(async (modId: string | null, pg: number) => {
+    signalRef.current?.abort();
+    const controller = new AbortController();
+    signalRef.current = controller;
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const params = new URLSearchParams();
-        params.set("limit", String(PAGE_SIZE));
-        params.set("offset", String(pg * PAGE_SIZE));
-        if (modId) params.set("moduleId", modId);
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(pg * PAGE_SIZE));
+      if (modId) params.set("moduleId", modId);
 
-        const res = await apiGet<StudentPromptsResponse>(
-          `/api/student/prompts?${params.toString()}`,
-          controller.signal,
-        );
-        setData(res);
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(
-          err instanceof ApiError ? err.message : "取 Prompt 历史失败，请稍后重试。",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+      const res = await apiGet<StudentPromptsResponse>(
+        `/api/student/prompts?${params.toString()}`,
+        controller.signal,
+      );
+      setData(res);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "取 Prompt 历史失败，请稍后重试。",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (currentStudentId() === "") {
@@ -408,14 +476,11 @@ export function PromptHistorySection() {
     return () => signalRef.current?.abort();
   }, [moduleId, page, fetchPrompts]);
 
-  const handleModuleChange = useCallback(
-    (value: string) => {
-      const modId = value === "__all__" ? null : value;
-      setModuleId(modId);
-      setPage(0);
-    },
-    [],
-  );
+  const handleModuleChange = useCallback((value: string) => {
+    const modId = value === "__all__" ? null : value;
+    setModuleId(modId);
+    setPage(0);
+  }, []);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -433,7 +498,7 @@ export function PromptHistorySection() {
         <div className="flex items-center gap-2">
           <label
             htmlFor="prompt-history-module"
-            className="text-xs text-muted-foreground shrink-0"
+            className="shrink-0 text-xs text-muted-foreground"
           >
             模块
           </label>
@@ -441,7 +506,7 @@ export function PromptHistorySection() {
             id="prompt-history-module"
             value={moduleId ?? "__all__"}
             onChange={(e) => handleModuleChange(e.target.value)}
-            className="h-8 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-8 rounded-md border bg-background px-2 text-xs focus:ring-1 focus:ring-ring focus:outline-none"
           >
             <option value="__all__">全部模块</option>
             {data.moduleIds.map((id) => (
@@ -593,7 +658,7 @@ export function PromptHistorySection() {
               >
                 <ChevronLeft className="size-4" />
               </Button>
-              <span className="text-xs tabular-nums text-muted-foreground">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {page + 1} / {totalPages}
               </span>
               <Button
@@ -637,15 +702,45 @@ function formatTime(value: string): string {
   );
 }
 
+/** 只到天的显示（复习档期是「第 N 天」，精确到分钟没有意义）。 */
+function formatDay(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (part: number): string => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * 一条错题的复习排期文案。
+ *
+ * 三态分开写、不合并成「待复习/已完成」两个词：学生需要知道**下一次是哪天**，
+ * 否则「第 1/3/7/14 天复习」在界面上看不见，只在文档里成立。
+ */
+function reviewScheduleText(item: ErrorRecord): string {
+  if (!item.nextReviewAt) {
+    return "复习排期：第 1 / 3 / 7 / 14 天四档已走完，不再进待复习队列。";
+  }
+
+  const stage = reviewStageOf(item.createdAt, item.nextReviewAt);
+  const label = stage === null ? "下次复习" : `第 ${stage} 次复习`;
+  const day = formatDay(item.nextReviewAt);
+
+  return isReviewDue(item.nextReviewAt)
+    ? `${label}已到期（原定 ${day}）`
+    : `${label}：${day} 起`;
+}
+
 function CorrectForm({
   errorId,
   originalAnswer,
+  submitLabel,
   state,
   onAnswerChange,
   onSubmit,
 }: {
   errorId: string;
   originalAnswer: string;
+  submitLabel: string;
   state: CorrectionState;
   onAnswerChange: (value: string) => void;
   onSubmit: (errorId: string, originalAnswer: string) => void;
@@ -654,7 +749,7 @@ function CorrectForm({
     return (
       <p className="mt-2 flex items-center gap-1 text-xs text-green-600">
         <Check className="size-3.5" />
-        已提交订正
+        已提交，档期已往后推进
       </p>
     );
   }
@@ -670,7 +765,7 @@ function CorrectForm({
       <textarea
         id={`correction-${errorId}`}
         rows={3}
-        className="w-full resize-y rounded-md border bg-background px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-ring"
+        className="w-full resize-y rounded-md border bg-background px-2 py-1.5 font-mono text-[11px] focus:ring-1 focus:ring-ring focus:outline-none"
         placeholder="在这里订正你的答案…"
         value={state.answer}
         onChange={(e) => onAnswerChange(e.target.value)}
@@ -694,7 +789,7 @@ function CorrectForm({
         ) : (
           <>
             <Check className="mr-1 size-3" />
-            提交订正
+            {submitLabel}
           </>
         )}
       </Button>

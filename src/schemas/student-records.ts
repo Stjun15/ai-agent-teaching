@@ -34,12 +34,18 @@ export type { ErrorRecord, PromptHistory };
 
 /** `GET /api/student/errors` 的响应。 */
 export interface StudentErrorsResponse {
-  /** 按 `created_at` 倒序。`?uncorrected=1` 时只含未订正的。 */
+  /** 按 `created_at` 倒序。`?uncorrected=1` 时只含未订正的；`?due=1` 时按到期时间升序。 */
   errors: ErrorRecord[];
   /** 满足当前筛选条件的错题总数（分页用）。 */
   total: number;
   /** 该学生所有错题的去重模块 id（错题本模块下拉选项）。 */
   moduleIds: string[];
+  /**
+   * 已到复习档期（第 1/3/7/14 天）的错题数，**不受本次筛选影响**。
+   *
+   * `next_review_at` 为空 = 不在复习队列（四档走完，或历史行未回填），不计入。
+   */
+  dueCount: number;
 }
 
 /** `GET /api/student/prompts` 的响应。 */
