@@ -10,7 +10,7 @@
 # ============================================================================
 set -euo pipefail
 
-REPO_URL="https://github.com/jiajunjiang15/ai-agent-teaching.git"
+REPO_URL="https://github.com/Stjun15/ai-agent-teaching.git"
 APP_DIR="/opt/ai-agent-teaching"
 DATA_DIR="/var/lib/ai-teaching"
 SERVICE="ai-teaching"
