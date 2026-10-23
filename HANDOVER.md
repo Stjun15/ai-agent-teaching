@@ -10,9 +10,10 @@
 
 | 项           | 事实                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 分支 / HEAD  | `dev`（最新 `f916ddc` + 本次移交提交；提交总数以 `git rev-list --count HEAD` 为准）。`main` 仍停在 `v0.4.0`（001dcd3），落后 dev 全部新工作 —— **合并是当前最高优先级动作之一**                                                                                                                                                                                                                                                                                                                                                                           |
-| 与远端       | ✅ **已同步（2026-10-23 实测）**：`ls-remote origin dev` 返回 `f916ddc`，与本地 `HEAD` 一致；远端另有 `main`（001dcd3）与 4 个 tag。10-11 记录的「0 个 ref」异常已消失。推送姿势仍按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
-| 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`（已完成轮次无残留改动）。两个**未跟踪、有意未提交**的脚本待作者裁定：`scripts/seed-demo-accounts.mjs`（给 test/eval 演示账号灌真实学习数据，幂等）、`scripts/split-platform-replica.mjs`（一次性拆页脚本，产物已在 `llm-wiki/concepts/` 里）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待作者裁定                                                                                                                               |
+| 分支 / HEAD  | `dev`（最新提交以 `git rev-list --count HEAD` 为准，工作分支）。**`main` 已于 10-23 晚合并 dev**（`286ed78`，与 dev 同一 tree），不再是 `v0.4.0` 旧版；已打 `v0.5.0`。`main` 仍不是工作分支，别在上面提交 |
+| 与远端       | ✅ **已同步（2026-10-23 晚实测）**：`ls-remote origin` 返回 `dev`=`dac10e0`、`main`=`286ed78`，与本地一致。推送姿势按 `AGENTS.md` 第八节四开关（PowerShell 没有 `env -u`，用 `Remove-Item Env:HTTP_PROXY...` 清代理变量） |
+| CI           | ✅ **首跑已绿（2026-10-23 晚）**：`dev` / `main` 两次 push 均 success，ESLint + `tsc --noEmit` + Vitest（7 文件 26 用例）三步全过。此前 5 条 run 全红，根因是 pnpm 9 与纯配置型 workspace 不兼容（见「〇〇」踩坑 7）。⚠️ 行覆盖率仅 5.67% |
+| 工作区       | `git write-tree` 逐字符等于 `HEAD^{tree}`。两个**未跟踪、有意未提交**的脚本待作者裁定（核查结论见「〇〇」待办 A 表）：`scripts/seed-demo-accounts.mjs`（能跑，但**实测非幂等**：裸 INSERT 表连跑会翻倍）、`scripts/split-platform-replica.mjs`（一次性拆页，产物已在 `llm-wiki/concepts/`）。历史遗留的 `.zcodeignore`、`_temp_vibe_coding.pdf` / `.txt` 同待裁定 |
 | 门禁         | **2026-10-23 实测**：`tsc --noEmit` **0 error**（原 54）、`eslint src scripts tests` **0 error / 24 warning**（原 10 error）、`node scripts/run-tests.mjs` **53/53 全绿**、`vitest run` **26/26**、`pnpm build` 成功。⚠️ 跑全量测试前必须先起服务器（冷启动组打 `localhost:3000`）；⚠️ `prettier --check .` 在本机整仓误报（`core.autocrlf=true` 工作区全 CRLF vs 配置 `endOfLine: "lf"`），CI 在 Linux 检出 LF 不受影响，故未进 CI                                                                                                                                                                                          |
 | 部署（生产） | **已上线（2026-10-23 实测）**：阿里云 ECS `http://8.149.130.30`，nginx 80 → `127.0.0.1:3000`，systemd 服务 `ai-teaching`，SSE 关缓冲。`/` 与 `/api/health` 均 200，Node `v22.23.3`，SQLite 19 张表 / 迁移 001–005 已执行。目录：应用 `/opt/ai-agent-teaching`、数据 `/var/lib/ai-teaching`、环境变量 `/etc/ai-teaching.env`。🔴 **`/api/health` 当前 `status=degraded`，`arkApiKeyConfigured=false`** —— 生产环境模型能力全不可用；**作者已明说部署类问题先搁置**，修法备查见「〇〇」待办 B 表。域名与 HTTPS 未配置 |
 | 平台         | **火山方舟 Volcengine Ark**（`ARK_API_KEY`），端点 `https://ark.cn-beijing.volces.com/api/v3`，文本模型 `deepseek-v4-flash-ga-260731`，视觉模型 `doubao-seed-2-1-pro-260915`。⚠️ 欠费会反复，跑真模型前先探端点                                                                                                                                                                                                 |
@@ -20,7 +21,7 @@
 | 讲稿缓存     | **11 行、全部 explain**（观察示范 9-25 起改 wiki 直读，observe 行已清空；python-basics 已退役；platform-replica 讲稿已退役）。**唯一改稿入口：`scripts/_direct-cache-write.ts`（手写直写，不调模型）**——流程见〇一节                                                                                                                                                                                            |
 | 课程顺序     | `vibe-coding`(0) → `ts-basics`(1) → `llm-api` → `system-prompt` → `agent-loop` → `tool-calling` → `rag` → `llm-wiki` → `multi-agent` → `mcp` → `ai-safety` → `platform-replica`(11)。由 prerequisites 拓扑排序决定，别在代码里写死顺序                                                                                                                                                                          |
 | 测试套件     | **53 组**（10-23 移除随模块删除而失效的 playground / editor-focus 两条死测试，原 55 组；3 组真模型）。另有标准框架：`tests/*.test.ts` 7 文件 **26 用例**（Vitest，`pnpm test:unit` / `test:coverage`）。历史教训：测试不跑 tsc，三门禁独立（见 AGENTS.md 第六节）                                                                                                                                                                                                                                                                                               |
-| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——21 个提交、参赛审计五项的核验结论、踩过的坑、遗留待办，**本轮移交重点**                                                                                                                                                                                                                                                                                                                  |
+| 本会话新增   | 见「〇〇、2026-10-23 会话全记录」——25 个提交、参赛审计五项的核验结论、CI 首绿、踩过的坑、遗留待办，**本轮移交重点** |
 
 > ⚠️ 提交数 633 是 2026-10-23 推送后的实测值（`git rev-list --count HEAD`），每轮新提交后以该命令为准。**核远端同步只认 `ls-remote origin dev` 比对 SHA，勿用 `git rev-list origin/dev..HEAD`**（本地 remote 引用会缺失，静默返回空）。
 
@@ -101,6 +102,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 4. **`run-tests.mjs` 引用的 spec 可能没入库**：`scripts/knowledge-card-spec.ts` 621 行长期未跟踪，新 clone 跑全量必缺一组。已补入库。
 5. **`prettier --check .` 本机全红 ≠ 代码脏**：`core.autocrlf=true` 让工作区全 CRLF，配置却是 `endOfLine: "lf"`。别为此改 git 配置或批量重写文件。
 6. **提交信息规范要回原文看**：本轮 21 个提交里 7 条 subject 超 50 字符、正文写成散文而非 `-` 列表、scope 用了表外的 `core/learn/report/test`。历史已推送不改（rebase 属禁项），**后续按 `agent-prompts/references/git-conventions.md` 原文执行**：subject ≤50、正文 `-` 列表且每行 ≤72、scope 只用表内值。
+7. **CI 的 pnpm 版本必须与本仓库 workspace 写法匹配**：`pnpm 9` 要求 `pnpm-workspace.yaml` 有 `packages` 字段，本仓库是纯配置型（只有 `nodeLinker` / `allowBuilds` 等），于是 `setup-node` 的 `pnpm store path` 直接报 `packages field missing or empty` —— 失败点在装依赖**之前**，看着像 workflow 语法错，实际是版本不兼容。已改钉 `pnpm 12`（与本地一致）。另：给 `package.json` 加 `packageManager` 会让 pnpm 12 要求同步锁文件里的 `packageManagerDependencies`，`--frozen-lockfile` 当场失败，**别走那条路**。
 
 ### 待办（2026-10-23 收尾时点；**部署类已由作者搁置，不在下面推进**）
 
@@ -110,10 +112,10 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 |---|---|---|---|
 | P0 | 仓库可见性 | 提交截止前把 GitHub 仓库改 Public，或给评审账号加协作者（`dev` 已推到 `f916ddc`） | 作者 |
 | P0 | 报名 + 缴费 + 提交 | 2026-11-18 当天截止，**提交后不得修改**，全部改动要在这之前完成 | 作者 |
-| P1 | `main` 合并 `dev` | 评委若看 `main` 只会看到 `v0.4.0` 旧版。本机禁止切分支/rebase，走 plumbing：`git merge-tree --write-tree main dev` → `git commit-tree <tree> -p main -p dev -m "..."` → `git update-ref refs/heads/main <new>` → 按第四节四开关推 `main`；合完可打 `v0.5.0` tag | 我 |
-| P1 | CI 首跑核验 | 新 `ci.yml` 还没在 GitHub 上跑过：`gh run list -L 5`，确认 ESLint / tsc / 覆盖率三步都绿 | 我 |
+| P1 | ~~`main` 合并 `dev`~~ **已完成（10-23 晚）** | 首合并 `cb1a39f`（`merge-tree` 无冲突），CI 修正后补一次同步合并 `286ed78`；远端已用 `ls-remote` 核对：`main=286ed78`、与 `dev` 同一 tree `b3abef9`，全程 plumbing、未切分支。`v0.5.0` 已打并推送 | 我 |
+| P1 | ~~CI 首跑核验~~ **已完成（10-23 晚；首跑是红的）** | 最初 5 条 run 全在 11–13s 失败：`pnpm 9` 撞纯配置型 `pnpm-workspace.yaml`（无 `packages` 字段），`setup-node` 的 `pnpm store path` 报 `packages field missing or empty`。`dac10e0` 钉 `pnpm 12` 后 dev/main 双绿（ESLint / tsc / Vitest 7 文件 26 用例）。⚠️ 行覆盖率仅 **5.67%** | 我 |
 | P1 | 演示视频 + 技术文档转 PDF | 分镜脚本与文档初稿都在 `docs/competition/`，只差录制与转档 | 作者 |
-| P1 | 两个未跟踪脚本去留 | `scripts/seed-demo-accounts.mjs`（建议入库，评审演示灌数据用）、`scripts/split-platform-replica.mjs`（一次性拆页，可删） | 作者裁定 |
+| P1 | 两个未跟踪脚本去留 | 已逐行核查（10-23 晚）：`split-platform-replica.mjs` 硬编码行号切原稿，产物 `platform-replica-0{0..5}.md` 已在库 → **一次性脚本，建议删**；`seed-demo-accounts.mjs` 能跑通（temp 库实测 exit 0），但注释声称的「幂等」是**假的**——`question_results`/`errors`/`prompt_history` 走裸 INSERT，连跑两次实测 +32/+8/+12 行；且账号写入与已入库的 `seed-auth-accounts.mjs` 重复 → 待裁定：合并进 auth 脚本，或入库并修幂等 | 作者裁定 |
 | P2 | 思维链泄漏 B 核验 | 真跑 `scripts/verify-thinking-leak.ts`，确认服务端 `thinking-filter.ts` 兜住了泄漏 | 我 |
 | P2 | 六项子能力真流量验证 | 用有掌握度记录的学生走一遍报告页，确认雷达从「未测评」变真实分（代码已接，缺一次真实流量确认） | 我 |
 | P3 | 学生模拟 Agent 产品化 | 可选；要做得先把「离线审计」与「运行时模拟」两条链路分开，别把 1598 行整体接进产品 | 我 |
@@ -126,7 +128,7 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm build
 | HTTPS / 域名 | 只有 80 端口；语音输入依赖安全上下文，`http://` 下会被浏览器禁用 |
 | EdgeOne 路径 / PG 迁移 | 未做，属另一条部署路线，不在当前计划内 |
 
-**下一步建议（新对话开场可直接照做）**：先做 A 表 P1 的 `main` 合并 `dev`（不需要作者提供任何东西），再做 CI 首跑核验；两项完成后向作者汇报，等其对两个未跟踪脚本与演示材料拍板。
+**下一步建议（新对话开场可直接照做）**：P1 的我侧两项（`main` 合并 `dev`、CI 首跑核验）已于 10-23 晚完成并推送；剩余 P1 全在作者侧（仓库可见性、报名缴费提交、演示视频与 PDF 转档、两个脚本去留裁定）。我侧下一项是 A 表 P2：先跑思维链泄漏 B 核验，再做六项子能力真流量验证——两项都要先起服务，**跑前先探空闲端口**。
 
 ---
 
