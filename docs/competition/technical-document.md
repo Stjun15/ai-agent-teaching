@@ -496,15 +496,15 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### 6.1 质量门禁
 
-四级门禁（2026-10-23 实测：eslint / tsc / 构建 / 测试全绿）：
+四级门禁（2026-10-24 实测：eslint / tsc / 构建 / 测试全绿）：
 
 | 级别 | 命令 | 当前结果 |
 |---|---|---|
-| TypeScript | `tsc --noEmit` | **0 error**（2026-10-23 修完 54 个历史错误） |
-| ESLint | `eslint src scripts tests` | **0 error**（24 条历史 warning，非阻塞） |
+| TypeScript | `tsc --noEmit` | **0 error** |
+| ESLint | `eslint src scripts tests` | **0 error**（21 条 warning，非阻塞） |
 | Prettier | `prettier --check .` | 源码按配置格式化；全仓检查在 Windows CRLF 工作区会误报行尾差异，CI 未纳入该步 |
-| 全量测试 | `node scripts/run-tests.mjs` | **53 组全绿** (含3组真模型) |
-| 标准测试框架 | `pnpm test:unit`（Vitest） | **7 个用例文件 / 26 条用例全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
+| 全量测试 | `node scripts/run-tests.mjs` | **53 组**（含 3 组真模型，需模型端点可用）；CI 子集 `--ci` 为 **28 组** |
+| 标准测试框架 | `pnpm test:unit`（Vitest） | **16 个用例文件 / 97 条用例全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
 
 组合命令：`pnpm check` = eslint + prettier + tsc。
 
@@ -521,26 +521,18 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | **复刻验收** | replica-check (6阶段×独立脚本+Agent工具) | 24条 |
 | **安全** | security, rate-limit, data-isolation, auth-flow | 4组 |
 | **SSE** | sse-protocol, chat-stream, sse-dispatch | 3组 |
-| **前端** | markdown, theme, playground, project-templates | 4组 |
+| **前端** | markdown, theme, client-identity, project-templates | 4组 |
 | **RAG** | rag-hybrid (关键词/向量/混合/降级) | 5条 |
 | **浏览器** | cross-browser, browser-acceptance | 2组 |
 | **其他** | chat-controller, code-store, knowledge-card, agent-registry, abort-registry, report-dimensions, report-details, student-records, thinking系列, trace | 10+组 |
 
 测试采用分组执行策略：`run-tests.mjs`逐组运行，一组失败不影响后续组。真模型回归因固有的间歇性失败（模型服务波动）不被串联到纯函数组之前。
 
-标准框架入口：新增 `tests/` 目录使用 **Vitest 5**（`pnpm test:unit` / `pnpm test:coverage`），覆盖分数量纲、安全过滤、鉴权、维度聚合、Agent 输出 Zod 校验、六项子能力聚合，以及 **MCP 协议的端到端回归**（真实启动 stdio 子进程、JSON-RPC 握手并调用 `search_wiki`）。旧 `node:test` 用例与标准框架并存，互不覆盖入口。`.github/workflows/ci.yml` 在每次推送时跑 eslint + prettier + Vitest。
+标准框架入口：新增 `tests/` 目录使用 **Vitest 5**（`pnpm test:unit` / `pnpm test:coverage`），覆盖分数量纲、安全过滤、鉴权、维度聚合、Agent 输出 Zod 校验、六项子能力聚合，以及 **MCP 协议的端到端回归**（真实启动 stdio 子进程、JSON-RPC 握手并调用 `search_wiki`）。旧 `node:test` 用例与标准框架并存，互不覆盖入口。`.github/workflows/ci.yml` 在每次推送时跑 eslint + tsc --noEmit + Vitest（覆盖率）+ 测试子集 + 生产构建；Prettier 未进 CI（Windows CRLF 工作区会整仓误报，Linux 检出不受影响，见 6.1）。
 
-### 6.3 课程审计
+### 6.3 部署方案
 
-独立于测试体系的确定性审计系统（`/audit`页+`/api/audit`端点）：
-
-- **五项检查**：任务节可达性、示范代码可读性、任务超纲语法、术语断层（跨讲累积判定）、内容一致性
-- **结果**：当前12讲**0缺陷**
-- **机制**：不调模型，纯规则判定，独立限流桶`curriculum-audit` 3次/分钟
-
-### 6.4 部署方案
-
-两条部署路径；当前采用路径B（常驻Node主机），已上线至阿里云ECS（`http://<ECS-IP>`，nginx→3000，systemd托管）：
+两条部署路径；当前采用路径B（常驻Node主机），已部署至阿里云ECS（`http://<ECS-IP>`，nginx→3000，systemd托管，SSE关缓冲）。在线演示地址与评审期可用性以提交材料为准：
 
 | 路径 | 适用场景 | 前提条件 | 操作 |
 |---|---|---|---|
@@ -587,8 +579,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 点评闭环 | **100%** | 提交→批改→维度分→掌握度更新→路径调整完成 |
 | 路径调整 | **100%** | 4规则引擎+去重+限流+UI展示 |
 | 安全防护 | **100%** | 输入过滤+输出打码+限流+权限四道门 |
-| 测试体系 | **100%** | 53组全绿，含3组真模型回归；另有 Vitest 标准套件与 CI |
-| 课程审计 | **100%** | 12讲0缺陷 |
+| 测试体系 | **100%** | 53 组（含 3 组真模型回归）；CI 子集 28 组全绿 + Vitest 16 文件 97 用例全绿 |
 | 部署套件 | **100%** | deploy/就绪，已部署至阿里云ECS（<ECS-IP>），systemd+nginx+SSE关缓冲，`/api/health`正常 |
 | Phase 7收尾 | **100%** | 12/12闭环：9完成+2项perf(ui)实测负收益已回退+部署完成 |
 
