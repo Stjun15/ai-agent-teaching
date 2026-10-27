@@ -351,7 +351,7 @@ export default async function WelcomePage() {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/learn/vibe-coding">
+            <Link href="/learn">
               💙 开始学习
               <ArrowRight className="size-4" />
             </Link>
