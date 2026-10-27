@@ -226,8 +226,8 @@ export default function HomePage() {
 
 function StatsPlaceholder() {
   return (
-    <dl className="mx-auto mt-14 grid max-w-xl grid-cols-3 divide-x divide-border">
-      {[48, 36, 24].map((w) => (
+    <dl className="mx-auto mt-14 grid max-w-xl grid-cols-2 divide-x divide-border">
+      {[48, 36].map((w) => (
         <div key={w} className="px-2">
           <div
             className="mx-auto h-8 animate-pulse rounded bg-muted"
@@ -245,16 +245,12 @@ function StatsPlaceholder() {
 
 async function HomeStats() {
   const modules = await loadModules();
-  const requiredMinutes = modules.reduce((total, teachingModule) => {
-    const minutes = Number.parseInt(teachingModule.estimatedTime, 10);
-    return total + (Number.isNaN(minutes) ? 0 : minutes);
-  }, 0);
   const sceneCount = modules.filter(
     (teachingModule) => teachingModule.sceneId !== null,
   ).length;
 
   return (
-    <dl className="mx-auto mt-14 grid max-w-xl grid-cols-3 divide-x divide-border">
+    <dl className="mx-auto mt-14 grid max-w-xl grid-cols-2 divide-x divide-border">
       <div className="px-2">
         <dt className="sr-only">模块数</dt>
         <dd>
@@ -263,17 +259,6 @@ async function HomeStats() {
           </span>
           <span className="mt-1 block text-xs text-muted-foreground">
             教学模块
-          </span>
-        </dd>
-      </div>
-      <div className="px-2">
-        <dt className="sr-only">总时长</dt>
-        <dd>
-          <span className="block text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">
-            {requiredMinutes}
-          </span>
-          <span className="mt-1 block text-xs text-muted-foreground">
-            分钟主线
           </span>
         </dd>
       </div>
@@ -318,7 +303,6 @@ async function HomeCurriculum() {
       orderLabel: "0",
       name: "写在最前面",
       difficulty: 1,
-      estimatedTime: "10min",
     },
     ...modules,
   ];
@@ -377,10 +361,7 @@ async function HomeCurriculum() {
                     {row.difficulty}/5
                   </span>
                 </span>
-                <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                  {row.estimatedTime}
-                </span>
-                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
+                <ArrowRight className="ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
               </Link>
             </li>
           ))}
