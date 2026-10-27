@@ -244,6 +244,11 @@ export const loadModules = cache(async (): Promise<TeachingModule[]> => {
       (page) =>
         typeof page.frontmatter.id === "string" &&
         page.frontmatter.id.length > 0,
+    )
+    // 复刻的六个阶段页（`platform-replica-00`…`-05`）是「教学平台复刻」这一讲
+    // 内部的阶段手册，不是独立讲次：课程大纲只列 12 讲，复刻算其中一讲。
+    .filter(
+      (page) => !/^platform-replica-\d{2}$/.test(asString(page.frontmatter.id)),
     );
 
   let regularNo = 0;
