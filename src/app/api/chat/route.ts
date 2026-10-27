@@ -229,7 +229,7 @@ export async function POST(req: Request): Promise<Response> {
   // MCP 工具发现：动态导入避免 MCP SDK 进客户端 bundle。
   // 发现失败（未装依赖、进程启动失败）时静默回退 —— 不影响对话功能。
   try {
-    const { discoverTools } = await import("@/lib/agent/tools/mcp-discover.js");
+    const { discoverTools } = await import("@/lib/agent/tools/mcp-discover");
     const { tools: mcpCustomTools, error: mcpError } = await discoverTools();
     if (mcpCustomTools.length > 0) {
       const names = mcpCustomTools.map((t) => t.name);
