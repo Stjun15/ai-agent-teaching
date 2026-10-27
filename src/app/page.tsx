@@ -14,7 +14,6 @@ import {
   AnimatedGrid,
   AnimatedSection,
 } from "@/components/layout/animated-section";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadModules } from "@/lib/modules";
@@ -312,14 +311,10 @@ function CurriculumSkeleton() {
         <div className="mb-4 h-4 w-24 animate-pulse rounded bg-muted" />
         <div className="mb-2 h-8 w-48 animate-pulse rounded bg-muted" />
         <div className="mb-6 h-4 w-80 animate-pulse rounded bg-muted" />
-        <div className="rounded-2xl border bg-muted/20 px-6 py-6 sm:px-8 sm:py-7">
-          <div className="mb-3 h-5 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-6 w-64 animate-pulse rounded bg-muted" />
-          <div className="mt-6 flex flex-col gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
-            ))}
-          </div>
+        <div className="mt-8 flex flex-col gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-11 animate-pulse rounded-lg bg-muted" />
+          ))}
         </div>
       </div>
     </section>
@@ -328,6 +323,17 @@ function CurriculumSkeleton() {
 
 async function HomeCurriculum() {
   const modules = await loadModules();
+  const rows = [
+    {
+      id: "welcome",
+      href: "/learn/welcome",
+      orderLabel: "0",
+      name: "写在最前面",
+      difficulty: 1,
+      estimatedTime: "10min",
+    },
+    ...modules,
+  ];
 
   return (
     <AnimatedSection id="modules" className="mt-20 scroll-mt-20 px-4 sm:px-6">
@@ -352,34 +358,19 @@ async function HomeCurriculum() {
           </Button>
         </div>
 
-        <Link
-          href="/learn"
-          className="group mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border bg-muted/20 px-6 py-5 transition-colors hover:border-primary/40 hover:bg-muted/40 sm:px-8"
-        >
-          <Badge variant="outline">写在最前面</Badge>
-          <span className="text-sm font-medium">
-            先看第 0 讲 —— 这门课最后要复刻的，就是你正在用的这个平台。
-          </span>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-            进入学习中心
-            <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </span>
-        </Link>
-
-        <ul className="mt-4 space-y-2">
-          {modules.map((teachingModule) => (
-            <li key={teachingModule.id}>
+        <ul className="mt-8 space-y-2">
+          {rows.map((row) => (
+            <li key={row.id}>
               <Link
-                href={teachingModule.href}
+                href={row.href}
                 className="group flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm transition-all duration-300 hover:translate-x-1 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
               >
                 <span className="w-10 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-                  {teachingModule.orderLabel ||
-                    `第 ${teachingModule.order + 1} 讲`}
+                  {row.orderLabel}
                 </span>
-                <span className="font-medium">{teachingModule.name}</span>
+                <span className="font-medium">{row.name}</span>
                 <span
-                  aria-label={`难度 ${teachingModule.difficulty} / 5`}
+                  aria-label={`难度 ${row.difficulty} / 5`}
                   className="hidden items-center gap-1 sm:flex"
                 >
                   <span className="flex items-center gap-0.5">
@@ -387,7 +378,7 @@ async function HomeCurriculum() {
                       <span
                         key={dot}
                         className={
-                          dot < teachingModule.difficulty
+                          dot < row.difficulty
                             ? "size-1.5 rounded-full bg-primary"
                             : "size-1.5 rounded-full bg-border"
                         }
@@ -395,11 +386,11 @@ async function HomeCurriculum() {
                     ))}
                   </span>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {teachingModule.difficulty}/5
+                    {row.difficulty}/5
                   </span>
                 </span>
                 <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                  {teachingModule.estimatedTime}
+                  {row.estimatedTime}
                 </span>
                 <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
               </Link>
