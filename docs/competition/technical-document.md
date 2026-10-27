@@ -248,21 +248,21 @@ Skill Content (技能: 当前任务怎么做、步骤、评分维度)
 
 | 指标 | 关键词路 | 向量路 | 混合(RRF) |
 |---|---|---|---|
-| recall@3 | 72.7% | **95.5%** | 90.9% |
+| recall@3 | 68.2% | **95.5%** | 90.9% |
 
 向量路由`qwen3.7-text-embedding`生成1024维嵌入，按`##`章节切块后全量加载到内存做余弦检索。向量路失败时自动降级关键词路并标记`usedFallback`。引用检索在模型调用**之前**以SSE事件发给前端——等首token的空档被本地检索填充，学生先看到"本节参考了哪几页"。
 
 #### 4.4.1 融合倒挂：混合检索为何低于纯向量（已知问题与取舍）
 
-上表如实公布了一个**不利结果**：混合（RRF）recall@3 为 90.9%，比纯向量路的 95.5% 低 4.6 个百分点。评测集是 22 道按课程内容编写的检索题（每题有唯一正确页），三路同题同集、一次成型：
+上表如实公布了一个**不利结果**：混合（RRF）recall@3 为 90.9%，比纯向量路的 95.5% 低 4.6 个百分点。评测集是 22 道按课程内容编写的检索题（每题有唯一正确页），三路同题同集（2026-10-27 复跑，索引建立于 10-05，仍含一页已退役的 `concepts/python-basics.md`，属陈旧但不影响结论量级）：
 
 | 路径 | 命中 | recall@3 | 相对纯向量 |
 |---|---|---|---|
-| 关键词（BM25 风格加权） | 16 / 22 | 72.7% | −22.8pp |
+| 关键词（BM25 风格加权） | 15 / 22 | 68.2% | −27.3pp |
 | 纯向量（qwen3.7-text-embedding，1024维） | 21 / 22 | **95.5%** | 基准 |
 | 混合（RRF，k=60，两路各取前 8） | 20 / 22 | 90.9% | **−4.6pp** |
 
-**机制原因（不是玄学）**：RRF 只用**排名**、不看绝对相似度（`score = Σ 1/(k+rank)`）。它隐含假设两路精度相当，本库却不满足——关键词路落后 22.8 个百分点。于是关键词路靠词面重合挤进前 8 的**语义无关页**，在融合后仍能拿到与向量路正确页同量级的分数，把正确答案从前 3 挤出去。换句话说：**低精度的一路在给结果投票，且票重相同。**
+**机制原因（不是玄学）**：RRF 只用**排名**、不看绝对相似度（`score = Σ 1/(k+rank)`）。它的隐含假设是两路精度相当，本库却不满足——关键词路落后 27.3 个百分点。于是关键词路靠词面重合挤进前 8 的**语义无关页**，在融合后仍能拿到与向量路正确页同量级的分数，把正确答案从前 3 挤出去。换句话说：**低精度的一路在给结果投票，且票重相同。**
 
 **三条可选路径与当时的选择**：
 
@@ -388,7 +388,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### 5.4 可视化场景系统
 
-9个交互式动画场景，每个场景由4个核心组件（`SceneStage`, `SceneCanvas`, `SceneControls`, `SceneParts`）+ 专属逻辑层组成：
+9个交互式动画场景共用一套舞台层：`SceneStage`（`scene-stage.tsx`）+ 布局原语 `SceneFrame/SceneRow/SceneColumn`（`scene-canvas.tsx`）+ 图形原语 `NodeCard/MonoBlock/SceneArrow/ToolCard`（`scene-parts.tsx`）+ 参数控件 `SceneControls`；播放/暂停/步进/倍速由外层 `VisualizationPanel` 统一驱动，场景本身只提供帧数据与专属逻辑层。
 
 | 场景ID | 场景内容 |
 |---|---|
@@ -431,15 +431,15 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 | 模块 | 专属通过条件 |
 |---|---|
-| ts-basics | 理解准确度 ≥ 60% 权重分 |
-| vibe-coding | 四步全有实质内容 + 步四检查项可判对错 |
-| llm-api | 理解准确度 ≥ 60% 权重分 |
-| system-prompt | 角色定义 ≥ 60% 权重分 |
+| ts-basics | 理解准确度 ≥ 60% 权重分 + 五个检查项至少正确解释四个 |
+| vibe-coding | 四步全有实质内容 + 步四检查项可判对错 + 四步完整维度 ≥ 60% |
+| llm-api | 理解准确度 ≥ 60% + messages 数组语法正确（role/content 齐全） |
+| system-prompt | 角色定义 ≥ 60% + 三个维度全覆盖（每个至少两行实际内容） |
 | tool-calling | 工具定义 ≥ 60% + name必须动词+名词 |
-| agent-loop | 理解准确度 ≥ 60% + 四步全覆盖 + 有具体例子 |
-| rag | 理解准确度 ≥ 60% + 三篇文档全覆盖 + buildContext匹配正确 |
-| llm-wiki | 理解准确度 ≥ 60% 权重分 |
-| multi-agent | 角色分工 ≥ 60% 权重分 |
+| agent-loop | 理解准确度 ≥ 60% + 四步全覆盖（Answer 可隐含）+ 有具体例子 |
+| rag | 理解准确度 ≥ 60% + 三篇文档全覆盖 + buildContext 匹配到 adopt.md |
+| llm-wiki | 理解准确度 ≥ 60% + source/target/schema 三参数完整正确 |
+| multi-agent | Agent 数量 ≥ 2 且职责描述清晰 + 输入输出衔接清楚 |
 | mcp | 工具设计 ≥ 60% + ≥3个工具 + 错误处理联系Observe步骤 |
 | ai-safety | 理解准确度 ≥ 60% + 五道闸门全覆盖 + 拼音绕过分析正确 |
 
@@ -485,7 +485,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 **视觉系统**：Tailwind CSS v4 + shadcn/ui 组件体系，统一色彩令牌而非硬编码色值。教学模块按难度分三级色彩编码（绿/黄/红），[difficulty-badge.tsx](file:///d:\ai-agent-teaching\src\components\learn\difficulty-badge.tsx) 确保全平台统一标注。[skeleton-card.tsx](file:///d:\ai-agent-teaching\src\components\ui\skeleton-card.tsx) 用骨架屏替代简单的Spinner——在教学模块加载期间展示占位卡片布局，避免页面抖动，同时给用户一个"具体哪部分在加载"的视觉线索。
 
-**动画与过渡**：5个组件引入Framer Motion，整体策略克制——[animated-section.tsx](file:///d:\ai-agent-teaching\src\components\layout\animated-section.tsx) 遵循 `reducedMotion="user"` 系统偏好检测，装饰性入场动画在用户开启"减少动态效果"时自动退化为直接显示。`observe-panel.tsx`、`step-nav.tsx`、`visualization-panel.tsx` 使用 `AnimatePresence` 处理步进切换和面板展开/收起，动画时长控制在0.3-0.4s避免拖沓感。
+**动画与过渡**：5个组件引入 `motion`（Framer Motion 的新包名），整体策略克制——[animated-section.tsx](file:///d:\ai-agent-teaching\src\components\layout\animated-section.tsx) 遵循 `reducedMotion="user"` 系统偏好检测，装饰性入场动画在用户开启"减少动态效果"时自动退化为直接显示。`observe-panel.tsx`、`step-nav.tsx`、`visualization-panel.tsx` 使用 `AnimatePresence` 处理步进切换和面板展开/收起，动画时长控制在0.3-0.4s避免拖沓感。
 
 **AI交互体验**：SSE流式输出逐字渲染（打字机效果），`token-counter.tsx` 实时显示Token消耗，`agent-timeline.tsx` 展示当前Agent执行链。错误边界优雅降级：模型输出不可解析时不是白屏或500，而是标注 `usedFallback` 后给兜底输出+推荐方向。"揭秘"面板在Agent工作时展示模型真实prompt和返回——让学生"看见AI在想什么"，而不只是"看见AI说了什么"。
 
