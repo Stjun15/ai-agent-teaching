@@ -36,10 +36,10 @@ export default defineConfig({
        * 断言模型输出的脆弱用例。门槛的意义是「删了测试或漏了断言，CI 立刻红」。
        */
       thresholds: {
-        statements: 10,
-        branches: 8,
-        functions: 11,
-        lines: 9,
+        statements: 24,
+        branches: 19,
+        functions: 19,
+        lines: 23,
       },
     },
   },

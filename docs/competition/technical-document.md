@@ -504,7 +504,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | ESLint | `eslint src scripts tests` | **0 error**（21 条 warning，非阻塞） |
 | Prettier | `prettier --check .` | 源码按配置格式化；全仓检查在 Windows CRLF 工作区会误报行尾差异，CI 未纳入该步 |
 | 全量测试 | `node scripts/run-tests.mjs` | **53 组**（含 3 组真模型，需模型端点可用）；CI 子集 `--ci` 为 **28 组** |
-| 标准测试框架 | `pnpm test:unit`（Vitest） | **16 个用例文件 / 97 条用例全绿**，`pnpm test:coverage` 出 V8 覆盖率报告 |
+| 标准测试框架 | `pnpm test:unit`（Vitest） | **18 个用例文件 / 134 条用例全绿**（行覆盖率 25.36%），`pnpm test:coverage` 出 V8 覆盖率报告 |
 
 组合命令：`pnpm check` = eslint + prettier + tsc。
 
@@ -579,7 +579,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 点评闭环 | **100%** | 提交→批改→维度分→掌握度更新→路径调整完成 |
 | 路径调整 | **100%** | 4规则引擎+去重+限流+UI展示 |
 | 安全防护 | **100%** | 输入过滤+输出打码+限流+权限四道门 |
-| 测试体系 | **100%** | 53 组（含 3 组真模型回归）；CI 子集 28 组全绿 + Vitest 16 文件 97 用例全绿 |
+| 测试体系 | **100%** | 53 组（含 3 组真模型回归）；CI 子集 28 组全绿 + Vitest 18 文件 134 用例全绿 |
 | 部署套件 | **100%** | deploy/就绪，已部署至阿里云ECS（<ECS-IP>），systemd+nginx+SSE关缓冲，`/api/health`正常 |
 | Phase 7收尾 | **100%** | 12/12闭环：9完成+2项perf(ui)实测负收益已回退+部署完成 |
 
