@@ -1,3 +1,14 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-05
+name: 复刻常见误解
+prerequisites: [platform-replica-00, platform-replica-04]
+difficulty: 2
+estimated_time: 20min
+tags: [replica, retired-teaching]
+---
+
 ## 常见误解
 
 | 误解                                                   | 真相                                                                                                                                                                                  |

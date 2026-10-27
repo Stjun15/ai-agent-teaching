@@ -1,3 +1,14 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-01
+name: 复刻第一斧：对话骨架
+prerequisites: []
+difficulty: 3
+estimated_time: 60min
+tags: [replica, retired-teaching]
+---
+
 ### 第一斧：对话骨架
 
 #### 这一斧的目标
