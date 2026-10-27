@@ -32,7 +32,7 @@
 | 模型平台 | 火山方舟 Volcengine Ark <br/>文本: `deepseek-v4-flash-ga-260731` <br/>视觉: `doubao-seed-2-1-pro-260915` | 同一OpenAI兼容端点驱动文本+视觉双模型，无需跨平台维护 |
 | Embedding | 百炼 `qwen3.7-text-embedding` (1024维) | 免费额度独立、同端点零改流 |
 | 数据库(开发) | SQLite (`node:sqlite`) | 零依赖、免原生编译、部署期换PostgreSQL改一处`sqlite.ts` |
-| 数据库(部署) | PostgreSQL + pgvector | 向量检索可共用基础设施，环境变量一行切换 |
+| 数据库(部署) | PostgreSQL + pgvector（预留，未验证） | 驱动名只在 `sqlite.ts` 一处出现，换 PG 是预留出口；当前所有环境实测均跑 SQLite |
 | 校验 | Zod 4 (HTTP) + TypeBox (工具参数) | 运行时字段级校验，失败回喂精确错误信息给模型重试 |
 
 ---
@@ -71,7 +71,7 @@
 | 安全 | 提示注入拦截、密钥零泄露 | 输入过滤(不落库)+输出递归打码(structural pattern) |
 | 可观测 | 每次Agent调用可追溯 | `agent_traces`表记录agent/skill/tokens/duration/retries |
 | 可维护 | 教学内容改Markdown不碰代码 | wiki驱动：模块定义、讲稿缓存、概念页全部文件化管理 |
-| 兼容 | 跨浏览器一致性 | CDP自动化3浏览器冒烟+`cross-browser-spec`断言 |
+| 兼容 | 跨浏览器一致性 | `cross-browser-spec` 按 Chromium / Firefox / WebKit 三引擎写断言；本机只装了 Edge，实测 11/11，未安装的引擎在报告里照实标注未覆盖 |
 
 ### 2.4 与传统教学方案的优势对比
 
@@ -142,7 +142,7 @@ AI教学不靠"AI比人讲得好"，而靠**AI永远在线、永不疲倦、逐�
 
 ### 3.3 数据模型
 
-18张SQLite表，按用途分五组：
+17张SQLite表，按用途分五组：
 
 | 用途 | 核心表 | 说明 |
 |---|---|---|
@@ -150,7 +150,7 @@ AI教学不靠"AI比人讲得好"，而靠**AI永远在线、永不疲倦、逐�
 | 学情 | `mastery`, `learning_paths`, `student_profiles`, `students` | 掌握度(0-5)、路径进度、学习偏好、基本档案 |
 | 点评与观测 | `validation_results`, `agent_traces`, `prompt_history`, `errors` | 批改结果、Agent调用追踪、Prompt历史、错题本 |
 | 知识库 | `knowledge_embeddings`, `lecture_cache` | 向量索引 + 讲稿缓存 |
-| 认证与项目 | `users`, `projects` | 用户认证 + 项目模板 |
+| 认证与项目 | `projects` + `students` 认证列 | 没有独立用户表：账号（`username` / `password_hash`）与学情共用 `students` 一行 |
 
 关键设计：`mastery.score`（掌握度）由点评完成后的**代码逻辑**计算，不依赖模型措辞——模型说"很好、很棒"不等于通过，避免"其实没过却被判过"。
 
@@ -173,7 +173,7 @@ Layout (globals.css + site-footer + top-nav)
 │   ├── PhaseNav (阶段导航时间线, 260px)
 │   ├── PhaseDetailCard (阶段任务详情)
 │   ├── ReplicaToolbox (双模式工具箱)
-│   └── LessonPlanCard (完整教案, 页面底部)
+│   └── 教案区块 (内联于 platform-replica-workspace, 页面底部)
 ├── ChatPanel (浮动对话面板)
 │   ├── Composer (输入框)
 │   ├── AgentTimeline (Agent思考过程)
@@ -221,7 +221,7 @@ Skill Content (技能: 当前任务怎么做、步骤、评分维度)
 | Agent | 职责 | 默认Skill | 允许额外Skill | 适用教学步骤 |
 |---|---|---|---|---|
 | teacher (导师) | 讲解概念、触发可视化 | `explain-concept` | `trigger-visualization`, `answer-question` | explain |
-| reviewer (点评) | 批改代码/Prompt、维度评分 | `validate-*` (18个) | `trigger-visualization` | validate |
+| reviewer (点评) | 批改代码/Prompt、维度评分 | `validate-*` (16个) | `trigger-visualization` | validate |
 | examiner (出题) | 根据掌握度生成变式练习题 | `generate-question` | 无(单技能) | practice |
 | assistant (答疑) | 回答学生疑问、必要时扩展讲解 | `answer-question` | `explain-concept` | 全步骤 |
 
@@ -350,7 +350,7 @@ assess-loop.ts    →  掌握度评估
 |---|---|---|---|---|
 | 1 | `explain` | 概念讲解 | teacher | SSE流式讲解+可视化触发 |
 | 2 | `observe` | 观察示范 | — | 预设代码展示+确认门控跳转 |
-| 3 | `imitate` | 动手模仿 | — | Monaco代码编辑器+任务卡片 |
+| 3 | `imitate` | 动手模仿 | — | 纯文本代码编辑器（textarea，理由见 `code-editor.tsx` 文件头）+任务卡片 |
 | 4 | `validate` | 校验点评 | reviewer | 提交点评→维度分+扣分问题+改进建议 |
 | 5 | `visualize` | 可视化 | teacher | 9个交互式动画场景，按模块对应 |
 | 6 | `practice` | 变式练习 | examiner | 根据掌握度生成3道变式题 |
@@ -371,7 +371,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | Phase 4 | 龙骨·页面连线 | 前端路由+页面+管线串联 |
 | Phase 5 | 结算 | 最终验收+交付与检验单 |
 
-工具箱双模式设计：Phase 0/1提供独立的终端验收脚本（`node check-phase-0.mjs`），Phase 2+提供Agent自查工具（通过Skill自动比对代码）。三级校验体系（6个Skill→解析器→24条测试用例）保证验收脚本的可靠性。每种内容框用独立色彩编码（石板灰/琥珀/绿/靛蓝/橙/紫），提高辨识度。
+工具箱双模式设计：Phase 0/1 下发终端命令清单（bash / sql 片段，随阶段内容展示），Phase 2+ 切换为 Agent 自查交付物；两种口径统一由 `replica-check-parser.ts` 解析，`replica-check-spec.ts` 的 19 条断言守住解析与门控。每种内容框用独立色彩编码（石板灰/琥珀/绿/靛蓝/橙/紫），提高辨识度。
 
 ### 5.3 路径调整机制
 
@@ -402,18 +402,19 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | `scene-mcp-flow` | MCP协议调用流程 |
 | `scene-attack-defense` | AI安全攻击-防护对比 |
 
-每个场景支持播放/暂停/步进/倍速控制，使用Framer Motion实现动画过渡。
+每个场景支持播放/暂停/步进/倍速控制，动画过渡由 `motion`（Framer Motion 的新包名，`motion/react`）实现。
 
 ### 5.5 点评与掌握度系统
 
-#### 5.5.1 双层Skill路由
+#### 5.5.1 分层Skill路由
 
-点评Agent (reviewer) 通过16个`validate-*` Skill文件完成批改。Skill选择分两层：
+点评Agent (reviewer) 通过16个`validate-*` Skill文件完成批改。Skill选择分三层：
 
 - **模块专属层**（11个）：每个教学模块对应一个`validate-{moduleId}` Skill，精确匹配该模块的动手任务
 - **任务类型回退层**（4个）：`validate-prompt`/`validate-tool`/`validate-code`/`validate-qa`，当模块无专属Skill时按`taskType`回退
+- **变式练习层**（1个）：`validate-practice` 面对动态生成的题目，没有预设清单，按题面现场判
 
-路由优先级 `forceSkill → VALIDATION_SKILLS[moduleId] → VALIDATION_SKILLS_BY_TYPE[taskType] → "validate-code"` 在 [validation-loop.ts](file:///d:\ai-agent-teaching\src\lib\agent\orchestrator\validation-loop.ts#L206-L210) 中硬编码，不可被模型覆写。
+路由优先级 `forceSkill → VALIDATION_SKILLS[moduleId] → VALIDATION_SKILLS_BY_TYPE[taskType] → "validate-code"` 在 [validation-loop.ts](file:///d:\ai-agent-teaching\src\lib\agent\orchestrator\validation-loop.ts#L207-L211) 中硬编码，不可被模型覆写。
 
 #### 5.5.2 每个模块的专属Skill结构
 
@@ -444,7 +445,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 #### 5.5.3 共性通过线 + 模型自判
 
-所有模块共享三条**代码硬条件**（[isPassing()](file:///d:\ai-agent-teaching\src\lib\agent\orchestrator\validation-loop.ts#L130-L147)纯函数）：
+所有模块共享三条**代码硬条件**（[isPassing()](file:///d:\ai-agent-teaching\src\lib\agent\orchestrator\validation-loop.ts#L133-L147)纯函数）：
 
 - `total_score >= 75`（`PASS_SCORE`硬编码，非60）
 - `is_correct === true`
@@ -454,7 +455,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 #### 5.5.4 点评格式与校验
 
-`ReviewerOutput` Zod Schema在[outputs.ts](file:///d:\ai-agent-teaching\src\lib\agent\outputs.ts#L131-L209)定义，比设计文档原文收紧三处：
+`ReviewerOutput` Zod Schema在[outputs.ts](file:///d:\ai-agent-teaching\src\lib\agent\outputs.ts#L140-L201)定义，比设计文档原文收紧三处：
 
 | 收紧点 | 实现 | 原因 |
 |---|---|---|
@@ -466,7 +467,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 #### 5.5.5 掌握度更新与路径调整
 
-掌握度计算在点评完成后由**代码逻辑**执行——不依赖模型措辞，避免"很好"式误判。`masteryScoreFromPromptScore()`将点评分0-100映射为掌握度0-5，≥4分可进入下一模块。
+掌握度计算在点评完成后由**代码逻辑**执行——不依赖模型措辞，避免"很好"式误判。`masteryScoreFromPromptScore()`将点评分0-100映射为掌握度0-5；判定线是 `MASTERY_PASS_SCORE = 3`（5 分制的「良好」档），≥3 分即过关并解锁下一讲。≥4 分是路径引擎「可跳过余下练习」的建议阈值，不是升级门槛——两者不是同一条线，早期文档把这两处混写过，以代码为准。
 
 每次点评落库后触发四规则路径调整引擎（[path-adjuster.ts](file:///d:\ai-agent-teaching\src\lib\agent\path-adjuster.ts)）：连续3次失败→变式题回放、掌握度连续下降→换类比、错误积压≥3→标记复习、掌握度≥4→跳过余下练习。同reason 7天内去重。
 
@@ -474,11 +475,11 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 项目前端以TypeScript严格模式驱动，[tsconfig.json](file:///d:\ai-agent-teaching\tsconfig.json) 启用 `strict: true`、`noUnusedLocals: true`、`noUnusedParameters: true`、`noFallthroughCasesInSwitch: true`——不是"建议"，是编译阻断。整个代码库零 `any` 类型（全局搜索 `: any` 返回空）。
 
-**组件化架构**：57个React组件按职责分布在5个子目录——`chat/`（聊天/可视化/消息/时间线）、`learn/`（教学/工具箱/进度/掌握度）、`code/`（编辑器/提交）、`report/`（报告/趋势图）、`layout/`（导航/动画/用户菜单）、`ui/`（通用组件库）。每个组件职责单一：例如 `replica-toolbox.tsx` 只管工具箱面板不碰教学逻辑，`platform-replica-workspace.tsx` 只做布局分栏不碰阶段切换。
+**组件化架构**：59 个 React 组件按职责分布在 9 个子目录——`learn/`（23）、`chat/`（12）、`ui/`（6 个通用组件）、`layout/`（5）、`report/`（5）、`code/`（3）、`settings/`（3）、`auth/`（1）、`student/`（1）。每个组件职责单一：例如 `replica-toolbox.tsx` 只管工具箱面板不碰教学逻辑，`platform-replica-workspace.tsx` 只做布局分栏不碰阶段切换。
 
-**状态管理**：[8个Zustand store](file:///d:\ai-agent-teaching\src\stores\index.ts) 按领域拆分——`session`（身份会话）、`settings`（模型与主题）、`code`（代码编辑器）、`qa`（问答题）、`student`（学生模式）、`floating-chat`（浮动对话框）、`visualization`（可视化场景）、`chat`（统一对外接口）。不设全局store，每个store只管理自己的状态切片，store之间通过selector解耦。
+**状态管理**：[7 个 Zustand store](file:///d:\ai-agent-teaching\src\stores\index.ts) 按领域拆分——`session`（身份会话）、`settings`（模型与主题）、`code`（代码编辑器）、`qa`（问答题，直接 import 未进统一出口）、`student`（学生模式）、`floating-chat`（浮动对话框）、`visualization`（可视化场景）。不设全局store，每个store只管理自己的状态切片，store之间通过selector解耦。
 
-**性能优化**：23个组件使用 `Suspense` + `React.memo` + `useMemo` + `useCallback` 共118处（[skeleton-card.tsx](file:///d:\ai-agent-teaching\src\components\ui\skeleton-card.tsx) 提供统一的骨架屏加载态）。Next.js App Router自动代码分割按路由切chunk；`turbopackIgnore` 注释显式禁止Turbopack将 `sqlite.test.ts` 等测试文件拖入产物。SSE流式输出采用Token批量合并策略——每150ms或3个Token合并发射一次，避免高频渲染阻塞主线程。
+**性能优化**：20 个组件使用 `Suspense` + `React.memo` + `useMemo` + `useCallback` 共 60 处（[skeleton-card.tsx](file:///d:\ai-agent-teaching\src\components\ui\skeleton-card.tsx) 提供统一的骨架屏加载态）。Next.js App Router自动代码分割按路由切chunk；`turbopackIgnore` 注释显式禁止Turbopack将 `sqlite.test.ts` 等测试文件拖入产物。SSE流式输出采用Token批量合并策略——同一个 tick 内到达的 token 合并成一次 `setState`（`setTimeout(0)`），避免 30-80 次/秒的重渲染阻塞主线程。
 
 ### 5.7 用户体验设计
 
@@ -496,7 +497,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 
 ### 6.1 质量门禁
 
-四级门禁（2026-10-24 实测：eslint / tsc / 构建 / 测试全绿）：
+四级门禁（2026-10-27 本轮实测：eslint / tsc / 构建 / 测试全绿）：
 
 | 级别 | 命令 | 当前结果 |
 |---|---|---|
@@ -518,7 +519,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | **教学链路** | teaching-loop, teaching-step, teaching-grade, teaching-results, lecture-cache | 5组 |
 | **校验系统** | validate-wiring, scores, scenes, practice-mastery, mastery-hydrate | 5组 |
 | **路径调整** | path-adjuster (4规则+边界) | 1组 |
-| **复刻验收** | replica-check (6阶段×独立脚本+Agent工具) | 24条 |
+| **复刻验收** | replica-check-parser + replica-check-spec（6阶段×两种交付口径） | 19条 |
 | **安全** | security, rate-limit, data-isolation, auth-flow | 4组 |
 | **SSE** | sse-protocol, chat-stream, sse-dispatch | 3组 |
 | **前端** | markdown, theme, client-identity, project-templates | 4组 |
@@ -563,7 +564,7 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 |---|---|---|
 | **A1** | **"浏览器外实操"教学形态** | 教学平台不替代IDE，而是提供任务卡、验收速查、Agent导师。学生在自己终端里敲命令、在自己项目里写代码，平台是"陪跑教练"而非"托管沙箱"。 |
 | **A2** | **平台复刻：学完11讲后亲手搭建教学平台** | 教学闭环的终点不是考试——学生用前面学的每个零件（LLM API/Agent Loop/RAG/多Agent/MCP/安全），从零搭建出一个能跑的教学平台。自然形成能力的综合运用与验证。 |
-| **A3** | **工具箱双模式** | 初期提供独立脚本减少认知负荷（Phase 0/1只需`node check-phase.js`），后期切换为Agent自查工具（Phase 2+通过Skill比对代码），适应学生能力成长节奏。 |
+| **A3** | **工具箱双模式** | 初期只给终端命令清单降低认知负荷（Phase 0/1），后期切换为 Agent 自查交付物（Phase 2+ 由解析器与 Skill 比对代码），适应学生能力成长节奏。 |
 | **A4** | **掌握度驱动的个性化教学** | 不按固定顺序推进——点评后自动更新掌握度，连续失败触发路径调整建议，掌握度≥4可建议跳过余下练习。学习节奏由学生实际表现决定。 |
 
 ### 7.3 当前完成度
@@ -573,14 +574,14 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 12个教学模块 | **100%** | 概念页全建，讲稿缓存全量入库 |
 | 七步教学流程 | **100%** | 讲解→观察→模仿→点评→可视化→练习→掌握全通 |
 | 9个可视化场景 | **100%** | 17例场景断言通过 |
-| 4 Agent架构 | **100%** | teacher/reviewer/examiner/assistant + 16 Skill |
-| 平台复刻六阶段 | **100%** | 24条验收测试全通，三级校验体系完整 |
+| 4 Agent架构 | **100%** | teacher/reviewer/examiner/assistant + 20 个 Skill（16 校验 + 4 通用） |
+| 平台复刻六阶段 | **100%** | 19 条验收断言全通（解析器 + 门控） |
 | 知识层 | **100%** | 86个MD文件+RAG混合检索+向量索引 |
 | 点评闭环 | **100%** | 提交→批改→维度分→掌握度更新→路径调整完成 |
 | 路径调整 | **100%** | 4规则引擎+去重+限流+UI展示 |
 | 安全防护 | **100%** | 输入过滤+输出打码+限流+权限四道门 |
 | 测试体系 | **100%** | 53 组（含 3 组真模型回归）；CI 子集 28 组全绿 + Vitest 18 文件 134 用例全绿 |
-| 部署套件 | **100%** | deploy/就绪，已部署至阿里云ECS（<ECS-IP>），systemd+nginx+SSE关缓冲，`/api/health`正常 |
+| 部署套件 | **100%** | deploy/就绪，已部署至阿里云ECS（<ECS-IP>），systemd+nginx+SSE关缓冲；评审期公网可达性待复验（本机同构建正常，公网 80 端口曾探测不通） |
 | Phase 7收尾 | **100%** | 12/12闭环：9完成+2项perf(ui)实测负收益已回退+部署完成 |
 
 ### 7.4 已知边界与后续规划
@@ -650,18 +651,18 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 ### B. 项目仓库
 
 - GitHub: `https://github.com/Stjun15/ai-agent-teaching`
-- 提交总数: 612次 (截至2026-10-22)
-- 分支: `dev`（工作分支），`main`（v0.4.0发布分支）
-- 标签: v0.1.0 / v0.2.0 / v0.3.0 / v0.4.0
+- 提交总数: 689次 (截至2026-10-27)
+- 分支: `dev`（工作分支），`main`（与 dev 同 tree 的发布镜像）
+- 标签: v0.1.0 / v0.2.0 / v0.3.0 / v0.4.0 / v0.5.0
 
 ### C. 代码规模
 
 | 层 | 文件数 | 说明 |
 |---|---|---|
 | 页面与路由 | 28 endpoint + 10 page | API路由+前端页面 |
-| 组件 | 57个 | 聊天/学习/代码/可视化场景/布局/报告/设置/认证/UI基础 |
-| Agent内核 | 60个 | prompts/skills/orchestrator/student/tools + core |
-| 数据层 | 19个 | migrations/repositories + SQLite驱动 |
+| 组件 | 59个 | 学习/聊天/代码/布局/报告/设置/认证/学生/UI基础 |
+| Agent内核 | 61个 | prompts/skills/orchestrator/student/tools + core |
+| 数据层 | 24个 | migrations/repositories + SQLite驱动 |
 | 知识层 | 86个MD + 13个TS | Wiki页面+解析/检索/维护/注入 |
-| 测试 | 60+个 | spec文件+浏览器测试+回归测试 |
+| 测试 | 77个 | spec文件+浏览器测试+回归测试 |
 | 部署 | 3个 | 部署脚本+配置 |
