@@ -1,3 +1,14 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-02
+name: 复刻第二斧：多步 Agent
+prerequisites: [platform-replica-01]
+difficulty: 4
+estimated_time: 90min
+tags: [replica, retired-teaching]
+---
+
 ### 第二斧：多步 Agent
 
 #### 这一斧的目标

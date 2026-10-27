@@ -1,3 +1,14 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-04
+name: 复刻龙骨：页面连线
+prerequisites: [platform-replica-03]
+difficulty: 3
+estimated_time: 50min
+tags: [replica, retired-teaching]
+---
+
 ### 龙骨：页面连线
 
 #### 这一节的目标

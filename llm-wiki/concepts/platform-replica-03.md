@@ -1,3 +1,14 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-03
+name: 复刻第三斧：知识 + 数据库 + 点评
+prerequisites: [platform-replica-02]
+difficulty: 4
+estimated_time: 90min
+tags: [replica, retired-teaching]
+---
+
 ### 第三斧：知识 + 数据库 + 点评
 
 #### 这一斧的目标

@@ -1,4 +1,17 @@
+---
+type: concept
+last_updated: 2026-10-27
+id: platform-replica-00
+name: 复刻启动台
+prerequisites: []
+difficulty: 2
+estimated_time: 40min
+tags: [replica, retired-teaching]
+---
+
 ### 启动台
+
+六阶段的常见误解汇总见 [[platform-replica-05]]。
 
 #### 这一节的目标
 
