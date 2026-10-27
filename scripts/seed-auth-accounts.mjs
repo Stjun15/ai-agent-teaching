@@ -10,7 +10,11 @@
  * 2. 给这两个账号灌演示学习数据（掌握度 / 答题记录 / 错题 / Prompt 历史 /
  *    学习路径），让学习报告页展示出有价值的内容：
  *    - test = 中等进度学生（5 个模块完成，当前卡在 agent-loop）
- *    - eval = 优等进度学生（8 个模块完成，当前在 mcp）
+ *    - eval = 优等进度学生（8 个模块完成，当前在 mcp）——视频演示主账号
+ *
+ * 错题会同时写入 `next_review_at`（第 1/3/7/14 天档期），并刻意留几条「已过期」，
+ * 让学习页的「今日该复习」卡片与报告页错题本的「该复习了」筛选有真实数据可看。
+ * 两个账号的到期条数：eval 4 条、test 3 条。
  *
  * 幂等：演示数据 id 由「表前缀 + 序号」确定性生成，全部走
  * ON CONFLICT(id) DO UPDATE —— 重复执行只刷新成同一状态，不会产生重复行。
@@ -82,6 +86,14 @@ const QUESTION_RESULTS = 1;
 const ERRORS = 2;
 const PROMPT_HISTORY = 3;
 
+/**
+ * 复习档期（天）——与 `src/lib/review-schedule.ts` 的
+ * `REVIEW_INTERVALS_DAYS = [1, 3, 7, 14]` 同规则。
+ * 种子里不直接写死 `next_review_at`，而是由「档期 + 已过期天数」反推
+ * `created_at`，保证 `next_review_at = created_at + 档期` 这条语义与真实写入一致。
+ */
+const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14];
+
 const DEMO = {
   test: {
     mastery: [
@@ -122,6 +134,9 @@ const DEMO = {
         ["缺少参数定义", "没有 description 字段"],
         "function queryWeather(city: string) { return fetchWeather(city); }",
         false,
+        // 第 1 天档期，已过期 2 天 → 在「今日待复习」里
+        0,
+        2,
       ],
       [
         "tool-calling",
@@ -132,6 +147,9 @@ const DEMO = {
         ["没理解一致性的含义", "混淆了参数名和参数类型"],
         "一致性的正确理解是：LLM 传入的参数名和类型必须与工具定义完全一致",
         true,
+        // 已订正、第 3 天档期，还有 2 天才到期
+        1,
+        -2,
       ],
       [
         "agent-loop",
@@ -142,6 +160,9 @@ const DEMO = {
         ['缺少"观察"步骤', "直接把 Think-Act-Observe 写成了 Think-Act-End"],
         "Think → Act → Observe → Next Step",
         false,
+        // 第 1 天档期，过期 1 天
+        0,
+        1,
       ],
       [
         "system-prompt",
@@ -152,6 +173,9 @@ const DEMO = {
         ["角色太笼统", "没有明确边界", "缺少格式要求"],
         null,
         true,
+        // 已订正、第 7 天档期，过期 3 天（拖了好几天没复习）
+        2,
+        3,
       ],
     ],
     promptHistory: [
@@ -334,6 +358,9 @@ const DEMO = {
         ["Agent 之间没有输入输出定义", "没有说失败时怎么重试"],
         "Agent A（收集数据）→ 输出 markdown 草稿 → Agent B（润色+排错）→ 输出终稿 → Agent C（邮件发送），失败退回 B 重试",
         false,
+        // 第 3 天档期，已过期 2 天 → 今日待复习
+        1,
+        2,
       ],
       [
         "mcp",
@@ -348,6 +375,9 @@ const DEMO = {
         ],
         null,
         false,
+        // 第 1 天档期，拖了 4 天没复习
+        0,
+        4,
       ],
       [
         "tool-calling",
@@ -358,6 +388,9 @@ const DEMO = {
         ["函数名不规范", "缺少 description"],
         null,
         true,
+        // 已订正、第 7 天档期，过期 1 天
+        2,
+        1,
       ],
       [
         "agent-loop",
@@ -368,6 +401,35 @@ const DEMO = {
         ["完全没理解观察步骤的必要性"],
         "观察步骤是 Agent 判断下一步行动的唯一依据，跳过它 Agent 就变成了按规则机械执行",
         true,
+        // 已订正、第 3 天档期，明天才轮回来
+        1,
+        -1,
+      ],
+      [
+        "rag",
+        "rag",
+        "prompt",
+        "检索到的文档和问题不相关时该怎么处理",
+        "直接把检索结果全塞进 prompt，让模型自己挑",
+        ["没有相似度阈值", "把「不相关」的判断责任推给了模型"],
+        "先按相似度阈值过滤，低于阈值的判为未命中，走「知识库里没有」的兜底话术",
+        false,
+        // 第 1 天档期，过期 1 天
+        0,
+        1,
+      ],
+      [
+        "llm-wiki",
+        "llm-wiki",
+        "code",
+        "为什么知识库要用 Markdown 而不是数据库表",
+        "因为 Markdown 好看",
+        ["把渲染效果当成了设计理由", "没提到版本管理与人可读可改"],
+        "Markdown 能进 Git：每次修改可 diff、可回滚，人和 Agent 读的是同一份文本",
+        false,
+        // 第 3 天档期，还有 2 天到期
+        1,
+        -2,
       ],
     ],
     promptHistory: [
@@ -485,6 +547,16 @@ const DEMO = {
       nextModule: "ai-safety",
       adjustments: [
         {
+          date: "2026-10-22",
+          reason: "mcp 连续两次点评未通过，插入一次针对性补练再看下一讲",
+          type: "variant",
+        },
+        {
+          date: "2026-10-21",
+          reason: "multi-agent 掌握度从 4 降到 3，安排回炉重看概念页",
+          type: "review",
+        },
+        {
           date: "2026-10-20",
           reason: "multi-agent 掌握度偏低，安排回炉再看一次概念页",
           type: "review",
@@ -581,14 +653,15 @@ function fillQuestionResults(db, studentId, accountIndex, entries) {
 
 function fillErrors(db, studentId, accountIndex, entries) {
   const upsert = db.prepare(
-    `INSERT INTO errors (id, student_id, module_id, concept_id, task_type, question, student_answer, problems, correct_example, is_corrected, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO errors (id, student_id, module_id, concept_id, task_type, question, student_answer, problems, correct_example, is_corrected, next_review_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        question = excluded.question,
        student_answer = excluded.student_answer,
        problems = excluded.problems,
        correct_example = excluded.correct_example,
        is_corrected = excluded.is_corrected,
+       next_review_at = excluded.next_review_at,
        created_at = excluded.created_at`,
   );
   entries.forEach(
@@ -602,11 +675,20 @@ function fillErrors(db, studentId, accountIndex, entries) {
         problems,
         correctExample,
         isCorrected,
+        stage,
+        overdueDays,
       ],
       i,
     ) => {
-      const daysAgo = (i % 14) + 1;
-      const createdAt = new Date(Date.now() - 86400000 * daysAgo).toISOString();
+      // 语义：next_review_at = created_at + 档期；
+      // overdueDays > 0 表示这条已过期（进「今日待复习」），< 0 表示还没到。
+      const interval = REVIEW_INTERVALS_DAYS[stage];
+      const nextReviewAt = new Date(
+        Date.now() - overdueDays * 86400000,
+      ).toISOString();
+      const createdAt = new Date(
+        Date.now() - (overdueDays + interval) * 86400000,
+      ).toISOString();
       upsert.run(
         demoId(accountIndex, ERRORS, i),
         studentId,
@@ -618,6 +700,7 @@ function fillErrors(db, studentId, accountIndex, entries) {
         JSON.stringify(problems),
         correctExample,
         isCorrected ? 1 : 0,
+        nextReviewAt,
         createdAt,
       );
     },
