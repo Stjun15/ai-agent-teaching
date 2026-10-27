@@ -2,16 +2,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import {
   ArrowRight,
-  Bot,
-  Compass,
   Gauge,
-  Globe,
   Layers,
   ListTree,
   MessageSquareQuote,
   RefreshCw,
   ScanEye,
-  User,
 } from "lucide-react";
 
 import {
@@ -246,8 +242,14 @@ function StatsPlaceholder() {
     <dl className="mx-auto mt-14 grid max-w-xl grid-cols-3 divide-x divide-border">
       {[48, 36, 24].map((w) => (
         <div key={w} className="px-2">
-          <div className="mx-auto h-8 animate-pulse rounded bg-muted" style={{ width: w }} />
-          <div className="mx-auto mt-1.5 h-3 animate-pulse rounded bg-muted" style={{ width: 40 }} />
+          <div
+            className="mx-auto h-8 animate-pulse rounded bg-muted"
+            style={{ width: w }}
+          />
+          <div
+            className="mx-auto mt-1.5 h-3 animate-pulse rounded bg-muted"
+            style={{ width: 40 }}
+          />
         </div>
       ))}
     </dl>
@@ -272,7 +274,9 @@ async function HomeStats() {
           <span className="block text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">
             {modules.length}
           </span>
-          <span className="mt-1 block text-xs text-muted-foreground">教学模块</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            教学模块
+          </span>
         </dd>
       </div>
       <div className="px-2">
@@ -281,7 +285,9 @@ async function HomeStats() {
           <span className="block text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">
             {requiredMinutes}
           </span>
-          <span className="mt-1 block text-xs text-muted-foreground">分钟主线</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            分钟主线
+          </span>
         </dd>
       </div>
       <div className="px-2">
@@ -290,7 +296,9 @@ async function HomeStats() {
           <span className="block text-3xl font-semibold tracking-tight text-foreground tabular-nums sm:text-4xl">
             {sceneCount}
           </span>
-          <span className="mt-1 block text-xs text-muted-foreground">可视化场景</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            可视化场景
+          </span>
         </dd>
       </div>
     </dl>
@@ -344,70 +352,19 @@ async function HomeCurriculum() {
           </Button>
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-muted/20 px-6 py-6 sm:px-8 sm:py-7">
-          <Badge variant="outline" className="mb-3">
-            写在最前面
-          </Badge>
-          <h3 className="text-lg font-semibold tracking-tight">
-            你的最终目标：做一个带 Agent 的 AI 教学网页
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            这门课不是让你「学过一遍概念」。你要亲手复刻一个 AI
-            教学平台——就是你正在用的这个。
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            {[
-              { label: "你", icon: User },
-              { label: "教学网页", icon: Globe },
-              { label: "AI Agent", icon: Bot },
-              { label: "出题 · 对话 · 追踪", icon: Compass },
-            ].map((item, i, arr) => {
-              const Icon = item.icon;
-              return (
-                <span key={item.label} className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-md border bg-background px-2.5 py-1.5 text-xs font-medium">
-                    <Icon className="size-3.5 text-primary" />
-                    {item.label}
-                  </span>
-                  {i < arr.length - 1 && (
-                    <ArrowRight className="size-3 text-muted-foreground" />
-                  )}
-                </span>
-              );
-            })}
-            <span className="mt-2 w-full text-center text-xs text-muted-foreground sm:mt-0 sm:w-auto">
-              ── 你交付的，是一个<strong>能教别人学 AI 的 AI 教学平台</strong>
-            </span>
-          </div>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { title: "LLM API", detail: "让网页能调 AI——发请求、收回复" },
-              {
-                title: "Agent Loop",
-                detail: "AI 推教学流程、切换步骤，不只是聊天",
-              },
-              {
-                title: "出题 Agent",
-                detail: "根据概念自动出题、批改、给反馈",
-              },
-              {
-                title: "SSE 流式对话",
-                detail: "逐字打字的效果——不是刷一下弹出来",
-              },
-              { title: "掌握度追踪", detail: "记录哪个概念会了、哪个还不行" },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-lg border bg-background px-3 py-2 transition-colors hover:border-ring/40"
-              >
-                <span className="text-xs font-semibold">{item.title}</span>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Link
+          href="/learn"
+          className="group mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border bg-muted/20 px-6 py-5 transition-colors hover:border-primary/40 hover:bg-muted/40 sm:px-8"
+        >
+          <Badge variant="outline">写在最前面</Badge>
+          <span className="text-sm font-medium">
+            先看第 0 讲 —— 这门课最后要复刻的，就是你正在用的这个平台。
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            进入学习中心
+            <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </span>
+        </Link>
 
         <ul className="mt-4 space-y-2">
           {modules.map((teachingModule) => (
