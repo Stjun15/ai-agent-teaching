@@ -249,8 +249,10 @@ export const loadModules = cache(async (): Promise<TeachingModule[]> => {
   let regularNo = 0;
   return sortByPrerequisites(concepts).map((page, order) => {
     const id = asString(page.frontmatter.id);
-    const isLanguageModule = id === "ts-basics";
-    if (!isLanguageModule) regularNo++;
+    // 讲次编号一律按依赖链顺序 1…N，不再给语言速通单独留 "0" ——
+    // 「第 0 讲」是 `/learn/welcome` 序言页的固定称呼（见 `learn/page.tsx`），
+    // 两处都用 0 会在学习中心里出现两张「第 0 讲」卡片。
+    regularNo++;
     return {
       id,
       name: asString(page.frontmatter.name, id),
@@ -262,7 +264,7 @@ export const loadModules = cache(async (): Promise<TeachingModule[]> => {
       prerequisites: asStringArray(page.frontmatter.prerequisites),
       sceneId: MODULE_SCENE_IDS[id] ?? null,
       order,
-      orderLabel: isLanguageModule ? "0" : `${regularNo}`,
+      orderLabel: `${regularNo}`,
       href: `/learn/${id}`,
       taskType: QA_TASK_MODULES.has(id) ? "qa" : "code",
     };

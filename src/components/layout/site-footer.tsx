@@ -43,17 +43,6 @@ export function SiteFooter() {
               学习中心
             </Link>
             <Link
-              href="/playground"
-              className="text-foreground/80 transition-colors hover:text-primary"
-            >
-              沙箱实验室
-            </Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              记录
-            </span>
-            <Link
               href="/report"
               className="text-foreground/80 transition-colors hover:text-primary"
             >
@@ -71,7 +60,6 @@ export function SiteFooter() {
       <div className="border-t">
         <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-4 text-xs text-muted-foreground sm:px-6">
           <span>{siteConfig.name}</span>
-          <span>AI 生成内容，仅供学习参考</span>
         </div>
       </div>
     </footer>

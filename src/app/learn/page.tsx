@@ -11,7 +11,7 @@ import { loadModules } from "@/lib/modules";
 
 export const metadata: Metadata = {
   title: "学习中心",
-  description: "10 个教学模块，按依赖关系顺序学习 AI Agent 的核心概念。",
+  description: "按依赖关系顺序学习 AI Agent 的核心概念。",
 };
 
 /**
