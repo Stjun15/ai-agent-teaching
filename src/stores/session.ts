@@ -204,6 +204,19 @@ export interface SessionState {
   }) => void;
   failTurn: (error: SessionError) => void;
   abortTurn: () => void;
+  /**
+   * 撤回某个步骤的最后一问（2026-10-28「撤回重发」）。
+   *
+   * 概念讲解是唯一允许撤回的步骤：学生问偏了、或想换个说法再问，不该被
+   * 一条已经发出去的消息挡死。撤回会同时移走这一问及其之后的助手回复
+   * （同步骤），把学生原话交回输入区——重新编辑后再发就是全新一轮。
+   *
+   * 返回被撤回的学生消息（`content` / `images`）；没有可撤回的消息时返回
+   * `null`，调用方据此决定要不要回填输入框。
+   */
+  recallLastTurn: (
+    step: StepType,
+  ) => { content: string; images?: string[] } | null;
   noteInvalidFrame: () => void;
   /**
    * 同步排空 token 缓冲区（供测试使用）。
@@ -786,6 +799,41 @@ export const useSessionStore = create<SessionState>()(
           };
         });
         return seeded;
+      },
+
+      recallLastTurn: (step) => {
+        // 先清空 token 缓冲：撤回发生在流式途中时，缓冲里可能还压着这条
+        // 消息的增量，不清掉会在 abortTurn 的 backfill 里把内容"复活"。
+        tokenBuffer.clear();
+        let recalled: { content: string; images?: string[] } | null = null;
+        set((state) => {
+          let index = -1;
+          for (let i = state.messages.length - 1; i >= 0; i -= 1) {
+            const message = state.messages[i];
+            if (message.role === "student" && message.step === step) {
+              index = i;
+              break;
+            }
+          }
+          if (index === -1) return state;
+
+          const target = state.messages[index];
+          recalled = {
+            content: target.content,
+            ...(target.images !== undefined ? { images: target.images } : {}),
+          };
+          return {
+            // 只移除「从这一问起、同步骤」的消息：其它步骤的历史不归本次
+            // 撤回管，删掉会让讲解/示范两步互相串台。
+            messages: state.messages.filter(
+              (message, at) => !(at >= index && message.step === step),
+            ),
+            status: "idle",
+            error: null,
+            tokens: null,
+          };
+        });
+        return recalled;
       },
 
       ensureModule: (moduleId) =>

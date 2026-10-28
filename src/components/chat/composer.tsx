@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   Code2,
   CornerDownLeft,
@@ -8,6 +8,7 @@ import {
   Loader2,
   Send,
   Square,
+  Undo2,
   X,
 } from "lucide-react";
 
@@ -100,6 +101,8 @@ export function Composer({
   const { send, abort } = useChatStream();
 
   const status = useSessionStore((state) => state.status);
+  const messages = useSessionStore((state) => state.messages);
+  const recallLastTurn = useSessionStore((state) => state.recallLastTurn);
   const code = useCodeStore((state) => state.code);
   const language = useCodeStore((state) => state.language);
   const setCode = useCodeStore((state) => state.setCode);
@@ -120,6 +123,22 @@ export function Composer({
   const streaming = status === "streaming";
   const canSend = (text.trim() !== "" || images.length > 0) && !streaming;
   const elapsed = useElapsed(streaming);
+
+  /**
+   * 概念讲解里是否还有可撤回的一问（2026-10-28）。
+   *
+   * 只订阅原始 `messages` 切片、派生计算放 `useMemo`：zustand v5 的选择器
+   * 每次返回新数组会让 `useSyncExternalStore` 快照不稳定，直接触发
+   * React #185 整页白屏（见 `stores/session.ts` 末尾的警告）。
+   */
+  const recallable = useMemo(() => {
+    if (step !== "explain") return undefined;
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.role === "student" && message.step === step) return message;
+    }
+    return undefined;
+  }, [messages, step]);
 
   useEffect(() => {
     if (imageError === null) return;
@@ -196,6 +215,22 @@ export function Composer({
   function submit(): void {
     if (!canSend) return;
     sendContent(text.trim());
+  }
+
+  /**
+   * 撤回概念讲解里最近的一问，并把原话回填到输入框（2026-10-28）。
+   *
+   * 流式途中也能点：先 abort 掉在途请求（服务端随即停止生成，不再烧
+   * token），再从 Store 里移走这一问与它的半截回复。已经收到的内容不再
+   * 留在对话里 —— 学生要的是「当这条没发过」。
+   */
+  function recall(): void {
+    if (step === undefined) return;
+    abort();
+    const recalled = recallLastTurn(step);
+    if (recalled === null) return;
+    setText(recalled.content);
+    setImages(recalled.images ?? []);
   }
 
   function handleKeyDown(
@@ -300,6 +335,18 @@ export function Composer({
             >
               <Code2 className="size-4" />
             </Button>
+            {recallable !== undefined ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={recall}
+                aria-label="撤回上一条，重新编辑"
+                title="撤回上一条，重新编辑"
+              >
+                <Undo2 className="size-4" />
+              </Button>
+            ) : null}
           </div>
 
           {streaming ? (
