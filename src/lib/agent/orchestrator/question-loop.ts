@@ -24,7 +24,7 @@ import { selectSections } from "@/lib/teaching-script";
 import { examinerFallback } from "../fallback";
 import type { ExaminerOutput } from "../outputs";
 import { runAgent } from "../runtime";
-import type { ArkEnv } from "../ark";
+import type { DashScopeEnv } from "../dashscope";
 import type { TraceContext } from "../trace";
 
 /** 一次生成的题目数量。`02-agent-system.md` 与各 Skill 均按 3 道设计。 */
@@ -39,7 +39,7 @@ export interface QuestionLoopInput {
   existingQuestions?: readonly string[];
   count?: number;
   maxRetries?: number;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /**
    * Trace 上下文。由 HTTP 路由层构造（那里才知道学生身份），编排层只透传。

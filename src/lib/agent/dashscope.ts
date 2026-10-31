@@ -4,7 +4,7 @@
  * 设计依据
  * --------
  * 百练是阿里云的模型服务平台，提供 OpenAI 兼容端点 `/compatible-mode/v1`。
- * 当前使用模型 `deepseek-v4-flash-0731`，读环境变量 `DASHSCOPE_API_KEY`。
+ * 当前使用模型 `deepseek-v4.1-flash`，读环境变量 `DASHSCOPE_API_KEY`。
  *
  * 为什么不用 `models.json`
  * -----------------------
@@ -42,6 +42,8 @@ import {
   DASHSCOPE_DEFAULT_TEXT_MODEL,
   DASHSCOPE_DEFAULT_VISION_MODEL,
   DASHSCOPE_PROVIDER_ID,
+  TEXT_MAX_TOKENS,
+  VISION_MAX_TOKENS,
   assertDashScopeApiKey,
   readDashScopeSettings,
   type DashScopeEnv,
@@ -64,9 +66,7 @@ export type { DashScopeEnv, DashScopeSettings };
  * 上下文窗口与最大输出 token。
  */
 const TEXT_CONTEXT_WINDOW = 128_000;
-const TEXT_MAX_TOKENS = 16_384;
 const VISION_CONTEXT_WINDOW = 256_000;
-const VISION_MAX_TOKENS = 8_192;
 
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } as const;
 

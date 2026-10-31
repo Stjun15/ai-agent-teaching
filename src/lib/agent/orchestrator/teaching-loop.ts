@@ -29,7 +29,7 @@ import { MODULE_SCENE_IDS } from "@/lib/modules";
 import { teacherFallback } from "../fallback";
 import type { TeacherOutput } from "../outputs";
 import { runAgent } from "../runtime";
-import type { ArkEnv } from "../ark";
+import type { DashScopeEnv } from "../dashscope";
 import type { TraceContext } from "../trace";
 
 import { runQuestionLoop, type QuestionLoopResult } from "./question-loop";
@@ -89,7 +89,7 @@ export async function runExplainStep(options: {
   state: TeachingState;
   /** 前置模块的掌握度；不传视为「无前置」。 */
   prerequisiteMastery?: number | null;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /** Trace 上下文。由 HTTP 路由层构造（那里才知道学生身份），编排层只透传。 */
   trace?: TraceContext;
@@ -169,7 +169,7 @@ export function runCheckStep(options: {
 export async function runPracticeStep(options: {
   state: TeachingState;
   existingQuestions?: readonly string[];
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /** Trace 上下文。见 runExplainStep 同名参数。 */
   trace?: TraceContext;
@@ -202,7 +202,7 @@ export async function runValidateStep(options: {
   taskType: ValidationTaskType;
   studentAnswer: string;
   previousAnswer?: string;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /** Trace 上下文。见 runExplainStep 同名参数。 */
   trace?: TraceContext;

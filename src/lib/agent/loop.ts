@@ -54,7 +54,7 @@
 
 import { type AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 
-import type { ArkEnv } from "./ark";
+import type { DashScopeEnv } from "./dashscope";
 import { filterThinkingDelta, flushThinking } from "./thinking-filter";
 import { calculatorTool } from "./tools/calculator";
 import {
@@ -269,7 +269,7 @@ export interface AgentLoopOptions {
    */
   preludeEvents?: readonly SSEEvent[] | (() => Promise<readonly SSEEvent[]>);
   /** 环境变量来源。默认 `process.env`；显式传入便于测试。 */
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   /** 客户端断开时中止。Route Handler 可传 `req.signal`。 */
   signal?: AbortSignal;
   /**

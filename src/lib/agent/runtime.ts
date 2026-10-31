@@ -26,7 +26,7 @@
 
 import type { z } from "zod";
 
-import type { ArkEnv } from "./ark";
+import type { DashScopeEnv } from "./dashscope";
 import {
   AGENT_OUTPUT_SCHEMAS,
   type AssistantOutput,
@@ -121,7 +121,7 @@ export interface RunAgentOptions<Id extends AgentId> {
    * 见 `trace.ts` 文件头：记录失败不阻断主流程，但会把原因带回调用方。
    */
   trace?: TraceContext;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
 }
 
@@ -411,7 +411,7 @@ async function executeAgent<Id extends AgentId>(
 async function collectCompletion(options: {
   systemPrompt: string;
   userMessage: string;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
 }): Promise<{ text: string; tokens: { input: number; output: number } }> {
   const { systemPrompt, userMessage, env, signal } = options;

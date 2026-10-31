@@ -26,7 +26,7 @@ import {
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
 
-import { createArkModels, type ArkEnv } from "./ark";
+import { createDashScopeModels, type DashScopeEnv } from "./dashscope";
 
 /** `createAgentSession` 的参数类型，用于推导下面两个工具类型而不引入新依赖。 */
 type CreateAgentSessionParams = NonNullable<
@@ -60,7 +60,7 @@ export interface CreateSessionOptions {
   /** 每个 SDK 事件的回调。流式路径把它接到 SSE 翻译器上。 */
   onEvent?: (event: AgentSessionEvent) => void;
   /** 环境变量来源，便于测试。 */
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   /** 客户端断开或调用方中止时，一路传到 SDK 的 abort()。 */
   signal?: AbortSignal;
 }
@@ -100,7 +100,7 @@ export async function createSession(
     signal,
   } = options;
 
-  const { modelRuntime, text } = await createArkModels(env);
+  const { modelRuntime, text } = await createDashScopeModels(env);
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
@@ -119,8 +119,8 @@ export async function createSession(
     agentDir: process.cwd(),
     modelRuntime,
     model: text,
-    // 已在 ark.ts 把该模型声明为 reasoning: false，这里同步关掉思考档位，
-    // 避免发出未经验证的 thinking 参数（方舟仍会附带返回推理内容，关不掉也不需要）。
+    // 已在 dashscope.ts 把该模型声明为 reasoning: false，这里同步关掉思考档位，
+    // 避免发出未经验证的 thinking 参数（百练仍会附带返回推理内容，关不掉也不需要）。
     thinkingLevel: "off",
     tools: [...tools],
     ...(customTools ? { customTools: [...customTools] } : {}),

@@ -29,6 +29,16 @@ export const DASHSCOPE_DEFAULT_TEXT_MODEL = "deepseek-v4.1-flash";
 export const DASHSCOPE_DEFAULT_VISION_MODEL = "deepseek-v4.1-flash";
 
 /**
+ * 文本模型输出上限（tokens）。`dashscope.ts` 注册 provider 要用，
+ * `generate-lecture-cache.ts` 的截断守卫也要用 —— 后者不该为了一个数字把
+ * 整个 pi-coding-agent 拖进来（这正是本文件不 import SDK 的理由）。
+ */
+export const TEXT_MAX_TOKENS = 16_384;
+
+/** 视觉模型输出上限（tokens）。 */
+export const VISION_MAX_TOKENS = 8_192;
+
+/**
  * 本模块用到的环境变量。
  *
  * 带索引签名是为了能直接传 `process.env`（`ProcessEnv` 是宽松字典类型）；若只声明
