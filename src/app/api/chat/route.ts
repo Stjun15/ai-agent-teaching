@@ -32,7 +32,10 @@
  * 前端两种都要处理 —— 见 `src/lib/sse.ts`。
  */
 
-import { ARK_API_KEY_ENV, isArkApiKeyConfigured } from "@/lib/agent/ark-config";
+import {
+  DASHSCOPE_API_KEY_ENV,
+  isDashScopeApiKeyConfigured,
+} from "@/lib/agent/dashscope-config";
 import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import { runVisionReview } from "@/lib/agent/vision-review";
@@ -109,10 +112,10 @@ export async function POST(req: Request): Promise<Response> {
 
   // 提前失败，而不是让 loop 在流里抛错。理由：这里能给出「去配哪个环境变量」的
   // 可操作提示，而流内的 LLM_ERROR 只能给出 SDK 的原始报错。
-  if (!isArkApiKeyConfigured()) {
+  if (!isDashScopeApiKeyConfigured()) {
     return jsonError(
       "LLM_ERROR",
-      `缺少环境变量 ${ARK_API_KEY_ENV}，无法调用模型。请在 .env.local（已被 .gitignore 排除）或系统环境变量中设置，不要写进仓库。`,
+      `缺少环境变量 ${DASHSCOPE_API_KEY_ENV}，无法调用模型。请在 .env.local（已被 .gitignore 排除）或系统环境变量中设置，不要写进仓库。`,
     );
   }
 

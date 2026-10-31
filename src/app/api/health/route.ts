@@ -28,19 +28,20 @@
  * 只回禀密钥「是否已配置」这一个布尔值，绝不回显密钥内容；数据库只回文件名
  * （basename），不回显本机绝对路径。
  *
- * ⚠️ 为什么 import `@/lib/agent/ark-config` 而不是 `@/lib/agent/ark`
- * -----------------------------------------------------------------
- * `ark.ts` 为注册 provider 必须 import pi-coding-agent SDK。若本路由从那里取
- * `readArkSettings`，构建产物会把整个 SDK 一起追踪进来。`ark-config.ts`
+ * ⚠️ 为什么 import `@/lib/agent/dashscope-config` 而不是 `@/lib/agent/dashscope`
+ * ---------------------------------------------------------------------------
+ * `dashscope.ts` 为注册 provider 必须 import pi-coding-agent SDK。若本路由从那里取
+ * `readDashScopeSettings`，构建产物会把整个 SDK 一起追踪进来。`dashscope-config.ts`
  * 是纯逻辑、不 import SDK，故本路由只依赖它。
  */
 
 import { checkDatabaseHealth, EXPECTED_BUSINESS_TABLES } from "@/lib/db";
 import {
-  ARK_API_KEY_ENV,
-  isArkApiKeyConfigured,
-  readArkSettings,
-} from "@/lib/agent/ark-config";
+  DASHSCOPE_API_KEY_ENV,
+  DASHSCOPE_PROVIDER_ID,
+  isDashScopeApiKeyConfigured,
+  readDashScopeSettings,
+} from "@/lib/agent/dashscope-config";
 import { maintain } from "@/wiki";
 
 // node:sqlite 是 Node 专有模块，不能跑在 Edge Runtime。
@@ -51,8 +52,10 @@ export const dynamic = "force-dynamic";
 
 interface ConfigHealth {
   ok: boolean;
+  /** 模型平台 id，便于对照「实际在调谁」 */
+  provider: string;
   /** 只报告「配没配」，不报告内容 */
-  arkApiKeyConfigured: boolean;
+  apiKeyConfigured: boolean;
   /** 缺哪个环境变量时给出可操作提示 */
   hint?: string;
   baseUrl: string;
@@ -112,15 +115,16 @@ async function checkWikiHealth(): Promise<WikiHealth> {
 }
 
 function checkConfig(): ConfigHealth {
-  const { baseUrl, textModel, visionModel } = readArkSettings();
-  const arkApiKeyConfigured = isArkApiKeyConfigured();
+  const { baseUrl, textModel, visionModel } = readDashScopeSettings();
+  const apiKeyConfigured = isDashScopeApiKeyConfigured();
 
   return {
-    ok: arkApiKeyConfigured,
-    arkApiKeyConfigured,
-    hint: arkApiKeyConfigured
+    ok: apiKeyConfigured,
+    provider: DASHSCOPE_PROVIDER_ID,
+    apiKeyConfigured,
+    hint: apiKeyConfigured
       ? undefined
-      : `缺少环境变量 ${ARK_API_KEY_ENV}，涉及模型的接口会失败。请在 .env.local（已被 .gitignore 排除）或系统环境变量中设置。`,
+      : `缺少环境变量 ${DASHSCOPE_API_KEY_ENV}，涉及模型的接口会失败。请在 .env.local（已被 .gitignore 排除）或系统环境变量中设置。`,
     baseUrl,
     textModel,
     visionModel,

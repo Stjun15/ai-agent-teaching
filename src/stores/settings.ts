@@ -22,15 +22,15 @@
 
 import { create } from "zustand";
 
-import type { ArkSettings } from "@/lib/agent/ark-config";
+import type { DashScopeSettings } from "@/lib/agent/dashscope-config";
 
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface SettingsState {
-  /** 模型选择。`null` 表示用服务端默认（`ARK_TEXT_MODEL`）。 */
+  /** 模型选择。`null` 表示用服务端默认（`DASHSCOPE_TEXT_MODEL`）。 */
   textModel: string | null;
-  /** 服务端实际使用的方舟配置。由 `/api/health` 或配置接口填充，只读展示用。 */
-  arkSettings: ArkSettings | null;
+  /** 服务端实际使用的百练配置。由 `/api/health` 填充，只读展示用。 */
+  modelSettings: DashScopeSettings | null;
   theme: ThemeMode;
   /** 界面语言。内容语言由教学内容决定，这里只管界面文案。 */
   locale: "zh-CN" | "en";
@@ -38,7 +38,7 @@ export interface SettingsState {
   voiceEnabled: boolean;
 
   setTextModel: (model: string | null) => void;
-  setArkSettings: (settings: ArkSettings | null) => void;
+  setModelSettings: (settings: DashScopeSettings | null) => void;
   setTheme: (theme: ThemeMode) => void;
   setLocale: (locale: SettingsState["locale"]) => void;
   setVoiceEnabled: (enabled: boolean) => void;
@@ -121,13 +121,13 @@ export function applyTheme(theme: ThemeMode): void {
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   textModel: null,
-  arkSettings: null,
+  modelSettings: null,
   theme: "system",
   locale: "zh-CN",
   voiceEnabled: false,
 
   setTextModel: (textModel) => set({ textModel }),
-  setArkSettings: (arkSettings) => set({ arkSettings }),
+  setModelSettings: (modelSettings) => set({ modelSettings }),
   setTheme: (theme) => set({ theme }),
   setLocale: (locale) => set({ locale }),
   setVoiceEnabled: (voiceEnabled) => set({ voiceEnabled }),
