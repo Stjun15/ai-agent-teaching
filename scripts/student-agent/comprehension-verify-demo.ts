@@ -35,7 +35,7 @@ import {
 import type { StudentAction } from "@/lib/agent/student/types";
 import type { ComprehensionReport } from "@/lib/agent/student/comprehension-verifier";
 import type { ScreenDescriberOptions } from "@/lib/agent/student/types";
-import { ARK_API_KEY_ENV, readArkSettings } from "@/lib/agent/ark-config";
+import { DASHSCOPE_API_KEY_ENV, readDashScopeSettings } from "@/lib/agent/dashscope-config";
 
 const OUT_DIR = path.resolve("student-agent-output");
 mkdirSync(OUT_DIR, { recursive: true });
@@ -109,13 +109,13 @@ function printReport(report: ComprehensionReport): void {
 }
 
 async function main(): Promise<void> {
-  const apiKey = process.env[ARK_API_KEY_ENV];
+  const apiKey = process.env[DASHSCOPE_API_KEY_ENV];
   if (!apiKey) {
-    console.error(`缺少环境变量 ${ARK_API_KEY_ENV}`);
+    console.error(`缺少环境变量 ${DASHSCOPE_API_KEY_ENV}`);
     process.exit(1);
   }
 
-  const settings = readArkSettings();
+  const settings = readDashScopeSettings();
   const options: ScreenDescriberOptions = {
     baseUrl: BASE_URL,
     studentId: STUDENT_ID,

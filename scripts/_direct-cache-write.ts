@@ -4,10 +4,10 @@
  * 运行：npx tsx --tsconfig tsconfig.json scripts/_direct-cache-write.ts
  */
 import { lectureCacheDb } from "@/lib/db";
-import { readArkSettings } from "@/lib/agent/ark-config";
+import { readDashScopeSettings } from "@/lib/agent/dashscope-config";
 import { splitLecture } from "@/lib/lecture-split";
 
-const MODEL = readArkSettings().textModel;
+const MODEL = readDashScopeSettings().textModel;
 
 interface LectureEntry {
   moduleId: string;
