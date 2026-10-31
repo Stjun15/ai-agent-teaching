@@ -27,7 +27,7 @@ import { runAgent } from "../runtime";
 import { moduleRubricSupplement } from "../skills/module-rubric";
 import type { ReviewerOutput } from "../outputs";
 import type { SkillId } from "../types";
-import type { ArkEnv } from "../ark";
+import type { DashScopeEnv } from "../dashscope";
 import type { TraceContext } from "../trace";
 
 /** 通过线。三个校验 Skill 的通过条件一致。 */
@@ -97,7 +97,7 @@ export interface ValidationLoopInput {
   /** 该生在这道题上的尝试次数（1 起）。>= 3 时触发降难度指令。 */
   attemptNumber?: number;
   maxRetries?: number;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /** Trace 上下文。由 HTTP 路由层构造，编排层只透传；见 question-loop.ts 同名参数。 */
   trace?: TraceContext;

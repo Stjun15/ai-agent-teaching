@@ -11,7 +11,7 @@
  *
  * 本模块**只依赖 node: 内置模块**，不 import 任何 AI SDK —— 这样它既能被
  * 服务端路由与脚本直接使用，也不会把 SDK 拖进调用方的产物依赖图
- * （同类问题见 `ark-config.ts` 与健康检查路由的拆分）。
+ * （同类问题见 `dashscope-config.ts` 与健康检查路由的拆分）。
  */
 
 export type * from "./types";

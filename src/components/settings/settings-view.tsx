@@ -12,18 +12,18 @@ import { ApiError, apiGet } from "@/lib/client-api";
 import { currentStudentId } from "@/lib/client-identity";
 import { isAbortError } from "@/lib/sse";
 import { useSettingsStore } from "@/stores";
-import type { ArkSettings } from "@/lib/agent/ark-config";
+import type { DashScopeSettings } from "@/lib/agent/dashscope-config";
 
 /**
  * `/api/health` 的响应里本页用到的部分。
  *
- * 模型三项直接复用服务端 `ark-config.ts` 的 `ArkSettings`（那是纯逻辑模块，
+ * 模型三项直接复用服务端 `dashscope-config.ts` 的 `DashScopeSettings`（那是纯逻辑模块，
  * 不 import SDK，两端都能引用），「模型 id 叫什么」只有一份口径。
  * 密钥状态是**本页独有的展示字段**，不进全局 store —— 全局状态只放
  * 「多个页面都要读」的东西，而它只有这里看。
  */
-interface HealthConfig extends ArkSettings {
-  arkApiKeyConfigured: boolean;
+interface HealthConfig extends DashScopeSettings {
+  apiKeyConfigured: boolean;
 }
 
 interface HealthResponse {
@@ -48,8 +48,8 @@ interface HealthResponse {
  * 徽标 + 一句原因。这与顶栏「规划中」的处理是同一种做法。
  */
 export function SettingsView() {
-  const arkSettings = useSettingsStore((state) => state.arkSettings);
-  const setArkSettings = useSettingsStore((state) => state.setArkSettings);
+  const modelSettings = useSettingsStore((state) => state.modelSettings);
+  const setModelSettings = useSettingsStore((state) => state.setModelSettings);
   const [configError, setConfigError] = React.useState<string | null>(null);
   const [studentId, setStudentId] = React.useState<string | null>(null);
   const [apiKeyConfigured, setApiKeyConfigured] = React.useState<
@@ -73,8 +73,8 @@ export function SettingsView() {
     (signal: AbortSignal): Promise<void> =>
       apiGet<HealthResponse>("/api/health", signal).then(
         (health) => {
-          setArkSettings(health.checks.config);
-          setApiKeyConfigured(health.checks.config.arkApiKeyConfigured);
+          setModelSettings(health.checks.config);
+          setApiKeyConfigured(health.checks.config.apiKeyConfigured);
           setStudentId(currentStudentId());
         },
         (cause: unknown) => {
@@ -85,7 +85,7 @@ export function SettingsView() {
           );
         },
       ),
-    [setArkSettings],
+    [setModelSettings],
   );
 
   React.useEffect(() => {
@@ -115,19 +115,19 @@ export function SettingsView() {
           <p className="text-xs leading-relaxed text-destructive">
             读取服务端配置失败：{configError}
           </p>
-        ) : arkSettings === null ? (
+        ) : modelSettings === null ? (
           <p className="text-xs text-muted-foreground">正在读取服务端配置…</p>
         ) : (
           <dl className="grid gap-2 text-xs sm:grid-cols-[8rem_1fr]">
-            <SettingRow label="接入点">{arkSettings.baseUrl}</SettingRow>
+            <SettingRow label="接入点">{modelSettings.baseUrl}</SettingRow>
             <SettingRow label="文本模型">
               <code className="rounded bg-muted px-1.5 py-0.5">
-                {arkSettings.textModel}
+                {modelSettings.textModel}
               </code>
             </SettingRow>
             <SettingRow label="多模态模型">
               <code className="rounded bg-muted px-1.5 py-0.5">
-                {arkSettings.visionModel}
+                {modelSettings.visionModel}
               </code>
             </SettingRow>
             <SettingRow label="API 密钥">

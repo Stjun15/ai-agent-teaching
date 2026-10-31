@@ -13,7 +13,7 @@
  * -------------------
  * - 提示词：与学习页同走 `resolveStepAgent` → `TEACHING_CHAT_SYSTEM_PROMPT`；
  * - 开场词：与工作区同走 `lectureOpenerPrompt`（两个消费方一份定义）；
- * - 模型：与运行时同走 `readArkSettings` 的 text 模型。
+ * - 模型：与运行时同走 `readDashScopeSettings` 的 text 模型。
  * 任何一处改了而没重跑本脚本，缓存内容就会与现场口径脱节 —— 所以模型 /
  * 提示词升级后必须 `--force` 重跑整表（见 lecture-cache.ts 文件头）。
  *
@@ -31,10 +31,10 @@
 
 import { lectureCacheDb } from "@/lib/db";
 import {
-  readArkSettings,
-  assertArkApiKey,
+  readDashScopeSettings,
+  assertDashScopeApiKey,
   TEXT_MAX_TOKENS,
-} from "@/lib/agent/ark-config";
+} from "@/lib/agent/dashscope-config";
 import { runAgentLoop } from "@/lib/agent/loop";
 import { resolveStepAgent } from "@/lib/agent/step-prompt";
 import {
@@ -62,8 +62,8 @@ function wanted(moduleId: string, step: string): boolean {
 
 async function main(): Promise<void> {
   // 缺密钥在这里就报清楚，而不是让 18 次调用逐个失败。
-  assertArkApiKey();
-  const { textModel } = readArkSettings();
+  assertDashScopeApiKey();
+  const { textModel } = readDashScopeSettings();
 
   const modules = await loadModules();
   const jobs: {

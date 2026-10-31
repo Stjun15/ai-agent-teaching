@@ -15,7 +15,7 @@
  */
 
 import { runValidationLoop } from "./validation-loop";
-import type { ArkEnv } from "../ark";
+import type { DashScopeEnv } from "../dashscope";
 import type { TraceContext } from "../trace";
 import type { ValidationTaskType } from "./validation-loop";
 import type { ReviewerOutput } from "../outputs";
@@ -166,7 +166,7 @@ export interface AssessLoopInput {
   studentAnswer: string;
   moduleId: string;
   conceptId?: string;
-  env?: ArkEnv;
+  env?: DashScopeEnv;
   signal?: AbortSignal;
   /** Trace 上下文。客观题走规则判分、不调模型，此时无 trace 产生；主观题透传给点评 Agent。 */
   trace?: TraceContext;
