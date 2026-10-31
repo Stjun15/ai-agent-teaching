@@ -120,7 +120,7 @@ pnpm test:mastery                                 # 掌握度卡 M0–M3（store
 | --------------------------- | ---------------------------------------------------------------------------------------------- |
 | `agent-prompts/`            | 设计文档与执行计划。**开工前必读 `00-MASTER.md` 与 `06-execution-plan.md`**                    |
 | `agent-prompts/references/` | 契约层：`api-spec.md` / `data-models.md` / `module-specs.md` / `rubrics.md` / `wiki-schema.md` |
-| `docs/`                     | 技术文档三件：`architecture.md` / `ai-technical.md` / `deployment.md`                          |
+| `docs/`                     | **本地留存、已 gitignore 不入库**：技术文档三件（`architecture.md` / `ai-technical.md` / `deployment.md`）+ 参赛文档（`competition/`） |
 | `llm-wiki/`                 | 知识库（页面类型由 `SCHEMA.md` 现读决定，不写死在代码里）                                      |
 | `src/lib/agent/`            | 4 个 Agent（teacher/reviewer/examiner/assistant）+ 4 个编排循环 + Trace                        |
 | `src/lib/db/`               | 数据层（SQLite ↔ PG 双形态；驱动名只允许出现在 `sqlite.ts`）                                   |
