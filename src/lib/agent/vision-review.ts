@@ -4,10 +4,10 @@
  * 为什么独立于 loop.ts
  * -------------------
  * pi SDK 的 `session.prompt(text: string)` 只接受纯文本字符串，无法直接
- * 传递多模态 content array。即使 SDK 已在 `ark.ts` 注册了 `input: ["text", "image"]`
+ * 传递多模态 content array。即使 SDK 已在 `dashscope.ts` 注册了 `input: ["text", "image"]`
  * 的视觉模型，prompt 入口仍是文本型。
  *
- * 因此图片路径走独立管线：直接 HTTP fetch 调方舟的多模态模型（OpenAI 兼容协议），
+ * 因此图片路径走独立管线：直接 HTTP fetch 调百练（DashScope）的多模态模型（OpenAI 兼容协议），
  * 把返回的 OpenAI SSE chunk 翻译成项目自己的 10 种 SSE 事件。
  * 两条管线的「流结构」完全一致 —— 前端不需要知道这次用的是文本模型还是视觉模型。
  *
@@ -16,7 +16,7 @@
  * 教学场景的代码截图评审，500 字内足以覆盖核心问题。过长回复会稀释重点。
  */
 
-import { ARK_API_KEY_ENV, readArkSettings } from "./ark-config";
+import { DASHSCOPE_API_KEY_ENV, readDashScopeSettings } from "./dashscope-config";
 import { createSSEStream, sseResponse } from "../sse-server";
 
 /** 图片点评的系统提示词。只做教学点评，不做通用图片描述。 */
@@ -68,8 +68,8 @@ export async function runVisionReview(
   images: readonly VisionImage[],
   signal?: AbortSignal,
 ): Promise<Response> {
-  const { baseUrl, visionModel } = readArkSettings();
-  const apiKey = process.env[ARK_API_KEY_ENV];
+  const { baseUrl, visionModel } = readDashScopeSettings();
+  const apiKey = process.env[DASHSCOPE_API_KEY_ENV];
 
   if (!apiKey) {
     return jsonErrorResponse("LLM_ERROR", "视觉模型密钥未配置。");
@@ -120,7 +120,10 @@ export async function runVisionReview(
             { role: "user", content: contentBlocks },
           ],
           stream: true,
-          max_tokens: 1024,
+          // 百炼的 deepseek-v4.1-flash 会先吐一段 reasoning_content 再吐正文，
+          // 上限给得太紧时推理可能把额度吃光、正文一个字都不剩（1024 与 2048 都实测出现过空回复）。
+          // 4096 留足推理 + 500 字点评的空间；上限不决定实际输出长度，只抬高天花板。
+          max_tokens: 4096,
           temperature: 0.3,
         }),
         signal: controller.signal,
