@@ -29,7 +29,7 @@
 | 样式 | Tailwind CSS v4 + shadcn/ui (Radix) | 无运行时开销的原子化CSS，Radix原语保证可访问性 |
 | 状态管理 | Zustand 5 | 体积小、无Provider包裹、按需订阅，适合多组件分权消费 |
 | Agent SDK | `@earendil-works/pi-coding-agent` | 原生支持工具调用白名单、流式输出、多轮对话 |
-| 模型平台 | 火山方舟 Volcengine Ark <br/>文本: `deepseek-v4-flash-ga-260731` <br/>视觉: `doubao-seed-2-1-pro-260915` | 同一OpenAI兼容端点驱动文本+视觉双模型，无需跨平台维护 |
+| 模型平台 | 百炼 DashScope <br/>文本+视觉: `deepseek-v4.1-flash` | 同一OpenAI兼容端点驱动文本与视觉，密钥与接入层只有一套 |
 | Embedding | 百炼 `qwen3.7-text-embedding` (1024维) | 免费额度独立、同端点零改流 |
 | 数据库(开发) | SQLite (`node:sqlite`) | 零依赖、免原生编译、部署期换PostgreSQL改一处`sqlite.ts` |
 | 数据库(部署) | PostgreSQL + pgvector（预留，未验证） | 驱动名只在 `sqlite.ts` 一处出现，换 PG 是预留出口；当前所有环境实测均跑 SQLite |
@@ -189,16 +189,16 @@ Layout (globals.css + site-footer + top-nav)
 
 ### 4.1 模型选型与理由
 
-**对话平台**：火山方舟 Volcengine Ark，OpenAI兼容端点 `https://ark.cn-beijing.volces.com/api/v3`。同一平台上跑两个模型：
+**对话平台**：百炼 DashScope，OpenAI兼容端点 `https://dashscope.aliyuncs.com/compatible-mode/v1`。文本推理与视觉理解共用同一个模型：
 
 | 模型 | 用途 | 特点 |
 |---|---|---|
-| `deepseek-v4-flash-ga-260731` | 文本推理（教学对话、Agent编排、点评批改） | DeepSeek V4 Flash，原生多模态，128K上下文，16K输出上限 |
-| `doubao-seed-2-1-pro-260915` | 视觉理解（截图解析、UI反馈） | 豆包视觉模型，256K上下文 |
+| `deepseek-v4.1-flash` | 文本推理（教学对话、Agent编排、点评批改） | DeepSeek V4.1 Flash，128K上下文，16K输出上限 |
+| `deepseek-v4.1-flash` | 视觉理解（截图解析、UI反馈） | 同一模型的图像输入能力，图文混合请求，256K上下文 |
 
 | 选型要素 | 理由 |
 |---|---|
-| **同平台双模** | 文本与视觉模型共享同一个OpenAI兼容端点，无需分平台维护两套密钥和两套SDK适配层——`ark.ts`一次注册、两个模型共用 |
+| **同平台同模** | 文本与视觉走同一个模型、同一个OpenAI兼容端点，无需分平台维护两套密钥和两套SDK适配层——`dashscope.ts`一次注册、两条管线共用 |
 | **兼容端点** | 完全兼容OpenAI `/v1/chat/completions`协议，pi-agent SDK原生适配 |
 | **推理速度** | Flash变体延迟显著低于Pro，教学场景的实时对话要求首token延迟<3s |
 | **成本可控** | Flash定价远低于Pro，学生高频对话不会产生过高费用 |
@@ -324,7 +324,7 @@ assess-loop.ts    →  掌握度评估
 
 平台不是纯文本系统。当学生截代码发过来、贴终端报错、或提交UI作品截图时，走独立的**多模态评审管线**（[vision-review.ts](file:///d:\ai-agent-teaching\src\lib\agent\vision-review.ts)）：
 
-- **路径分离**：文本点评走 `loop.ts` 的标准Agent循环，图片评审走独立的HTTP fetch直连火山方舟视觉模型（`doubao-seed-2-1-pro-260915`）。分离的原因很实际：Agent SDK的 `session.prompt(text)` 只接受纯文本，无法传多模态content array
+- **路径分离**：文本点评走 `loop.ts` 的标准Agent循环，图片评审走独立的HTTP fetch直连百炼视觉模型（`deepseek-v4.1-flash`）。分离的原因很实际：Agent SDK的 `session.prompt(text)` 只接受纯文本，无法传多模态content array
 - **流结构统一**：视觉管线把OpenAI SSE chunk翻译为项目10种SSE事件，前端不需要区分"这次是文本模型还是视觉模型"——打字机效果、Token计数、思维链展开全部复用同一套渲染逻辑
 - **篇幅控制**：视觉点评强制500字上限——教学场景的截图评审不需要长篇大论，够说清问题本质即可
 - **学生模拟Agent复用**：`screen-describer`（屏幕描述子Agent）复用了同一套VLM调用模式，用视觉模型"看懂"学生操作界面后再做理解推断
@@ -641,8 +641,8 @@ platform-replica模块不走通用七步法，而是**专属六阶段项目制�
 | 校验 | Zod | 4 |
 | 工具参数校验 | TypeBox | 1.3 |
 | 数据库 | node:sqlite | Node内置 |
-| 文本模型 | deepseek-v4-flash-ga-260731 | 火山方舟 Ark |
-| 视觉模型 | doubao-seed-2-1-pro-260915 | 火山方舟 Ark |
+| 文本模型 | deepseek-v4.1-flash | 百炼 DashScope |
+| 视觉模型 | deepseek-v4.1-flash | 百炼 DashScope |
 | Embedding | qwen3.7-text-embedding (1024维) | 百炼 DashScope |
 | 代码编辑器 | 自研轻量编辑区（textarea + 行号） | — |
 | 包管理 | pnpm | — |
