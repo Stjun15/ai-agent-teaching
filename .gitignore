@@ -124,5 +124,7 @@ nginx-site.conf
 # 交接与运维记录（含本机环境、部署路径、历史踩坑与待裁定事项）
 HANDOVER.md
 docs/handover.md
+# 文档（技术文档与参赛材料仅本地留存，不随仓库分发）
+docs/
 # 其他 Agent 工具的忽略配置（非本项目构建 / 运行所需）
 .zcodeignore
