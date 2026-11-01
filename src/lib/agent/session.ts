@@ -119,8 +119,9 @@ export async function createSession(
     agentDir: process.cwd(),
     modelRuntime,
     model: text,
-    // 已在 dashscope.ts 把该模型声明为 reasoning: false，这里同步关掉思考档位，
-    // 避免发出未经验证的 thinking 参数（百练仍会附带返回推理内容，关不掉也不需要）。
+    // 百炼默认开思考：dashscope.ts 把模型声明为 reasoning:true + qwen 兼容层，
+    // 这里固定在 off 档位，SDK 才会在请求体发出 `enable_thinking: false`。
+    // 两者缺一：只声明 false 什么都不发（服务端照旧推理），只设 off 则不会走该分支。
     thinkingLevel: "off",
     tools: [...tools],
     ...(customTools ? { customTools: [...customTools] } : {}),

@@ -93,8 +93,24 @@ export function buildDashScopeProviderConfig(
 
   const text: ProviderModelConfig = {
     id: textModel,
-    name: "DeepSeek V4 Flash（百练）",
-    reasoning: false,
+    name: "DeepSeek V4.1 Flash（百炼）",
+    // 百炼默认开思考，且它没有「关掉」的默认值——不显式传参就一直推理。
+    //
+    // pi 只有在 reasoning:true 时才会走 `thinkingFormat: "qwen"` 这条兼容分支，
+    // 从而在请求体里写入 `enable_thinking`（见 pi-ai openai-completions.js 的
+    // qwen 分支：`params.enable_thinking = !!reasoningEffort`）。再配合
+    // session.ts 的 `thinkingLevel: "off"`，reasoningEffort 为空 →
+    // 实际发出的是 `enable_thinking: false`，服务端不再返回 reasoning_content。
+    //
+    // 实测对照（同一句提问、max_tokens=64）：声明 reasoning:false 时不发送任何
+    // thinking 参数，服务端照旧推理 110 字、正文 0 字（额度被吃光）；换成这里
+    // 的 qwen 兼容 + off 档位后 reasoning 为 0、正文正常。
+    reasoning: true,
+    // `supportsDeveloperRole: false` 是必须的：pi 的 OpenAI 兼容层默认为真，
+    // 会把系统提示词写成 `role: "developer"`，而百炼只接受
+    // system/assistant/user/tool/function，直接 400
+    // （invalid_parameter_error: developer is not one of [...]）。
+    compat: { thinkingFormat: "qwen", supportsDeveloperRole: false },
     input: ["text"],
     cost: { ...ZERO_COST },
     contextWindow: TEXT_CONTEXT_WINDOW,
