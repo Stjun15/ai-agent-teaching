@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CircleCheck, Loader2 } from "lucide-react";
 
@@ -81,6 +82,7 @@ export function TextAnswerArea({
         totalScore: result.totalScore,
         level: result.level,
         feedback: feedback || "没有发现明显问题。",
+        usedFallback: result.usedFallback,
       });
     } catch (err) {
       const message =
@@ -139,7 +141,7 @@ export function TextAnswerArea({
           role="status"
         >
           <Loader2 className="size-4 animate-spin" aria-hidden />
-          点评 Agent 正在阅读你的回答，已等 {elapsed} 秒（通常 20~40 秒）…
+          点评 Agent 正在阅读你的回答，已等 {elapsed} 秒（通常 10 秒左右）…
         </p>
       ) : null}
 
@@ -180,6 +182,31 @@ export function TextAnswerArea({
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
               {result.feedback}
             </p>
+          ) : null}
+          {/* 未通过时先送学生回源头补概念，再回来改 —— 兜底结果不算学生不会。 */}
+          {result.totalScore < 75 && result.usedFallback !== true ? (
+            <div className="mt-3 rounded-md border bg-muted/30 px-3 py-2.5 text-xs leading-relaxed">
+              <p className="font-medium text-foreground">
+                先回去补一下，再回来改
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                上面这些问题，大概率在前面几步就有答案：先回看概念讲解，再看一遍观察示范，然后按建议逐条补。
+              </p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                <Link
+                  href={`/learn/${moduleId}/explain`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  回看概念讲解
+                </Link>
+                <Link
+                  href={`/learn/${moduleId}/observe`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  再看观察示范
+                </Link>
+              </div>
+            </div>
           ) : null}
         </div>
       ) : null}

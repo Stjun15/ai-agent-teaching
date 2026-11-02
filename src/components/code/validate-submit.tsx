@@ -26,6 +26,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CircleCheck, Loader2 } from "lucide-react";
 
@@ -93,6 +94,7 @@ function normalizeIssue(
 export function ValidateSubmit({
   moduleId,
   redirectOnComplete = true,
+  showReviewLinks = true,
 }: {
   moduleId: string;
   /**
@@ -101,6 +103,11 @@ export function ValidateSubmit({
    * 没有 validate 步（跳过去是 404），检验单就地展示。
    */
   redirectOnComplete?: boolean;
+  /**
+   * 未通过时是否给出「回概念讲解 / 观察示范」的链接。默认给；复刻模块的
+   * 结算阶段关掉 —— 那一讲没有讲解步与示范步，链过去是死路。
+   */
+  showReviewLinks?: boolean;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -174,12 +181,16 @@ export function ValidateSubmit({
   return (
     <div className="flex flex-col gap-4">
       <CodeEditor onSubmit={handleSubmit} submitting={submitting} />
-      <ValidationReport usedFallback={usedFallback} moduleId={moduleId} />
+      <ValidationReport
+        usedFallback={usedFallback}
+        moduleId={moduleId}
+        showReviewLinks={showReviewLinks}
+      />
     </div>
   );
 }
 
-/** 批改中提示：带等待秒数（真实点评 20~40 秒，秒数走起来学生才安心）。 */
+/** 批改中提示：带等待秒数（百炼关思考后实测 6~10 秒，秒数走起来学生才安心）。 */
 function ValidatingNotice() {
   const elapsed = useElapsed(true);
   return (
@@ -188,7 +199,7 @@ function ValidatingNotice() {
       role="status"
     >
       <Loader2 className="size-4 animate-spin" aria-hidden />
-      点评 Agent 正在按评分维度逐项批改，已等 {elapsed} 秒（通常 20~40 秒）…
+      点评 Agent 正在按评分维度逐项批改，已等 {elapsed} 秒（通常 10 秒左右）…
     </p>
   );
 }
@@ -197,9 +208,11 @@ function ValidatingNotice() {
 function ValidationReport({
   usedFallback,
   moduleId,
+  showReviewLinks,
 }: {
   usedFallback: boolean;
   moduleId: string;
+  showReviewLinks: boolean;
 }) {
   const router = useRouter();
   const status = useCodeStore((state) => state.validationStatus);
@@ -316,6 +329,31 @@ function ValidationReport({
               <li key={suggestion}>{suggestion}</li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {/* 未通过时先送学生回源头补概念，再回来改 —— 只在真实点评时给，
+          兜底结果不算学生不会，不能据此劝人重学。 */}
+      {!passed && !usedFallback && showReviewLinks ? (
+        <div className="rounded-md border bg-muted/30 px-3 py-2.5 text-xs leading-relaxed">
+          <p className="font-medium text-foreground">先回去补一下，改起来更快</p>
+          <p className="mt-1 text-muted-foreground">
+            上面这些失分点，大概率在前面两步就有答案：先回看概念讲解，再看一遍观察示范，然后按建议逐条改。
+          </p>
+          <div className="mt-2 flex flex-wrap gap-4">
+            <Link
+              href={`/learn/${moduleId}/explain`}
+              className="font-medium underline underline-offset-2"
+            >
+              回看概念讲解
+            </Link>
+            <Link
+              href={`/learn/${moduleId}/observe`}
+              className="font-medium underline underline-offset-2"
+            >
+              再看观察示范
+            </Link>
+          </div>
         </div>
       ) : null}
 
