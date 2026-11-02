@@ -43,7 +43,7 @@ import {
   isDashScopeApiKeyConfigured,
 } from "@/lib/agent/dashscope-config";
 import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
-import { resolveStepAgent } from "@/lib/agent/step-prompt";
+import { resolveStepAgent, resolveFollowUpPrompt } from "@/lib/agent/step-prompt";
 import { runVisionReview } from "@/lib/agent/vision-review";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
@@ -170,6 +170,13 @@ export async function POST(req: Request): Promise<Response> {
   // prompts/teaching-chat.ts 的头部注释。
   const stepAgent = resolveStepAgent(parsed.data.step);
 
+  // 追问短答（2026-11-02）：学生在同一步骤已经看过讲稿，这一轮只是追问细节。
+  // 完整讲解口径要 8~10 秒、2000 字以上，追问答疑不该这么重 —— 换成短答结构。
+  // 前端判定（同步骤已有助手回复）在这里落地为独立提示词，见 `TEACHING_FOLLOWUP_PROMPT`。
+  const followUpPrompt = parsed.data.followUp
+    ? resolveFollowUpPrompt(parsed.data.step)
+    : null;
+
   // 知识库检索（关键词 + 向量混合路）在这里**先启动**，不等它：
   // 下面的概念页读取与 MCP 工具发现都是异步的，三方交错进行，
   // 总等待约为 max(检索, 工具发现) 而不是各自相加。
@@ -262,9 +269,11 @@ export async function POST(req: Request): Promise<Response> {
   };
   // 身份层系统提示词 + 概念页教学脚本 + 本轮检索资料拼接。
   // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」，最后看材料。
-  const parts = [conceptScript, stepAgent.systemPrompt, citationScript].filter(
-    (p) => p !== "",
-  );
+  const parts = [
+    conceptScript,
+    followUpPrompt ?? stepAgent.systemPrompt,
+    citationScript,
+  ].filter((p) => p !== "");
   // 复刻项目的阶段上下文（可选）：让学生不必重复描述自己卡在哪一步。
   // 只注入位置，不注入教材 —— 教材已随 moduleId 的概念页进来。
   if (parsed.data.phaseContext) {

@@ -195,11 +195,20 @@ export function Composer({
   }
 
   function sendContent(content: string): void {
+    // 同一步骤已有助手回复（含讲解步点开即显示的缓存讲稿）→ 这轮是追问，
+    // 换短答口径。首讲式回答要 8~10 秒、2000 字以上，追问答疑不必这么长。
+    // 判定放在这一层而不是服务端：服务端只看得到 history，拿不到 step。
+    const followUp =
+      step !== undefined &&
+      messages.some(
+        (message) => message.role === "assistant" && message.step === step,
+      );
     void send(
       {
         content,
         ...(step !== undefined ? { step } : {}),
         ...(moduleId ? { moduleId } : {}),
+        ...(followUp ? { followUp: true } : {}),
         ...(phaseContext ? { phaseContext } : {}),
         ...(showCode && code.trim() !== ""
           ? { code: code.trim(), language }

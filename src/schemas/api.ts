@@ -196,6 +196,14 @@ export const ChatRequestSchema = z.object({
     .regex(/^[a-z0-9-]+$/)
     .optional(),
   /**
+   * 本轮是不是「追问」（2026-11-02）。
+   *
+   * 前端按「同一步骤是否已有助手回复」判断（讲解步点开即显示的缓存讲稿也算），
+   * 后端据此把身份层从完整讲解换成短答答疑（见 `step-prompt.ts` 的
+   * `resolveFollowUpPrompt`）。缺省 = 首讲口径，行为与之前完全一致。
+   */
+  followUp: z.boolean().optional(),
+  /**
    * 复刻项目的当前阶段上下文（仅复刻工作区携带）。
    *
    * 复刻是 6 阶段的项目实践，同一句「我卡住了」发生在启动台还是在第三斧，
