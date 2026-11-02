@@ -11,17 +11,12 @@ import { selectTimeline, useSessionStore } from "@/stores";
  *
  * 依据 `04-frontend.md` 的组件树（`<AgentTimeline>` 在 `<RightPanel>` 下）。
  *
- * 为什么「思考」默认折叠
- * -------------------
- * 端到端实测：一条包含工具调用的流共 39 帧，其中 33 帧是 `thinking` 增量，
- * 内容是模型原始推理碎片（实测为英文："The user wants me to calculate ..."）。
- *
- * 直接把原文铺在右栏会有两个问题：一是有信息量的 `tool_call` 被 33 条
- * 意识流刷到看不见；二是中文教学场景里给学生看英文推理碎片，没有教学价值。
- *
- * 所以思考段折叠成一行摘要（耗时 / 增量数 / 字数），要看原文点开即可 ——
- * 既不隐瞒「模型在想什么」，也不让它喧宾夺主。用原生 `<details>` 实现：
- * 无需 JS 状态、键盘可达、屏幕阅读器友好。
+ * 为什么「思考」默认展开（2026-11-02 作者裁定）
+ * -----------------------------------------
+ * 原先是折叠成一行摘要（实测一条流 39 帧里 33 帧是 thinking 增量，
+ * 展开会淹没 tool_call）。现在改为**默认展开**：思维链本身就是这门课要教
+ * 的内容（学生要看到「AI 怎么想」），收起来等于把教学过程藏进一次点击。
+ * 每条思考段仍是 `<details>`，学生想收起时点一下即可。
  *
  * 时间线把思考段与工具调用**按发生时间交错**排列，而不是分成两组 ——
  * 「先思考、再调工具、再思考」的顺序本身就是 Agent Loop 的教学内容。
@@ -53,7 +48,7 @@ export function AgentTimeline() {
       {entries.map((entry) =>
         entry.kind === "thinking" ? (
           <li key={entry.step.id}>
-            <details className="group">
+            <details className="group" open>
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-1.5 py-1 text-xs hover:bg-accent/60">
                 <ChevronRight className="size-3 transition-transform group-open:rotate-90" />
                 <Brain className="size-3.5 text-muted-foreground" />
