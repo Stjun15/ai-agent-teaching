@@ -10,6 +10,7 @@
 
 export * from "./code";
 export * from "./floating-chat";
+export * from "./practice";
 export * from "./qa";
 export * from "./session";
 export * from "./settings";
