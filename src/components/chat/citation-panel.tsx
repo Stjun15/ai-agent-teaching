@@ -38,9 +38,19 @@ export function CitationPanel() {
           key={`${citation.source}-${index}`}
           className="rounded-md border px-2 py-1.5"
         >
-          <div className="flex items-center gap-1.5 text-xs">
-            <BookMarked className="size-3.5 text-muted-foreground" />
-            <span className="truncate font-medium">{citation.source}</span>
+          <div className="flex items-start gap-1.5 text-xs">
+            <BookMarked className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              {/* 学生要看的是「哪篇文章」，路径只在有标题时作为副标题出现。 */}
+              <span className="block truncate font-medium">
+                {citation.title ?? citation.source}
+              </span>
+              {citation.title !== undefined ? (
+                <span className="block truncate text-[10px] text-muted-foreground">
+                  {citation.source}
+                </span>
+              ) : null}
+            </div>
             {citation.page !== undefined ? (
               <span className="shrink-0 text-muted-foreground">
                 p.{citation.page}

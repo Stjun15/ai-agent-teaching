@@ -93,10 +93,13 @@ function formatCitationBlock(drafts: readonly CitationDraft[]): string {
   return [
     "## 本轮从知识库检索到的资料",
     "以下是和学生问题最相关的片段。回答有依据就基于它们；片段里没有的内容不要假装有。",
+    "回答里用到某段资料时，**指名它是哪篇文章**（用方括号里的文章标题，例如「《System Prompt 设计》里说……」），",
+    "不要只说「资料库提到」「有资料显示」——学生要能顺着名字自己去看原文。",
     "",
     ...drafts.map(
       (draft, index) =>
-        `[资料 ${index + 1}] ${draft.source}\n${draft.snippet.slice(0, 240)}`,
+        `[资料 ${index + 1}]《${draft.title ?? draft.source}》（文件 ${draft.source}）\n` +
+        draft.snippet.slice(0, 240),
     ),
   ].join("\n");
 }

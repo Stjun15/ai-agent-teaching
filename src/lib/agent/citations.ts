@@ -50,6 +50,8 @@ export const DEFAULT_CITATION_COUNT = 3;
 export interface CitationDraft {
   /** Wiki 页面路径，例如 `concepts/llm-api.md`。与 `Citation.source` 同义。 */
   source: string;
+  /** 文章标题（frontmatter `name`），例如「System Prompt 设计」；读不到时 null。 */
+  title?: string | null;
   /** 命中片段。 */
   snippet: string;
   /** 0~1，见文件头关于经验值的说明。 */
@@ -106,6 +108,7 @@ export function toCitationEvents(drafts: readonly CitationDraft[]): SSEEvent[] {
     type: "citation",
     data: {
       source: draft.source,
+      ...(draft.title ? { title: draft.title } : {}),
       snippet: draft.snippet,
       relevance: draft.relevance,
     },

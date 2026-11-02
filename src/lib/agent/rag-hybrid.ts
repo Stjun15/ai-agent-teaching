@@ -22,7 +22,7 @@
 
 import { knowledgeEmbeddingDb } from "@/lib/db";
 
-import { query, type WikiHit } from "@/wiki";
+import { getPage, query, type WikiHit } from "@/wiki";
 
 import { cosine, embedTexts, readEmbeddingSettings } from "./embeddings";
 
@@ -37,6 +37,14 @@ export type RetrievalMode = "keyword" | "hybrid";
 export interface HybridRetrievalResult {
   drafts: {
     source: string;
+    /**
+     * 文章标题（frontmatter `name`），如「System Prompt 设计」。
+     *
+     * 学生要看到的是「出自哪篇文章」，不是 `concepts/system-prompt.md`
+     * 这种给开发者看的路径 —— 路径留给需要跳转的界面用。
+     * 读不到时回 null，界面退回显示路径，不影响引用本身。
+     */
+    title: string | null;
     snippet: string;
     relevance: number;
   }[];
@@ -132,10 +140,29 @@ export async function retrieveHybrid(
 
   const excerpts = excerptIndex(keyword);
   const vectorByPath = new Map(vector.map((hit) => [hit.path, hit]));
+  // 标题：关键词路命中时直接带回来（`WikiHit.name`）；向量路独有的页面
+  // 关键词路没见过，要单独读一次 frontmatter（最多 topK 个小文件）。
+  const titles = new Map<string, string>();
+  for (const hit of keyword) {
+    if (hit.name !== null && hit.name !== "") titles.set(hit.path, hit.name);
+  }
   const fused = fuseRrf(
     keyword.map((hit) => hit.path),
     vector.map((hit) => hit.path),
   ).slice(0, topK);
+  await Promise.all(
+    fused
+      .filter((path) => !titles.has(path))
+      .map(async (path) => {
+        try {
+          const page = await getPage(path);
+          const name = page.frontmatter.name;
+          if (typeof name === "string" && name !== "") titles.set(path, name);
+        } catch {
+          // 读不到就退回显示路径，引用本身不受影响。
+        }
+      }),
+  );
 
   const drafts = fused.map((path) => {
     const keywordHit = keyword.find((hit) => hit.path === path);
@@ -148,7 +175,12 @@ export async function retrieveHybrid(
       excerpts.get(path) ??
       (vectorHit?.snippet ?? "").split("\n").find((line) => line.trim()) ??
       "";
-    return { source: path, snippet, relevance };
+    return {
+      source: path,
+      title: titles.get(path) ?? null,
+      snippet,
+      relevance,
+    };
   });
 
   return { drafts, mode: usedFallback ? "keyword" : "hybrid", usedFallback };
