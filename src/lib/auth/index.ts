@@ -8,10 +8,20 @@
 
 import crypto from "node:crypto";
 
-const AUTH_SECRET = Buffer.from(
-  process.env.AUTH_SECRET ?? "ai-teaching-dev-secret-change-in-production",
-  "utf8",
-);
+const DEV_FALLBACK_SECRET = "ai-teaching-dev-secret-change-in-production";
+
+/**
+ * 签名密钥只从环境变量读取：生产环境缺失（或仍是开发默认值）时直接拒绝，
+ * 避免用公开常量签名导致任何人都能伪造令牌。
+ */
+function authSecret(): Buffer {
+  const raw = process.env.AUTH_SECRET?.trim();
+  if (raw && raw !== DEV_FALLBACK_SECRET) return Buffer.from(raw, "utf8");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("生产环境未配置有效的 AUTH_SECRET，已拒绝签发/校验令牌");
+  }
+  return Buffer.from(DEV_FALLBACK_SECRET, "utf8");
+}
 
 const TOKEN_EXPIRY_SECONDS = 7 * 24 * 3600;
 
@@ -60,7 +70,7 @@ export function createToken(studentId: string): string {
     "base64url",
   );
   const signature = crypto
-    .createHmac("sha256", AUTH_SECRET)
+    .createHmac("sha256", authSecret())
     .update(`${headerB64}.${payloadB64}`)
     .digest("base64url");
   return `${headerB64}.${payloadB64}.${signature}`;
@@ -75,7 +85,7 @@ export function verifyToken(token: string): { studentId: string } | null {
   // timingSafeEqual 在 Buffer 长度不等时会直接抛异常而非返回 false。
   // 恶意/损坏的令牌签名段可能任意长，先量长度。
   const expectedSig = crypto
-    .createHmac("sha256", AUTH_SECRET)
+    .createHmac("sha256", authSecret())
     .update(`${headerB64}.${payloadB64}`)
     .digest("base64url");
 
