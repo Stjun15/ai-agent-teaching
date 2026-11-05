@@ -140,5 +140,7 @@ docs/handover.md
 AGENTS.md
 # 文档（技术文档与参赛材料仅本地留存，不随仓库分发）
 docs/
+# 早期课程原稿（内容已并入 llm-wiki/，仅本地留存，避免与权威知识库混淆）
+knowledge/
 # 其他 Agent 工具的忽略配置（非本项目构建 / 运行所需）
 .zcodeignore
