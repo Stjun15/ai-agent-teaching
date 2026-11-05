@@ -120,9 +120,10 @@ export async function createSession(
     modelRuntime,
     model: text,
     // 百炼默认开思考：dashscope.ts 把模型声明为 reasoning:true + qwen 兼容层，
-    // 这里固定在 off 档位，SDK 才会在请求体发出 `enable_thinking: false`。
-    // 两者缺一：只声明 false 什么都不发（服务端照旧推理），只设 off 则不会走该分支。
-    thinkingLevel: "off",
+    // 这里给非 off 档位，SDK 才会在请求体发出 `enable_thinking: true`。
+    // 2026-11-03 按作者裁定从 "off" 改为 "low"：思考链是教学卖点，需要真实 reasoning；
+    // 低档把额度与首字延迟的代价压到最小（当时 off 是为了修「正文 0 字」）。
+    thinkingLevel: "low",
     tools: [...tools],
     ...(customTools ? { customTools: [...customTools] } : {}),
     resourceLoader,
