@@ -2,7 +2,7 @@
 
 import { BookMarked } from "lucide-react";
 
-import { useSessionStore } from "@/stores";
+import { useSessionStore, type Citation } from "@/stores";
 
 /**
  * 引用来源面板（模块页右栏）。
@@ -31,6 +31,18 @@ export function CitationPanel() {
     );
   }
 
+  return <CitationList citations={citations} />;
+}
+
+/**
+ * 引用条目列表（纯展示、无 store 依赖）。
+ *
+ * 2026-11-03 从 `<CitationPanel>` 拆出：消息气泡里的「引用了 N 个知识来源」
+ * 此前只是一行计数，学生点不开、看不到是哪篇文章 —— `CitationPanel`
+ * 本身全仓没有挂载点，等于这段渲染代码从未生效。详情改挂到消息下方，
+ * 与右栏复用同一份列表实现。
+ */
+export function CitationList({ citations }: { citations: readonly Citation[] }) {
   return (
     <ul className="flex flex-col gap-2">
       {citations.map((citation, index) => (

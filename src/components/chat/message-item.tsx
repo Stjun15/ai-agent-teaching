@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 
+import { CitationList } from "@/components/chat/citation-panel";
 import { MarkdownView } from "@/components/chat/markdown-view";
 import { Badge } from "@/components/ui/badge";
 import type { ChatMessage, ThinkingStep } from "@/stores";
@@ -167,9 +168,17 @@ export const MessageItem = memo(
           </div>
 
           {message.citations.length > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              引用了 {message.citations.length} 个知识来源
-            </p>
+            <details className="group w-full rounded-md border px-2 py-1.5">
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground">
+                <ChevronRight className="size-3 shrink-0 transition-transform group-open:rotate-90" />
+                <span className="font-medium">
+                  引用了 {message.citations.length} 个知识来源
+                </span>
+              </summary>
+              <div className="mt-1.5">
+                <CitationList citations={message.citations} />
+              </div>
+            </details>
           ) : null}
         </div>
       </article>
@@ -182,6 +191,11 @@ export const MessageItem = memo(
       return false;
     }
     if (p.thinkingSteps?.length !== n.thinkingSteps?.length) {
+      return false;
+    }
+    // 引用是流开始前先到的（prelude 事件），数量变化必须触发重渲染，
+    // 否则气泡下的「引用了 N 个知识来源」列表永远停在旧值。
+    if (p.citations.length !== n.citations.length) {
       return false;
     }
     if (p.status === "done") {
