@@ -1,6 +1,6 @@
 ---
 type: concept
-last_updated: 2026-10-27
+last_updated: 2026-11-03
 id: platform-replica-03
 name: 复刻第三斧：知识 + 数据库 + 点评
 prerequisites: [platform-replica-02]
@@ -108,10 +108,10 @@ const systemPrompt = lecture
 
 | 概念 | 解释 |
 |------|------|
-| Embedding API | 和聊天 API 一样是 HTTP 调用，但返回的不是文字，是一串浮点数（向量）。DashScope 的 `text-embedding-v4` 或 OpenAI 兼容的 embedding 端点都行。 |
+| Embedding API | 和聊天 API 一样是 HTTP 调用，但返回的不是文字，是一串浮点数（向量）。DashScope 的 `qwen3.7-text-embedding`（本平台在用的 1024 维模型）或其它 OpenAI 兼容的 embedding 端点都行。 |
 | 余弦相似度 | 两个向量夹角的余弦值，范围 [-1, 1]。0.8+ 高度相关，0.3 以下基本无关。你已经在 RAG 模块学过原理，这里直接写代码算。 |
 | 离线索引 | "提前算好，运行时只读"。索引脚本跑一次把全部页面向量化存库，之后每次检索只需要给一个问题向量化+算余弦，毫秒级出结果。 |
-| SSE `citation` 事件 | 在模型回答第一个字之前先把引用卡片推到前端——学生先看到"本节参考了哪几页教材"，再看到 AI 的回答。事件类型叫 `citation`，不是 `content`。 |
+| SSE `citation` 事件 | 在模型回答第一个字之前先把引用卡片推到前端——学生先看到「引用了几个知识来源」的入口，再看到 AI 的回答（宿主界面把引用默认收起，点开才显示文章名与片段）。事件类型叫 `citation`，不是 `content`；每条引用发一个事件。 |
 
 ---
 
@@ -170,7 +170,7 @@ async function embed(text: string): Promise<Float32Array> {
         Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "text-embedding-v4",
+        model: "qwen3.7-text-embedding",
         input: text,
       }),
     },
@@ -205,7 +205,7 @@ async function main() {
         chunk.heading,
         chunk.content.slice(0, 2400), // 单块上限 2400 字符，超出截断
         Buffer.from(vector.buffer),
-        "text-embedding-v4",
+        "qwen3.7-text-embedding",
         vector.length,
       );
     }
@@ -245,10 +245,13 @@ pnpm tsx scripts/index.ts
 import { DatabaseSync } from "node:sqlite";
 
 export interface ChunkRef {
-  pagePath: string;
-  heading: string;
+  // Wiki 页面路径，例如 concepts/rag.md —— SSE 事件里叫 source
+  source: string;
+  // 文章标题（frontmatter 的 name）；读不到就不传
+  title?: string;
   snippet: string;
-  similarity: number;
+  // 0~1 的相关度，四舍五入到 4 位
+  relevance: number;
 }
 
 const db = new DatabaseSync("dev.db");
@@ -289,7 +292,7 @@ export async function retrieveRelevant(
         Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "text-embedding-v4",
+        model: "qwen3.7-text-embedding",
         input: question,
       }),
     },
@@ -313,19 +316,19 @@ export async function retrieveRelevant(
     // slice 一份——Buffer 底下的内存池可能被复用
     const similarity = cosine(questionVec, chunkVec.slice());
     const known = bestPerPage.get(row.page_path);
-    if (!known || similarity > known.similarity) {
+    if (!known || similarity > known.relevance) {
       bestPerPage.set(row.page_path, {
-        pagePath: row.page_path,
-        heading: row.heading,
+        source: row.page_path,
+        // 想显示文章标题就再读一次 frontmatter 的 name；不填时前端显示文件路径
         snippet: row.content.slice(0, 200),
-        similarity: Math.round(similarity * 1e4) / 1e4,
+        relevance: Math.round(similarity * 1e4) / 1e4,
       });
     }
   }
 
   // 排序 + 截断
   return [...bestPerPage.values()]
-    .sort((a, b) => b.similarity - a.similarity)
+    .sort((a, b) => b.relevance - a.relevance)
     .slice(0, topK);
 }
 ```
@@ -351,10 +354,10 @@ try {
 // SSE 流——先发引用事件，再发模型回答
 const stream = new ReadableStream({
   async start(controller) {
-    // ① 先发引用卡片（citation 事件）
-    if (citations.length > 0) {
+    // ① 先发引用卡片（每条引用一个 citation 事件，与平台协议一致）
+    for (const citation of citations) {
       controller.enqueue(
-        `data: ${JSON.stringify({ type: "citation", citations })}\n\n`,
+        `data: ${JSON.stringify({ type: "citation", data: citation })}\n\n`,
       );
     }
 
@@ -379,8 +382,7 @@ node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('d
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"content":"LLM Wiki 跟 RAG 有什么区别？"}'
-# → SSE 事件顺序：先收到 type: "citation"（含 3 条引用，各有 pagePath + snippet + similarity）
-# → 再收到 type: "content"（模型逐字回答）
+# → SSE 事件顺序：先收到 3 个 type: "citation" 事件（每条含 source + title? + snippet + relevance），再收到 type: "content"（模型逐字回答）
 ```
 
 ---
@@ -610,7 +612,7 @@ node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('d
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"content":"LLM Wiki 跟 RAG 有什么区别？"}'
-# → SSE 事件顺序：先 type: "citation"（3 条引用），再 type: "content"（模型回答）
+# → SSE 事件顺序：先 3 个 type: "citation" 事件（每条 source + snippet + relevance），再 type: "content"（模型回答）
 
 curl -X POST http://localhost:3000/api/validate \
   -H "Content-Type: application/json" \

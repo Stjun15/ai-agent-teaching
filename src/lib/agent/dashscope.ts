@@ -99,12 +99,13 @@ export function buildDashScopeProviderConfig(
     // pi 只有在 reasoning:true 时才会走 `thinkingFormat: "qwen"` 这条兼容分支，
     // 从而在请求体里写入 `enable_thinking`（见 pi-ai openai-completions.js 的
     // qwen 分支：`params.enable_thinking = !!reasoningEffort`）。再配合
-    // session.ts 的 `thinkingLevel: "off"`，reasoningEffort 为空 →
-    // 实际发出的是 `enable_thinking: false`，服务端不再返回 reasoning_content。
+    // session.ts 的思考档位（2026-11-03 起为 "low"）→ 实际发出的是
+    // `enable_thinking: true`，服务端返回 reasoning_content 供思考链展示。
     //
-    // 实测对照（同一句提问、max_tokens=64）：声明 reasoning:false 时不发送任何
+    // 历史对照（2026-11-01 曾把档位固定为 off 来止血）：声明 reasoning:false 时不发送任何
     // thinking 参数，服务端照旧推理 110 字、正文 0 字（额度被吃光）；换成这里
-    // 的 qwen 兼容 + off 档位后 reasoning 为 0、正文正常。
+    // 的 qwen 兼容 + off 档位后 reasoning 为 0、正文正常。现在改回 low 档，
+    // 思考内容会随 SSE 的 thinking 事件下发（服务端仍有内部词过滤器兜底）。
     reasoning: true,
     // `supportsDeveloperRole: false` 是必须的：pi 的 OpenAI 兼容层默认为真，
     // 会把系统提示词写成 `role: "developer"`，而百炼只接受

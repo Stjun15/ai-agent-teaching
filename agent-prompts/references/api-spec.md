@@ -666,11 +666,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
 ```bash
 # .env.example
-# 模型平台：火山方舟 Volcengine Ark（OpenAI 兼容端点 /v1）
-ARK_API_KEY=your-ark-api-key
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_TEXT_MODEL=deepseek-v4-flash-ga-260731
-ARK_VISION_MODEL=doubao-seed-2-1-pro-260915
+# 模型平台：阿里云百炼 DashScope（OpenAI 兼容端点 /compatible-mode/v1）
+DASHSCOPE_API_KEY=your-dashscope-api-key
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+DASHSCOPE_TEXT_MODEL=deepseek-v4.1-flash
+DASHSCOPE_VISION_MODEL=deepseek-v4.1-flash
 # CloudBase
 CLOUDBASE_ENV_ID=your-env-id
 CLOUDBASE_SECRET_ID=your-secret-id

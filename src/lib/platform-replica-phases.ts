@@ -407,7 +407,7 @@ curl -X POST http://localhost:3000/api/chat \\
       { term: "Embedding（文本→向量）", explanation: "把一段文字变成固定长度的浮点数数组。语义相近的文字向量距离近——「LLM Wiki」和「知识编译」的向量比「LLM Wiki」和「炒菜」的向量近得多。调 embedding API 和调 chat API 格式一样，返回的是数字数组而不是文字。" },
       { term: "余弦相似度", explanation: "两个向量夹角的余弦值，范围 [-1, 1]。0.8+ 高度相关，0.3 以下基本无关。公式只有三行代码（点积 + 模长 + 相除），不需要任何库。" },
       { term: "离线索引", explanation: "「提前算好，运行时只读」。索引脚本跑一次把全部页面切块+向量化存 SQLite，之后每次检索只需要向量化一个问题+算余弦，毫秒级出结果。和 RAG 模块学的原理一样，这里用原生代码实现。" },
-      { term: "SSE citation 事件", explanation: "事件类型叫 `citation`，不是 `content`。在模型回答第一个字**之前**把引用卡片推给前端——学生先看到「本节参考了 concepts/rag.md、concepts/llm-wiki.md」，再看到 AI 的回答。" },
+      { term: "SSE citation 事件", explanation: "事件类型叫 `citation`，不是 `content`。在模型回答第一个字**之前**把引用卡片推给前端——学生先看到「引用了几个知识来源」的入口，再看到 AI 的回答（界面里引用默认收起，点开才展开来源）。每条引用发一个事件，字段是 `source` / `title?` / `snippet` / `relevance`。" },
       { term: "SQLite", explanation: "一个轻量数据库——不需要安装服务器，一个 .db 文件就是整个数据库。Node.js 22.5 内置了，不用装任何东西。" },
       { term: "DatabaseSync", explanation: "Node.js 22.5 内置的 SQLite 同步 API。不需要 async/await，写起来像普通代码。注意名字是 DatabaseSync 不是 Database。" },
       { term: "upsert（插入或更新）", explanation: "如果数据库里已经有这条记录就更新它，没有就插入一条新的。一句话替代「先查有没有 → 有就改 → 没有就加」三行逻辑。" },
@@ -452,7 +452,7 @@ curl -X POST http://localhost:3000/api/chat \\
         file: "src/lib/retrieve.ts",
         why: "这是'动态 RAG'的在线半——每次对话自动找到最相关教材页面，作为引用卡片在回答前展示。学生看到的每句回答脚底下都踩着教材出处。",
         detail:
-          "在 `src/lib/retrieve.ts`（或直接写在 `route.ts` 里）实现：①余弦相似度函数 `cosine(a, b)`——点积除以模长乘积，三行代码 ②`retrieveRelevant(question, topK)`——调 embedding API 把问题向量化 → 从 SQLite 加载全部章节块 → 逐块算余弦取每页最优块 → 排序截断返回 topK。然后在 `route.ts` 的 POST 处理函数里：在调 `chat()` **之前**先 `await retrieveRelevant(body.content, 3)`，SSE 流里**先发 citation 事件，再发 content 事件**。检索失败用 try-catch 降级为空引用——决不让引用失败阻塞对话。",
+          "在 `src/lib/retrieve.ts`（或直接写在 `route.ts` 里）实现：①余弦相似度函数 `cosine(a, b)`——点积除以模长乘积，三行代码 ②`retrieveRelevant(question, topK)`——调 embedding API 把问题向量化 → 从 SQLite 加载全部章节块 → 逐块算余弦取每页最优块 → 排序截断返回 topK。然后在 `route.ts` 的 POST 处理函数里：在调 `chat()` **之前**先 `await retrieveRelevant(body.content, 3)`，SSE 流里**先逐条发 citation 事件（每条带 source / title? / snippet / relevance），再发 content 事件**。检索失败用 try-catch 降级为空引用——决不让引用失败阻塞对话。",
         askAI: "问导师：「帮我写一个 retrieveRelevant 函数——传入问题文字，调 embedding API 向量化，跟 SQLite knowledge_embeddings 表里所有块算余弦相似度，取每页最优块，返回 top 3。另外在 route.ts 里怎么在 SSE 流最前面发 citation 事件？」",
         stuckPrompt: "贴代码 + SSE 输出给导师。常见问题：①citation 事件在 content 事件后面出现 → 检查异步顺序，citation 必须在 ReadableStream 里先 enqueue ②余弦结果全是 NaN → 检查除法分母是否为 0（零向量或维度不匹配）③引用页面总是不相关 → 检查 embedding 模型是否和索引时相同。",
         pitfalls: [
@@ -516,7 +516,7 @@ node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('d
 curl -X POST http://localhost:3000/api/chat \\
   -H "Content-Type: application/json" \\
   -d '{"content":"LLM Wiki 跟 RAG 有什么区别？"}'
-# → SSE 事件顺序：先 type: "citation"（3 条引用），再 type: "content"（模型回答）
+# → SSE 事件顺序：先 3 个 type: "citation" 事件（每条 source + snippet + relevance），再 type: "content"（模型回答）
 
 # ③ 验证掌握度
 node -e "const{DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('dev.db');console.log(db.prepare('SELECT * FROM mastery').all())"

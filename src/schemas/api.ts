@@ -219,8 +219,9 @@ export const ChatRequestSchema = z.object({
    * 每项为标准 data URL（`data:image/png;base64,...`）。最多 3 张；
    * 每张在前端已做压缩与尺寸限制（≤ 5 MB / ≤ 4096px）。
    *
-   * 有图片时后端走视觉评审管线（`vision-review.ts`），用多模态模型
-   * `doubao-seed-2-1-pro-260915` 点评；无图片时走原有文本管线。
+   * 有图片时后端走视觉评审管线（`vision-review.ts`），默认用多模态模型
+   * `deepseek-v4.1-flash`（可被 `DASHSCOPE_VISION_MODEL` 覆盖）点评；
+   * 无图片时走原有文本管线。
    */
   images: z.array(z.string().startsWith("data:image/")).max(3).optional(),
 });
