@@ -75,8 +75,9 @@ function compressImage(file: File): Promise<string> {
  * 「提交图片」为什么在这里（2026-09-26）
  * ---------------------------------
  * 学生要把代码截图、终端报错、作品效果发出来让导师看。图片走后端的视觉评审
- * 管线（`vision-review.ts`），用多模态模型 `doubao-seed-2-1-pro-260915`
- * 做点评。前端只负责采集 + 压缩 + 预览 —— 不调模型、不做 OCR。
+ * 管线（`vision-review.ts`），默认用多模态模型 `deepseek-v4.1-flash`
+ * （可被 `DASHSCOPE_VISION_MODEL` 覆盖）做点评。前端只负责采集 + 压缩 + 预览
+ * —— 不调模型、不做 OCR。
  *
  * 「附带代码」为什么放在这里
  * ----------------------
