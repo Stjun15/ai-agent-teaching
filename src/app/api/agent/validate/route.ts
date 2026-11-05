@@ -167,7 +167,7 @@ export async function POST(request: Request): Promise<Response> {
             detail: i.detail,
             deduction: i.deduction,
             relatedDimension: i.related_dimension,
-            relatedAntiPattern: i.related_anti_pattern,
+            relatedAntiPattern: i.related_anti_pattern ?? null,
           })),
           suggestions: review.suggestions.map((s) => s.action),
           attemptNumber,

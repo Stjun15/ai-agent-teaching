@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import type { StepType } from "@/lib/db";
+import { useCodeStore, useQaStore } from "@/stores";
 import { SCENE_LABELS, isSceneId } from "@/lib/agent/scene-ids";
 import { LEARNING_STEPS, stepIndex } from "@/lib/learning-steps";
 import type { TeachingModule } from "@/lib/modules";
@@ -160,6 +161,15 @@ export function ModuleWorkspace({
       return next;
     });
   }, []);
+
+  // 声明草稿归属：换了讲就清掉上一讲的代码与文本回答，同讲内切步不动。
+  // CodeStore / QaStore 都是全局单例（与 SessionStore 同构），不按讲清空
+  // 会出现「上一讲动手步写的代码出现在这一讲」（2026-11-02 走查发现）。
+  // 必须放在挂载后的 effect 里：渲染期改 store 会触发 React #418。
+  useEffect(() => {
+    useCodeStore.getState().syncModule(teachingModule.id);
+    useQaStore.getState().syncModule(teachingModule.id);
+  }, [teachingModule.id]);
 
   // 拖拽期间用 ref 避免闭包拿到旧值
   const leftWidthRef = useRef(leftWidth);

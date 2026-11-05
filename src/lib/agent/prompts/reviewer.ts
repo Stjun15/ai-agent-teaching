@@ -74,7 +74,7 @@ export const REVIEWER_SYSTEM_PROMPT = `# 点评 Agent
       "detail": "问题描述",
       "deduction": -10,
       "related_dimension": "维度名",
-      "related_anti_pattern": "反模式 ID"
+      "related_anti_pattern": "反模式 ID（没有关联时填 null，这个键不能省略）"
     }
   ],
   "suggestions": [

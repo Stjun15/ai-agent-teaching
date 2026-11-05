@@ -120,10 +120,12 @@ export async function runVisionReview(
             { role: "user", content: contentBlocks },
           ],
           stream: true,
-          // 百炼的 deepseek-v4.1-flash 会先吐一段 reasoning_content 再吐正文，
-          // 上限给得太紧时推理可能把额度吃光、正文一个字都不剩（1024 与 2048 都实测出现过空回复）。
-          // 4096 留足推理 + 500 字点评的空间；上限不决定实际输出长度，只抬高天花板。
-          max_tokens: 4096,
+          // 百炼默认开思考：不传这个字段就先吐一段 reasoning_content 再吐正文，
+          // 上限给紧时推理会把额度吃光、正文一个字都不剩（1024 与 2048 都实测空回复）。
+          // 显式关掉后 reasoning 归零（同一请求体实测 reasoning_chars=0），
+          // 上限已够放点评正文；它只抬天花板，不决定实际输出长度。
+          enable_thinking: false,
+          max_tokens: 2048,
           temperature: 0.3,
         }),
         signal: controller.signal,

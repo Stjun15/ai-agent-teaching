@@ -52,7 +52,7 @@ export const EXAMINER_SYSTEM_PROMPT = `# 出题 Agent
       "correct_answer": "正确答案",
       "explanation": "解析",
       "hint_levels": ["L1方向", "L2具体", "L3伪代码"],
-      "related_anti_pattern": "反模式 ID（如果有）"
+      "related_anti_pattern": "反模式 ID（没有关联时填 null，这个键不能省略）"
     }
   ],
   "total_count": 3,

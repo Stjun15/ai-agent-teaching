@@ -158,7 +158,10 @@ export const ReviewerOutputSchema = z
         detail: z.string(),
         deduction: deductionSchema,
         related_dimension: z.string(),
-        related_anti_pattern: z.string().nullable(),
+        // nullish 而非 nullable：模型偶尔整条省略该键而非填 null。
+        // 缺省语义与 null 等价（只是"没有关联反模式"的展示字段），
+        // 不该因为一个引用字段让整份点评判为校验失败、白跑一轮重试。
+        related_anti_pattern: z.string().nullish(),
       }),
     ),
     suggestions: z.array(
@@ -219,7 +222,7 @@ export const ExaminerOutputSchema = z.object({
         correct_answer: z.string(),
         explanation: z.string(),
         hint_levels: z.array(z.string()),
-        related_anti_pattern: z.string().nullable(),
+        related_anti_pattern: z.string().nullish(),
       }),
     )
     .min(1),

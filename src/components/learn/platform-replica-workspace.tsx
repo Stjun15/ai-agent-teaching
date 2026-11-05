@@ -23,6 +23,7 @@ import { MarkdownView } from "@/components/chat/markdown-view";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { ReplicaToolbox } from "@/components/learn/replica-toolbox";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
+import { useCodeStore, useQaStore } from "@/stores";
 
 import {
   REPLICA_PHASES,
@@ -44,6 +45,12 @@ export function PlatformReplicaWorkspace({
   const [wikiLoading, setWikiLoading] = useState(true);
   const [wikiError, setWikiError] = useState<string | null>(null);
   const [showToc, setShowToc] = useState(false);
+
+  // 与 ModuleWorkspace 同一条规则：进复刻就清掉其它讲留下的草稿与点评结果。
+  useEffect(() => {
+    useCodeStore.getState().syncModule(teachingModule.id);
+    useQaStore.getState().syncModule(teachingModule.id);
+  }, [teachingModule.id]);
 
   /** 从 wiki markdown 中提取 h2/h3 标题，生成目录项。 */
   interface TocItem {

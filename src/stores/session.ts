@@ -87,6 +87,8 @@ export interface ChatMessage {
 /** 引用来源（`citation` 事件）。字段与 `data-models.md` 的 `Citation` 对齐。 */
 export interface Citation {
   source: string;
+  /** 文章标题（wiki frontmatter `name`），面板优先显示它。 */
+  title?: string;
   page?: number;
   snippet: string;
   relevance: number;

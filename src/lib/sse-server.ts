@@ -63,6 +63,8 @@ export interface CitationEvent {
   type: "citation";
   data: {
     source: string;
+    /** 文章标题（wiki frontmatter `name`），学生看到的是这个而不是文件路径。 */
+    title?: string;
     page?: number;
     snippet: string;
     relevance: number;

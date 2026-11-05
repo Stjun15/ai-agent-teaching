@@ -385,7 +385,11 @@ export function ReplicaToolbox({
             <p className="text-base text-muted-foreground">
               逐条对照 8 条验收清单，每条写一句话证据贴进编辑器，点「提交点评」。点评导师按评分维度出正式检验单（维度分、扣分点、改进建议，并计入掌握度）。
             </p>
-            <ValidateSubmit moduleId={moduleId} redirectOnComplete={false} />
+            <ValidateSubmit
+              moduleId={moduleId}
+              redirectOnComplete={false}
+              showReviewLinks={false}
+            />
           </div>
         ) : null}
       </CardContent>

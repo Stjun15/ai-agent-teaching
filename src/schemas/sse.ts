@@ -136,6 +136,8 @@ export const CitationEventSchema = z.object({
   type: z.literal("citation"),
   data: z.object({
     source: z.string(),
+    /** 文章标题（wiki frontmatter `name`）；缺省时界面退回显示 `source`。 */
+    title: z.string().optional(),
     page: z.number().optional(),
     snippet: z.string(),
     relevance: z.number(),

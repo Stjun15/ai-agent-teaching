@@ -29,6 +29,7 @@ import {
   TEACHING_AGENT_ID,
   TEACHING_CHAT_SYSTEM_PROMPT,
   TEACHING_EXPLAIN_PROMPT,
+  TEACHING_FOLLOWUP_PROMPT,
 } from "./prompts/teaching-chat";
 import type { StepType } from "@/lib/db";
 
@@ -81,4 +82,21 @@ export function resolveStepAgent(step?: StepType | null): StepAgentSpec {
     };
   }
   return GENERAL_SPEC;
+}
+
+/**
+ * 追问短答口径（2026-11-02）。
+ *
+ * 学生已经看过本讲讲稿、现在只是追问细节时，用这份提示词代替讲解提示词 ——
+ * 首讲式回答要 8~10 秒、2000 字以上，追问答疑不需要这么多。
+ *
+ * 只对三个教学步骤生效：`validate` / `practice` / `mastery` / `visualize`
+ * 走的是结构化端点或场景组件，不是这条对话流；返回 `null` 表示调用方
+ * 继续用 `resolveStepAgent` 的结果。
+ */
+export function resolveFollowUpPrompt(step?: StepType | null): string | null {
+  if (step === "explain" || step === "observe" || step === "imitate") {
+    return TEACHING_FOLLOWUP_PROMPT;
+  }
+  return null;
 }

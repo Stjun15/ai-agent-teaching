@@ -33,11 +33,17 @@
  */
 
 import {
+  DEFAULT_CITATION_COUNT,
+  retrieveCitations,
+  toCitationEvents,
+  type CitationDraft,
+} from "@/lib/agent/citations";
+import {
   DASHSCOPE_API_KEY_ENV,
   isDashScopeApiKeyConfigured,
 } from "@/lib/agent/dashscope-config";
 import { runAgentLoop, type AgentLoopOptions } from "@/lib/agent/loop";
-import { resolveStepAgent } from "@/lib/agent/step-prompt";
+import { resolveStepAgent, resolveFollowUpPrompt } from "@/lib/agent/step-prompt";
 import { runVisionReview } from "@/lib/agent/vision-review";
 import { jsonError } from "@/lib/api-error";
 import { clientKeyFrom, enforceRateLimit } from "@/lib/security/rate-limit";
@@ -69,6 +75,35 @@ function pageTeaser(body: string, maxLen = 100): string {
   if (flat.length <= maxLen) return flat;
   return flat.slice(0, maxLen) + "…";
 }
+
+/**
+ * 把检索片段渲染成系统提示词里的「本轮资料」。
+ *
+ * 为什么要放进提示词而不是只发 `citation` 事件
+ * ------------------------------------------
+ * `citation` 事件只让**学生**看到「参考了哪几页」，模型自己看不到这些片段，
+ * 回答仍然是凭记忆写的。资料必须同时进提示词，检索才真正参与作答。
+ *
+ * 为什么每条截到 240 字：片段来自章节块，长的有上千字；三条全量注入会让每轮
+ * 输入多出近千 token，而排序靠后的内容对回答的边际价值很低。240 字足够给出
+ * 定性与关键句，代价可控。
+ */
+function formatCitationBlock(drafts: readonly CitationDraft[]): string {
+  if (drafts.length === 0) return "";
+  return [
+    "## 本轮从知识库检索到的资料",
+    "以下是和学生问题最相关的片段。回答有依据就基于它们；片段里没有的内容不要假装有。",
+    "回答里用到某段资料时，**指名它是哪篇文章**（用方括号里的文章标题，例如「《System Prompt 设计》里说……」），",
+    "不要只说「资料库提到」「有资料显示」——学生要能顺着名字自己去看原文。",
+    "",
+    ...drafts.map(
+      (draft, index) =>
+        `[资料 ${index + 1}]《${draft.title ?? draft.source}》（文件 ${draft.source}）\n` +
+        draft.snippet.slice(0, 240),
+    ),
+  ].join("\n");
+}
+
 
 // Agent 内核依赖 node:sqlite 与 pi SDK，不能跑在 Edge Runtime。
 export const runtime = "nodejs";
@@ -138,6 +173,22 @@ export async function POST(req: Request): Promise<Response> {
   // prompts/teaching-chat.ts 的头部注释。
   const stepAgent = resolveStepAgent(parsed.data.step);
 
+  // 追问短答（2026-11-02）：学生在同一步骤已经看过讲稿，这一轮只是追问细节。
+  // 完整讲解口径要 8~10 秒、2000 字以上，追问答疑不该这么重 —— 换成短答结构。
+  // 前端判定（同步骤已有助手回复）在这里落地为独立提示词，见 `TEACHING_FOLLOWUP_PROMPT`。
+  const followUpPrompt = parsed.data.followUp
+    ? resolveFollowUpPrompt(parsed.data.step)
+    : null;
+
+  // 知识库检索（关键词 + 向量混合路）在这里**先启动**，不等它：
+  // 下面的概念页读取与 MCP 工具发现都是异步的，三方交错进行，
+  // 总等待约为 max(检索, 工具发现) 而不是各自相加。
+  // 检索永不抛错（失败自动降级关键词、再失败返回空数组），所以不需要 catch。
+  const citationsPromise = retrieveCitations(
+    parsed.data.content,
+    DEFAULT_CITATION_COUNT,
+  );
+
   // 读概念页作为教学脚本注入系统提示词。
   // 不靠前端把数千字的内容硬塞进 `content`：那样会突破 5000 字限制，
   // 并且内容类数据不该挤在用户消息里。有 moduleId 才会读；读不到不报错
@@ -205,6 +256,11 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
+  // 等检索结果：它同时供两处使用 —— ① 系统提示词的「本轮资料」，
+  // ② 建流后先推给前端的 `citation` 事件（学生先看到参考了哪几页）。
+  const citations = await citationsPromise;
+  const citationScript = formatCitationBlock(citations);
+
   const loopOptions: AgentLoopOptions = {
     prompt: parsed.data.content,
     code: parsed.data.code,
@@ -212,10 +268,15 @@ export async function POST(req: Request): Promise<Response> {
     agent: parsed.data.agent ?? stepAgent.id,
     signal: req.signal,
     history: parsed.data.history,
+    preludeEvents: toCitationEvents(citations),
   };
-  // 身份层系统提示词 + 概念页教学脚本拼接。
-  // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」。
-  const parts = [conceptScript, stepAgent.systemPrompt].filter((p) => p !== "");
+  // 身份层系统提示词 + 概念页教学脚本 + 本轮检索资料拼接。
+  // 概念脚本在前：让模型先看到「怎么教」，再看「身份是什么」，最后看材料。
+  const parts = [
+    conceptScript,
+    followUpPrompt ?? stepAgent.systemPrompt,
+    citationScript,
+  ].filter((p) => p !== "");
   // 复刻项目的阶段上下文（可选）：让学生不必重复描述自己卡在哪一步。
   // 只注入位置，不注入教材 —— 教材已随 moduleId 的概念页进来。
   if (parsed.data.phaseContext) {

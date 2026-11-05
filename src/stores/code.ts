@@ -36,6 +36,12 @@ export type TaskType = "prompt" | "tool" | "code";
 export type ValidationStatus = "idle" | "validating" | "done" | "error";
 
 export interface CodeState {
+  /**
+   * 当前草稿属于哪一讲。全局单例 store 必须自己记录归属：换讲时由
+   * `syncModule` 清空，否则第一讲写的代码会跟着出现在第二讲的动手步里
+   * （2026-11-02 学生走查发现）。
+   */
+  moduleId: string | null;
   code: string;
   language: CodeLanguage;
   taskType: TaskType;
@@ -48,6 +54,12 @@ export interface CodeState {
   attempt: number;
 
   setCode: (code: string) => void;
+  /**
+   * 声明「当前这一讲是谁」。同一讲内反复调用是空操作；换了讲才清空草稿、
+   * 校验状态与次数。同讲内切步（imitate → validate）必须**不清**，
+   * 否则点评结果面板会跟着消失。
+   */
+  syncModule: (moduleId: string) => void;
   setLanguage: (language: CodeLanguage) => void;
   setTaskType: (taskType: TaskType) => void;
   beginValidation: () => void;
@@ -57,6 +69,7 @@ export interface CodeState {
 }
 
 export const useCodeStore = create<CodeState>((set) => ({
+  moduleId: null,
   code: "",
   // 平台只教 TypeScript；见 `lib/languages.ts`。
   language: "typescript",
@@ -69,6 +82,23 @@ export const useCodeStore = create<CodeState>((set) => ({
   setCode: (code) => set({ code }),
   setLanguage: (language) => set({ language }),
   setTaskType: (taskType) => set({ taskType }),
+
+  // 换讲 → 清空；同讲 → 原样返回（zustand 见同引用直接跳过更新，
+  // 不触发订阅者重渲染）。
+  syncModule: (moduleId) =>
+    set((state) =>
+      state.moduleId === moduleId
+        ? state
+        : {
+            moduleId,
+            code: "",
+            taskType: "code",
+            validationStatus: "idle",
+            validationResult: null,
+            validationError: null,
+            attempt: 0,
+          },
+    ),
 
   beginValidation: () =>
     set((state) => ({
