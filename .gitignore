@@ -101,6 +101,7 @@ scaffold-tmp/
 
 # 走查证据截图（会话产物，不入库）
 gui-test-screenshots/
+.screenshots/
 
 # 走查会话产物副本与工具残留（不入库）
 walkthrough-output/
