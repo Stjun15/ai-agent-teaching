@@ -143,6 +143,24 @@ export interface ReportPromptDimension {
   samples: number;
 }
 
+/**
+ * 报告的学情指纹（算法见 `src/lib/credential.ts`）。
+ *
+ * 指纹覆盖本响应除 `credential` 之外的全部字段 —— 加字段不会让历史指纹失效，
+ * 改数字一定会。
+ */
+export interface ReportCredential {
+  /** 规范化后的 SHA-256，64 位十六进制。 */
+  fingerprint: string;
+  /** 界面展示用的前缀。 */
+  shortHash: string;
+  /**
+   * 校验结果：请求带 `?verify=<指纹>` 时为一致 / 不一致；
+   * 不带该参数时为 `null`（这次请求没有做校验，不是「校验失败」）。
+   */
+  verified: boolean | null;
+}
+
 export interface ReportResponse {
   overview: ReportOverview;
   /** 六项子能力的分数（0~5；无证据为 null）。 */
@@ -169,4 +187,6 @@ export interface ReportResponse {
    * 无调整时为空数组。
    */
   adjustments: PathAdjustment[];
+  /** 报告全部数字的学情指纹（含可选的一次校验结果）。 */
+  credential: ReportCredential;
 }

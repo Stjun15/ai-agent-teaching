@@ -18,6 +18,7 @@
 
 import { resolveStudent } from "@/lib/api-auth";
 import { jsonError } from "@/lib/api-error";
+import { issueCredential, shortHash } from "@/lib/credential";
 import {
   errorDb,
   learningPathDb,
@@ -145,7 +146,7 @@ export async function GET(request: Request): Promise<Response> {
 
     // 返回体用 `ReportResponse` 标注：报告页消费的就是这个类型，
     // 字段名或层级写错会在这里编译报错，而不是变成页面上的一块空白。
-    const payload: ReportResponse = {
+    const payload: Omit<ReportResponse, "credential"> = {
       overview: {
         completedModules,
         averageMastery,
@@ -162,7 +163,21 @@ export async function GET(request: Request): Promise<Response> {
       adjustments,
     };
 
-    return Response.json(payload);
+    // 学情指纹：对上面这份报告的全部数字算 SHA-256（见 `credential.ts`）。
+    // 指纹本身不参与哈希 —— 否则「报告新增字段」会让所有旧指纹一起失效，
+    // 而这里要证明的恰恰是「数字没变」。
+    const { fingerprint } = issueCredential(payload);
+
+    // `?verify=<指纹>`：再算一遍并比对。带这个参数时 `verified` 才有值，
+    // 不带时是 null（没有做校验，不等于校验失败）。
+    const verify = new URL(request.url).searchParams.get("verify");
+    const credential: ReportResponse["credential"] = {
+      fingerprint,
+      shortHash: shortHash(fingerprint),
+      verified: verify === null ? null : verify === fingerprint,
+    };
+
+    return Response.json({ ...payload, credential });
   } catch (error) {
     return jsonError(
       "DB_ERROR",
