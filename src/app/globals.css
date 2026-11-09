@@ -122,31 +122,12 @@
   }
 }
 
-/* Hero 光斑的极慢漂移：让首屏「活」但不抢内容（14s 周期，视差感） */
-@keyframes hero-drift {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
+/* 首屏线框几何的极慢自转：90 秒一圈，比「看得出来在转」更慢。
+   目的只是让不规则图形不是一张死图，不抢内容注意力。 */
+@keyframes glyph-turn {
   to {
-    transform: translate3d(3rem, 1.5rem, 0) scale(1.08);
+    transform: rotate(360deg);
   }
-}
-
-.animate-hero-drift {
-  animation: hero-drift 14s ease-in-out infinite alternate;
-}
-
-/* 首屏装饰网格：radial mask 让网格从中心向边缘淡出，避免满屏铺线 */
-.bg-grid-fade {
-  background-image:
-    linear-gradient(to right, var(--border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(
-    ellipse 72% 62% at 50% 36%,
-    black 26%,
-    transparent 78%
-  );
 }
 
 /* 系统级动效降级：前庭敏感用户面前，所有装饰动画退化为静止 */
