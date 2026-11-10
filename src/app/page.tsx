@@ -220,7 +220,7 @@ function Hero() {
 
 function SectionMark({ index, label }: { index: string; label: string }) {
   return (
-    <p className="flex items-center gap-3 text-[13px] font-medium tracking-wide text-muted-foreground uppercase">
+    <p className="flex items-center gap-3 text-[14px] font-medium tracking-wide text-muted-foreground uppercase">
       <span className="font-mono text-primary tabular-nums">{index}</span>
       {label}
       <span aria-hidden className="h-px flex-1 bg-border" />
@@ -242,10 +242,10 @@ function Abilities() {
       <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <SectionMark index="I" label="能力模型" />
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
-          <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
+          <h2 className="text-[1.75rem] leading-[1.15] font-semibold tracking-tight sm:text-[2.2rem]">
             六个可迁移的子能力
           </h2>
-          <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
+          <p className="max-w-[26em] text-[15px] leading-[1.75] text-muted-foreground sm:text-right">
             所有功能都服务于这六个子能力 —— 不训练它们的功能，不做。
           </p>
         </div>
@@ -254,13 +254,13 @@ function Abilities() {
           {ABILITIES.map((ability, index) => (
             <li
               key={ability.name}
-              className="sky-reveal grid grid-cols-[2.75rem_minmax(0,1fr)] items-baseline gap-x-5 gap-y-1.5 border-b border-border py-5 sm:grid-cols-[3.25rem_11rem_minmax(0,1fr)] sm:py-4"
+              className="sky-reveal group grid grid-cols-[2.75rem_minmax(0,1fr)] items-baseline gap-x-5 gap-y-1.5 border-b border-border py-5 transition-colors hover:bg-primary/[0.03] sm:grid-cols-[3.25rem_11rem_minmax(0,1fr)] sm:py-4"
             >
-              <span className="font-mono text-[13px] text-primary tabular-nums">
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 font-mono text-[13px] font-semibold text-primary tabular-nums transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <span className="text-sm font-semibold">{ability.name}</span>
-              <span className="col-start-2 text-sm leading-relaxed text-muted-foreground sm:col-start-3">
+              <span className="text-[15px] font-semibold">{ability.name}</span>
+              <span className="col-start-2 text-[15px] leading-[1.75] text-muted-foreground sm:col-start-3">
                 {ability.detail}
               </span>
             </li>
@@ -280,10 +280,10 @@ function Flow() {
     <section className="content-auto mt-24 sm:mt-32">
       <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <SectionMark index="II" label="学习流程" />
-        <h2 className="mt-5 text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
+        <h2 className="mt-5 text-[1.75rem] leading-[1.15] font-semibold tracking-tight sm:text-[2.2rem]">
           一次学习的完整过程
         </h2>
-        <p className="mt-3 max-w-[30em] text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-[30em] text-[15px] leading-[1.75] text-muted-foreground">
           七步一条流水线，前一步的产出就是后一步的输入。
         </p>
 
@@ -294,12 +294,12 @@ function Flow() {
                 key={item.step}
                 className="sky-reveal group flex gap-4 border-t border-border py-4 last:border-b lg:border-t-0 lg:border-b lg:py-3.5 lg:last:border-b"
               >
-                <span className="w-7 shrink-0 pt-0.5 font-mono text-[13px] text-primary tabular-nums">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border font-mono text-[13px] font-semibold text-primary tabular-nums transition-colors group-hover:border-primary/40 group-hover:bg-primary/10">
                   {item.step.padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-[15px] font-semibold">{item.title}</p>
+                  <p className="mt-1 text-[15px] leading-[1.75] text-muted-foreground">
                     {item.detail}
                   </p>
                 </div>
@@ -523,10 +523,10 @@ async function HomeCurriculum() {
         <div className="relative">
           <SectionMark index="III" label="课程大纲" />
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
-            <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
+            <h2 className="text-[1.75rem] leading-[1.15] font-semibold tracking-tight sm:text-[2.2rem]">
               十三讲，按依赖顺序排好
             </h2>
-            <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
+            <p className="max-w-[26em] text-[15px] leading-[1.75] text-muted-foreground sm:text-right">
               每个模块的前置知识都已经排在它前面，从第一行 Prompt 一路走到完整
               Agent 系统。
             </p>
@@ -543,9 +543,11 @@ async function HomeCurriculum() {
                     {row.orderLabel}
                   </span>
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium">{row.name}</span>
+                    <span className="truncate text-[15px] font-medium">
+                      {row.name}
+                    </span>
                     {row.id === firstId ? (
-                      <span className="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                      <span className="shrink-0 rounded-sm bg-primary/10 px-2 py-0.5 text-[12px] font-medium text-primary">
                         从这里开始
                       </span>
                     ) : null}
@@ -599,17 +601,17 @@ function Closing() {
         <div className="relative">
           <SectionMark index="IV" label="掌握式学习" />
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
-            <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
+            <h2 className="text-[1.75rem] leading-[1.15] font-semibold tracking-tight sm:text-[2.2rem]">
               每一讲都走完这七步，掌握度够格才继续往下走。
             </h2>
-            <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
+            <p className="max-w-[26em] text-[15px] leading-[1.75] text-muted-foreground sm:text-right">
               七步走完才有掌握度，够格才解锁下一讲 —— 没有跳过这一说的关卡。
             </p>
           </div>
 
           {/* 收尾不再开新容器：只是七步流水线的封口，一条线加一个动作 */}
           <div className="mt-12 flex flex-col gap-6 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-[34em] text-sm leading-relaxed text-muted-foreground">
+            <p className="max-w-[34em] text-[15px] leading-[1.75] text-muted-foreground">
               十三讲、七步，每一步都有真实点评。学完一讲是一讲，
               报告里能看到每一讲的掌握度从哪来。
             </p>
@@ -643,11 +645,14 @@ function HomeStyles() {
    直接铺一块实底色会在容器边界剪出一条直边，纹理看着像被切断；
    改成两端渐隐后，笔触像是被雾遮住，读字的地方仍然是干净底色。 */
 .paper-panel {
+  /* 渐隐带必须窄于内边距，否则首尾的字会压在半透明区上 ——
+     版心 px-8 = 32px，容器 1160 宽时 1% ≈ 11.6px，
+     取 1.6%（≈19px）留一点余量，文字的左右边界就全在实底里。 */
   background-image: linear-gradient(
     to right,
     transparent 0%,
-    var(--background) 6%,
-    var(--background) 94%,
+    var(--background) 1.6%,
+    var(--background) 98.4%,
     transparent 100%
   );
 }
