@@ -74,9 +74,7 @@ export function MasteryIndicator({
           <Progress
             value={mastery}
             label={`${moduleName} 的掌握度 ${Math.round(mastery)} 分`}
-            indicatorClassName={
-              mastery >= 60 ? "bg-emerald-500" : "bg-amber-500"
-            }
+            indicatorClassName={mastery >= 60 ? "bg-ok" : "bg-warn"}
           />
           {caption ? (
             <p className="text-[11px] leading-relaxed text-muted-foreground">

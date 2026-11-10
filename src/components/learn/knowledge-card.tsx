@@ -283,7 +283,7 @@ export function KnowledgeCard({
     <CardShell>
       <div className="mb-3 flex items-center gap-2">
         <CheckCircle2
-          className="size-4 shrink-0 text-emerald-600"
+          className="size-4 shrink-0 text-ok"
           aria-hidden
         />
         <span className="text-sm font-medium">
@@ -345,8 +345,8 @@ export function KnowledgeCard({
                 </p>
               )}
             </div>
-            <div className="rounded-md border bg-emerald-50/50 px-3 py-2 dark:bg-emerald-950/20">
-              <p className="mb-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <div className="rounded-md border bg-ok-soft px-3 py-2 dark:bg-ok-soft">
+              <p className="mb-1 text-[11px] font-medium text-ok dark:text-ok">
                 参考答案
               </p>
               <ul className="list-inside list-disc space-y-1 text-[12px] leading-relaxed">
@@ -447,8 +447,8 @@ function CompareBlock({
             )}
           </p>
         </div>
-        <div className="rounded-md border bg-emerald-50/50 px-3 py-2 dark:bg-emerald-950/20">
-          <p className="mb-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-md border bg-ok-soft px-3 py-2 dark:bg-ok-soft">
+          <p className="mb-1 text-[11px] font-medium text-ok dark:text-ok">
             参考答案
           </p>
           <p className="text-[12px] leading-relaxed">{reference}</p>

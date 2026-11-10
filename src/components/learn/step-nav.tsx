@@ -92,7 +92,7 @@ export function StepNav({
                   className={cn(
                     "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors duration-300",
                     isDone
-                      ? "border-transparent bg-emerald-500 text-white"
+                      ? "border-transparent bg-ok text-white"
                       : isCurrent
                         ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_2px_var(--primary)]/20"
                         : "border-muted-foreground/40",

@@ -28,7 +28,7 @@ import type { PathAdjustment } from "@/lib/db";
 function pickIcon(reason: string) {
   if (reason.includes("连续") && reason.includes("校验")) {
     return (
-      <AlertTriangle className="size-3.5 shrink-0 text-amber-500" aria-hidden />
+      <AlertTriangle className="size-3.5 shrink-0 text-warn" aria-hidden />
     );
   }
   if (reason.includes("错题")) {
@@ -37,13 +37,9 @@ function pickIcon(reason: string) {
     );
   }
   if (reason.includes("下降")) {
-    return (
-      <RotateCcw className="size-3.5 shrink-0 text-rose-500" aria-hidden />
-    );
+    return <RotateCcw className="size-3.5 shrink-0 text-danger" aria-hidden />;
   }
-  return (
-    <ArrowRight className="size-3.5 shrink-0 text-emerald-500" aria-hidden />
-  );
+  return <ArrowRight className="size-3.5 shrink-0 text-ok" aria-hidden />;
 }
 
 function formatDate(iso: string): string {

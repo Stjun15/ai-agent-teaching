@@ -167,12 +167,12 @@ export function TextAnswerArea({
             </span>
             <span className="text-sm text-muted-foreground">{result.level}</span>
             {result.totalScore >= 75 ? (
-              <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-ok dark:text-ok">
                 <CircleCheck className="size-4" aria-hidden />
                 通过
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-warn dark:text-warn">
                 <AlertTriangle className="size-4" aria-hidden />
                 还没通过
               </span>

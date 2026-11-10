@@ -109,7 +109,7 @@ export function PracticePanel({ moduleId }: { moduleId: string }) {
       {phase === "graded" ? (
         <div className="flex flex-col gap-3">
           {anyFallback ? (
-            <p className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <p className="flex items-center gap-1.5 rounded-md bg-warn-soft px-2.5 py-1.5 text-xs text-warn dark:bg-warn-soft dark:text-warn">
               <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
               有题目这次没能连上评分模型，那几题的结论是系统占位——不算数，可以重新提交。
             </p>

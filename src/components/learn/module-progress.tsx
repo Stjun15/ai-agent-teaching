@@ -66,11 +66,9 @@ export function ModuleProgress({
         max={MASTERY_MAX_SCORE}
         label={`${moduleName} 的学习进度 ${score} / ${MASTERY_MAX_SCORE}`}
         className="h-1.5"
-        indicatorClassName={passed ? "bg-emerald-500" : "bg-amber-500"}
+        indicatorClassName={passed ? "bg-ok" : "bg-warn"}
       />
-      <span
-        className={`text-[11px] ${passed ? "text-emerald-600" : "text-amber-600"}`}
-      >
+      <span className={`text-[11px] ${passed ? "text-ok" : "text-warn"}`}>
         {levelLabel[level ?? ""] ?? level}
       </span>
     </div>

@@ -77,12 +77,12 @@ export function PracticeQuestionCard({
         </span>
         {graded && grade !== undefined ? (
           grade.isCorrect ? (
-            <span className="flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="flex items-center gap-1 text-sm font-medium text-ok dark:text-ok">
               <CircleCheck className="size-4" aria-hidden />
               答对 · {grade.score} 分
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400">
+            <span className="flex items-center gap-1 text-sm font-medium text-warn dark:text-warn">
               <XCircle className="size-4" aria-hidden />
               还没对 · {grade.score} 分
             </span>

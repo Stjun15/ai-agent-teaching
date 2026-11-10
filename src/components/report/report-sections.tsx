@@ -284,15 +284,15 @@ export function ReportSections({ report }: { report: ReportResponse }) {
 
 function pickAdjustmentIcon(adj: PathAdjustment) {
   if (adj.reason.includes("连续") && adj.reason.includes("校验")) {
-    return <AlertTriangle className="size-4 shrink-0 text-amber-500" />;
+    return <AlertTriangle className="size-4 shrink-0 text-warn" />;
   }
   if (adj.reason.includes("错题")) {
     return <Lightbulb className="size-4 shrink-0 text-blue-500" />;
   }
   if (adj.reason.includes("下降")) {
-    return <RotateCcw className="size-4 shrink-0 text-rose-500" />;
+    return <RotateCcw className="size-4 shrink-0 text-danger" />;
   }
-  return <ArrowRight className="size-4 shrink-0 text-emerald-500" />;
+  return <ArrowRight className="size-4 shrink-0 text-ok" />;
 }
 
 /** 一个总览数字。`hint` 用来交代这个数量纲是什么，避免读者自己猜。 */

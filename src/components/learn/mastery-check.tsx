@@ -88,8 +88,8 @@ export function MasteryCheck({
           </p>
         </div>
       ) : passed ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3.5">
-          <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+        <div className="flex flex-col gap-3 rounded-lg border border-ok/30 bg-ok/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-ok dark:text-ok">
             <CircleCheck className="size-4" aria-hidden />
             恭喜，「{teachingModule.name}」判定通过。
           </p>
@@ -112,8 +112,8 @@ export function MasteryCheck({
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3.5">
-          <p className="flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400">
+        <div className="flex flex-col gap-3 rounded-lg border border-warn/30 bg-warn/5 px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-warn dark:text-warn">
             <RotateCcw className="size-4" aria-hidden />
             还差一点 —— 判定线是 {MASTERY_PASS_SCORE} / 5，继续练就能过。
           </p>
