@@ -3,16 +3,12 @@ import { Suspense } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { AgentLoop } from "@/components/home/agent-loop";
-import { HomeNebulaField } from "@/components/home/home-nebula";
+import { HomeNebulaField, Nebula } from "@/components/home/home-nebula";
 import {
   StudyProgress,
   StudyProgressSkeleton,
 } from "@/components/home/study-progress";
-import {
-  CypressBand,
-  StripeField,
-  StripeSprite,
-} from "@/components/home/stripe-field";
+import { StripeSprite } from "@/components/home/stripe-field";
 import { loadModules } from "@/lib/modules";
 
 const ABILITIES = [
@@ -123,21 +119,14 @@ function PageTexture() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* 首屏的纹理只从「上方与右侧」介入，不覆盖左侧正文列。
-          窄屏没有留白可用，整片隐藏 —— 首屏宁可不装饰，也不能压字。 */}
-      <div
-        aria-hidden
-        className="sky-drift-a pointer-events-none absolute -top-[32rem] -left-[18rem] w-[86rem] opacity-[0.62] sm:-top-[36rem]"
-      >
-        <StripeField depth={1.9} rotate={-9} />
-      </div>
-      <div
-        aria-hidden
-        className="sky-drift-b pointer-events-none absolute -top-[16rem] -right-[24rem] hidden w-[74rem] opacity-[0.5] lg:block"
-      >
-        <StripeField depth={1.1} rotate={13} />
-      </div>
-      <CypressBand className="sky-drift-c pointer-events-none absolute -top-[6rem] left-[62%] hidden h-[56rem] w-[13rem] opacity-55 md:block" />
+      {/* 首屏的星云只从「右侧」介入，不覆盖左侧正文列。
+          窄屏没有留白可用，整片隐藏 —— 首屏宁可不装饰，也不能压字。
+          原来这里是两片《星月夜》笔触 + 一道柏树，与登录页的星云不是一路；
+          统一后只留一处星云，位置不变、浓度不变。 */}
+      <Nebula
+        className="-top-[30rem] -right-[26rem] hidden h-[76rem] w-[76rem] lg:block"
+        opacity={0.66}
+      />
 
       <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
         <div>
@@ -206,12 +195,10 @@ function SectionMark({ index, label }: { index: string; label: string }) {
 function Abilities() {
   return (
     <section className="content-auto relative">
-      <div
-        aria-hidden
-        className="sky-drift-b pointer-events-none absolute top-6 -right-[24rem] hidden w-[62rem] opacity-[0.42] lg:block"
-      >
-        <StripeField depth={2.5} rotate={-15} />
-      </div>
+      <Nebula
+        className="top-6 -right-[24rem] hidden h-[58rem] w-[58rem] lg:block"
+        opacity={0.42}
+      />
 
       <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <SectionMark index="I" label="能力模型" />
@@ -487,12 +474,10 @@ async function HomeCurriculum() {
   return (
     <section id="modules" className="content-auto mt-24 scroll-mt-24 sm:mt-32">
       <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
-        <div
-          aria-hidden
-          className="sky-drift-a pointer-events-none absolute -top-16 -right-[26rem] hidden w-[64rem] opacity-[0.38] lg:block"
-        >
-          <StripeField depth={1.5} rotate={22} />
-        </div>
+        <Nebula
+          className="-top-16 -right-[26rem] hidden h-[60rem] w-[60rem] lg:block"
+          opacity={0.38}
+        />
 
         <div className="relative">
           <SectionMark index="III" label="课程大纲" />
@@ -565,12 +550,10 @@ function Closing() {
   return (
     <section className="content-auto mt-24 sm:mt-32">
       <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
-        <div
-          aria-hidden
-          className="sky-drift-c pointer-events-none absolute -top-16 -right-[28rem] hidden w-[64rem] opacity-[0.16] lg:block"
-        >
-          <StripeField depth={2.1} rotate={-5} />
-        </div>
+        <Nebula
+          className="-top-16 -right-[28rem] hidden h-[56rem] w-[56rem] lg:block"
+          opacity={0.32}
+        />
 
         <div className="relative">
           <SectionMark index="IV" label="掌握式学习" />

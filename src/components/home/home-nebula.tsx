@@ -29,8 +29,8 @@ const RAYS = 12;
 /** 同心环数。 */
 const RINGS = 24;
 
-/** 一处星云的完整几何。`size` 是它在页面上的视觉直径（rem）。 */
-function Nebula({
+/** 一处星云的完整几何。区块内部也复用它 —— 全站只有这一份星云画法。 */
+export function Nebula({
   className = "",
   opacity = 1,
 }: {
