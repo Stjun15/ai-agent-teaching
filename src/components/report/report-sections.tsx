@@ -177,8 +177,15 @@ export function ReportSections({ report }: { report: ReportResponse }) {
           </p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
-            {report.promptDimensions.map((dimension) => (
-              <li key={dimension.name} className="flex items-center gap-3">
+            {report.promptDimensions.map((dimension, index) => (
+              // key 不能只用 dimension.name：同一维度名可能在多讲里各出现一次
+              // （例如「代码质量：边界处理」在 1 讲和 12 讲都有），
+              // name 相同就会触发 React 的 duplicate key 警告（本轮实测 7 条）。
+              // 加 index 兜底：顺序稳定，且不需要维度名唯一。
+              <li
+                key={`${dimension.name}-${index}`}
+                className="flex items-center gap-3"
+              >
                 <span className="w-32 shrink-0 text-xs">{dimension.name}</span>
                 {/* 维度分本身就是 0~100（`ReviewerOutputSchema`），
                     不再过 `masteryToPercent` —— 那是给 0~5 的掌握度用的。 */}
