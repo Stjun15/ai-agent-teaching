@@ -4,6 +4,10 @@ import { ArrowRight } from "lucide-react";
 
 import { AgentLoop } from "@/components/home/agent-loop";
 import {
+  StudyProgress,
+  StudyProgressSkeleton,
+} from "@/components/home/study-progress";
+import {
   CypressBand,
   StripeField,
   StripeSprite,
@@ -189,11 +193,10 @@ function Hero() {
             <HomeFacts />
           </Suspense>
 
-          {/* 下一步：只给一个具体动作，并且它指向真实的第一讲。
-              按钮上不写「开始学习」——那只是把选择推回给学生；
-              写清「第几讲、叫什么、要多久」，人才知道按下之后会发生什么。 */}
-          <Suspense fallback={<StartPlaceholder />}>
-            <HomeStart />
+          {/* 下一步：不是「从第一讲开始」，而是「你学到哪了、接下来做什么」。
+              课程顺序在服务端算好传下去，当前进度由客户端的 StudentStore 提供。 */}
+          <Suspense fallback={<StudyProgressSkeleton />}>
+            <HomeStudyPlan />
           </Suspense>
         </div>
 
@@ -412,60 +415,19 @@ function StepDial({ className = "" }: { className?: string }) {
  *
  * 没有任何模块时**不编一个假目标**：退回到学习中心，并说明为什么。
  */
-async function HomeStart() {
+async function HomeStudyPlan() {
   const modules = await loadModules();
-  const first = modules[0];
-
-  if (!first) {
-    return (
-      <div className="mt-10">
-        <Button asChild size="sm">
-          <Link href="/learn">
-            进入学习中心
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-      </div>
-    );
-  }
 
   return (
-    <div className="mt-10">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <Button asChild size="sm">
-          <Link href={first.href}>
-            从第 {first.orderLabel} 讲开始：{first.name}
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-        <Link
-          href="#modules"
-          className="group inline-flex items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-primary"
-        >
-          先看课程大纲
-          <span
-            aria-hidden
-            className="h-px w-8 bg-border transition-all group-hover:w-12 group-hover:bg-primary"
-          />
-        </Link>
-      </div>
-
-      {/* 成本预期：让人判断「现在要不要开始」，而不是点进去才发现要花多久 */}
-      <p className="mt-3 text-[13px] text-muted-foreground">
-        {first.estimatedTime
-          ? `第 ${first.orderLabel} 讲读完约 ${first.estimatedTime}，之后每一讲都要过掌握度才解锁。`
-          : "每一讲都要过掌握度才解锁下一讲。"}
-      </p>
-    </div>
-  );
-}
-
-function StartPlaceholder() {
-  return (
-    <div className="mt-10 flex flex-col gap-3">
-      <div className="h-8 w-56 animate-pulse rounded-md bg-muted" />
-      <div className="h-4 w-72 animate-pulse rounded bg-muted/70" />
-    </div>
+    <StudyProgress
+      lessons={modules.map((teachingModule) => ({
+        id: teachingModule.id,
+        href: teachingModule.href,
+        orderLabel: teachingModule.orderLabel,
+        name: teachingModule.name,
+        estimatedTime: teachingModule.estimatedTime,
+      }))}
+    />
   );
 }
 
