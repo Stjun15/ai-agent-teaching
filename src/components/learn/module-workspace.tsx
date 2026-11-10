@@ -2,9 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock, MessageSquare, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MessageSquare,
+  X,
+} from "lucide-react";
 
 import { AssignmentCard } from "@/components/learn/assignment-card";
+import {
+  LessonNebula,
+  LessonNebulaStyles,
+} from "@/components/learn/lesson-nebula";
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { ExplainFullscreen } from "@/components/learn/explain-fullscreen";
 import { KnowledgeCard } from "@/components/learn/knowledge-card";
@@ -216,10 +226,7 @@ export function ModuleWorkspace({
     const onUp = () => {
       if (dragRef.current) {
         try {
-          localStorage.setItem(
-            STORAGE_KEY_LEFT,
-            String(leftWidthRef.current),
-          );
+          localStorage.setItem(STORAGE_KEY_LEFT, String(leftWidthRef.current));
           localStorage.setItem(
             STORAGE_KEY_RIGHT,
             String(rightWidthRef.current),
@@ -277,118 +284,128 @@ export function ModuleWorkspace({
           { stepFilter: currentStepId, lectureMode: "full" as const };
 
   return (
-    <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
-      {/* ---------- 面包屑 + 标题 ---------- */}
-      <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
-        <ol className="flex items-center gap-1">
-          <li>
-            <Link href="/learn" className="underline-offset-4 hover:underline">
-              学习中心
-            </Link>
-          </li>
-          <ChevronRight className="size-3" aria-hidden />
-          <li className="text-foreground">{teachingModule.name}</li>
-        </ol>
-      </nav>
+    // 外层只承载星空：它必须是全宽的，而三栏在 1600px 版心里。
+    <div className="relative isolate flex w-full flex-1 flex-col">
+      <LessonNebula />
+      <LessonNebulaStyles />
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">
+        {/* ---------- 面包屑 + 标题 ---------- */}
+        <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
+          <ol className="flex items-center gap-1">
+            <li>
+              <Link
+                href="/learn"
+                className="underline-offset-4 hover:underline"
+              >
+                学习中心
+              </Link>
+            </li>
+            <ChevronRight className="size-3" aria-hidden />
+            <li className="text-foreground">{teachingModule.name}</li>
+          </ol>
+        </nav>
 
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {teachingModule.name}
-        </h1>
-        <DifficultyBadge difficulty={teachingModule.difficulty} />
-        <Badge variant="outline">
-          <Clock aria-hidden />
-          {teachingModule.estimatedTime}
-        </Badge>
-        {teachingModule.sceneId !== null ? (
-          <Badge variant="muted">
-            配套动画：{sceneLabel(teachingModule.sceneId)}
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {teachingModule.name}
+          </h1>
+          <DifficultyBadge difficulty={teachingModule.difficulty} />
+          <Badge variant="outline">
+            <Clock aria-hidden />
+            {teachingModule.estimatedTime}
           </Badge>
+          {teachingModule.sceneId !== null ? (
+            <Badge variant="muted">
+              配套动画：{sceneLabel(teachingModule.sceneId)}
+            </Badge>
+          ) : null}
+          {prerequisiteNames.length > 0 ? (
+            <span className="text-xs text-muted-foreground">
+              前置：{prerequisiteNames.join("、")}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              无前置，从这里开始
+            </span>
+          )}
+          <Card className="ml-auto w-full max-w-[280px] min-w-[220px] sm:w-auto">
+            <CardContent>
+              <MasteryCard
+                moduleId={teachingModule.id}
+                moduleName={teachingModule.name}
+              />
+            </CardContent>
+          </Card>
+        </header>
+
+        {teachingModule.summary ? (
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {teachingModule.summary}
+          </p>
         ) : null}
-        {prerequisiteNames.length > 0 ? (
-          <span className="text-xs text-muted-foreground">
-            前置：{prerequisiteNames.join("、")}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            无前置，从这里开始
-          </span>
-        )}
-        <Card className="ml-auto w-full max-w-[280px] min-w-[220px] sm:w-auto">
-          <CardContent>
-            <MasteryCard
+
+        {/* ---------- 三栏 ---------- */}
+        <div className="mt-6 flex flex-wrap xl:flex-nowrap">
+          {/* 左栏 */}
+          <aside
+            className="flex shrink-0 flex-col gap-4 lg:sticky lg:top-20 lg:self-start"
+            style={{ width: leftWidth }}
+          >
+            <StepNav
               moduleId={teachingModule.id}
-              moduleName={teachingModule.name}
+              currentStepId={currentStepId}
             />
-          </CardContent>
-        </Card>
-      </header>
+            <PathAdjustmentList />
+          </aside>
 
-      {teachingModule.summary ? (
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {teachingModule.summary}
-        </p>
-      ) : null}
+          {/* 左拖拽手柄（xl+ 可见） */}
+          <div
+            className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
+            onMouseDown={beginDrag("left")}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="拖拽调整左栏宽度"
+          >
+            <div className="h-10 w-0.5 rounded-full bg-border" />
+          </div>
 
-      {/* ---------- 三栏 ---------- */}
-      <div className="mt-6 flex flex-wrap xl:flex-nowrap">
-        {/* 左栏 */}
-        <aside
-          className="flex shrink-0 flex-col gap-4 lg:sticky lg:top-20 lg:self-start"
-          style={{ width: leftWidth }}
-        >
-          <StepNav moduleId={teachingModule.id} currentStepId={currentStepId} />
-          <PathAdjustmentList />
-        </aside>
-
-        {/* 左拖拽手柄（xl+ 可见） */}
-        <div
-          className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
-          onMouseDown={beginDrag("left")}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="拖拽调整左栏宽度"
-        >
-          <div className="h-10 w-0.5 rounded-full bg-border" />
-        </div>
-
-        {/* 中栏 */}
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          {/*
+          {/* 中栏 */}
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {/*
             当前步横幅：七步共用同一工作区，切步只换左栏高亮 —— 零基础
             走查实测学生感知不到「切步发生了」。在中栏顶部常驻一条横幅，
             把「我在第几步、这一步要做什么」放进视线主轴。
           */}
-          {currentStep ? (
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2">
-              <span className="text-sm font-medium">
-                第 {stepIndex(currentStep.id) + 1} / {LEARNING_STEPS.length} 步
-                · {currentStep.label}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {currentStep.detail}
-              </span>
-            </div>
-          ) : null}
-          {/*
+            {currentStep ? (
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2">
+                <span className="text-sm font-medium">
+                  第 {stepIndex(currentStep.id) + 1} / {LEARNING_STEPS.length}{" "}
+                  步 · {currentStep.label}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {currentStep.detail}
+                </span>
+              </div>
+            ) : null}
+            {/*
             观察示范卡（分屏原型）：示范代码是这一步的主角，卡位排在
             聊天**之前** —— 聊天退居其下，学生先读代码、再提问。
           */}
-          {currentStepId === "observe" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>观察示范</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ObservePanel
-                  moduleId={teachingModule.id}
-                  demoCode={demoCode}
-                />
-              </CardContent>
-            </Card>
-          ) : null}
+            {currentStepId === "observe" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>观察示范</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ObservePanel
+                    moduleId={teachingModule.id}
+                    demoCode={demoCode}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
 
-          {/*
+            {/*
             对话卡片用**定高**而不是 min-h：ChatPanel 的自动滚动依赖一个
             高度有界的滚动容器 —— auto 高度下 overflow 容器只会被内容撑开，
             overflow-y-auto 永远不会真的滚起来。
@@ -399,236 +416,238 @@ export function ModuleWorkspace({
             概念讲解步包裹 ExplainFullscreen：学生可切换全屏沉浸阅读讲稿，
             此时对话卡片充满整个视口。其余步（观察示范等）不提供全屏开关。
           */}
-          {currentStepId === "explain" ? (
-            <>
-              {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) ? (
-                <ExplainColdStart
-                  moduleId={teachingModule.id}
-                  moduleName={teachingModule.name}
-                  onStarted={() => setExplainChatStarted(true)}
-                />
-              ) : null}
-              {/* 交互型模块：只有点击"开始对聊"后才弹出对话面板 */}
-              {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) &&
-              !explainChatStarted ? null : (
-                <ExplainFullscreen>
-                  <Card className="h-[560px]">
-                    <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                      <ChatPanel
-                        moduleId={teachingModule.id}
-                        {...chatStepProps}
-                      />
-                      {INTERACTIVE_EXPLAIN_MODULES.has(
-                        teachingModule.id,
-                      ) ? null : (
-                        <LectureLauncher
+            {currentStepId === "explain" ? (
+              <>
+                {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) ? (
+                  <ExplainColdStart
+                    moduleId={teachingModule.id}
+                    moduleName={teachingModule.name}
+                    onStarted={() => setExplainChatStarted(true)}
+                  />
+                ) : null}
+                {/* 交互型模块：只有点击"开始对聊"后才弹出对话面板 */}
+                {INTERACTIVE_EXPLAIN_MODULES.has(teachingModule.id) &&
+                !explainChatStarted ? null : (
+                  <ExplainFullscreen>
+                    <Card className="h-[560px]">
+                      <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                        <ChatPanel
                           moduleId={teachingModule.id}
-                          step={currentStepId}
-                          prompt={lectureOpenerPrompt(
-                            currentStepId,
-                            teachingModule.name,
-                          )}
+                          {...chatStepProps}
                         />
-                      )}
-                      <ExplainNextButton moduleId={teachingModule.id} />
-                      <Composer
-                        step={currentStepId}
-                        moduleId={teachingModule.id}
-                      />
-                    </CardContent>
-                  </Card>
-                </ExplainFullscreen>
-              )}
-            </>
-          ) : currentStepId === "observe" ? (
-            observeChatOpen ? (
-              <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
-                <CardHeader className="flex flex-row items-center justify-between py-3">
-                  <CardTitle className="text-sm">对示范代码的疑问</CardTitle>
-                  <button
-                    type="button"
-                    onClick={() => setObserveChatOpen(false)}
-                    aria-label="收起对话"
-                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </CardHeader>
-                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                  <ChatPanel
-                    moduleId={teachingModule.id}
-                    {...chatStepProps}
-                    hasCachedTask
-                  />
-                  <Composer
-                    step={currentStepId}
-                    moduleId={teachingModule.id}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setObserveChatOpen(true)}
-                className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                <MessageSquare className="size-4" />
-                对示范代码有疑问？点这里问导师
-              </button>
-            )
-          ) : null}
+                        {INTERACTIVE_EXPLAIN_MODULES.has(
+                          teachingModule.id,
+                        ) ? null : (
+                          <LectureLauncher
+                            moduleId={teachingModule.id}
+                            step={currentStepId}
+                            prompt={lectureOpenerPrompt(
+                              currentStepId,
+                              teachingModule.name,
+                            )}
+                          />
+                        )}
+                        <ExplainNextButton moduleId={teachingModule.id} />
+                        <Composer
+                          step={currentStepId}
+                          moduleId={teachingModule.id}
+                        />
+                      </CardContent>
+                    </Card>
+                  </ExplainFullscreen>
+                )}
+              </>
+            ) : currentStepId === "observe" ? (
+              observeChatOpen ? (
+                <Card className="h-[calc(100vh-12rem)] min-h-[400px]">
+                  <CardHeader className="flex flex-row items-center justify-between py-3">
+                    <CardTitle className="text-sm">对示范代码的疑问</CardTitle>
+                    <button
+                      type="button"
+                      onClick={() => setObserveChatOpen(false)}
+                      aria-label="收起对话"
+                      className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </CardHeader>
+                  <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                    <ChatPanel
+                      moduleId={teachingModule.id}
+                      {...chatStepProps}
+                      hasCachedTask
+                    />
+                    <Composer
+                      step={currentStepId}
+                      moduleId={teachingModule.id}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setObserveChatOpen(true)}
+                  className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                >
+                  <MessageSquare className="size-4" />
+                  对示范代码有疑问？点这里问导师
+                </button>
+              )
+            ) : null}
 
-          {/*
+            {/*
             变式练习（2026-09-19 接线）：此前这一步点进去没有任何界面内容，
             学生不知道该干什么 —— 而出题与评分端点早就建好了，缺的只是消费方。
           */}
-          {currentStepId === "practice" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>变式练习</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PracticePanel moduleId={teachingModule.id} />
-              </CardContent>
-            </Card>
-          ) : null}
+            {currentStepId === "practice" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>变式练习</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PracticePanel moduleId={teachingModule.id} />
+                </CardContent>
+              </Card>
+            ) : null}
 
-          {/*
+            {/*
             掌握判定（同日接线）：给出「过没过、过了去哪、没过怎么办」的答案。
             判定线与学习路径解锁用同一档（MASTERY_PASS_SCORE），两条口径不分叉。
           */}
-          {currentStepId === "mastery" ? (
-            <>
+            {currentStepId === "mastery" ? (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>掌握判定</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MasteryCheck
+                      teachingModule={teachingModule}
+                      nextModule={nextModule}
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="mt-4">
+                  <KnowledgeCard
+                    moduleId={teachingModule.id}
+                    moduleName={teachingModule.name}
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {showWorkspacePanels &&
+            currentStepId !== "visualize" &&
+            currentStepId !== "mastery" &&
+            currentStepId !== "practice" ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>掌握判定</CardTitle>
+                  <CardTitle>
+                    {currentStepId === "validate"
+                      ? "校验点评"
+                      : teachingModule.taskType === "qa"
+                        ? "回答问题"
+                        : "动手模仿"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  {currentStepId === "imitate" ? (
+                    <>
+                      <AssignmentCard
+                        moduleId={teachingModule.id}
+                        showTaskTypeFooter={teachingModule.taskType === "code"}
+                      />
+                      {teachingModule.taskType === "code" ? (
+                        <p className="text-xs text-muted-foreground">
+                          看不懂示范？{" "}
+                          <Link
+                            href={`/learn/${teachingModule.id}/observe`}
+                            className="underline underline-offset-2"
+                          >
+                            回到观察示范
+                          </Link>{" "}
+                          再看一遍 —— 示范代码卡就在那一步。
+                        </p>
+                      ) : null}
+                    </>
+                  ) : null}
+                  {teachingModule.taskType === "qa" ? (
+                    <TextAnswerArea moduleId={teachingModule.id} />
+                  ) : (
+                    <ValidateSubmit moduleId={teachingModule.id} />
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {showWorkspacePanels &&
+            currentStepId !== "practice" &&
+            currentStepId !== "imitate" &&
+            currentStepId !== "validate" &&
+            currentStepId !== "mastery" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>可视化</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <MasteryCheck
-                    teachingModule={teachingModule}
-                    nextModule={nextModule}
+                  <VisualizationPanel
+                    sceneId={teachingModule.sceneId}
+                    moduleId={teachingModule.id}
                   />
                 </CardContent>
               </Card>
-
-              <div className="mt-4">
-                <KnowledgeCard
-                  moduleId={teachingModule.id}
-                  moduleName={teachingModule.name}
-                />
-              </div>
-            </>
-          ) : null}
-
-          {showWorkspacePanels &&
-          currentStepId !== "visualize" &&
-          currentStepId !== "mastery" &&
-          currentStepId !== "practice" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {currentStepId === "validate"
-                    ? "校验点评"
-                    : teachingModule.taskType === "qa"
-                      ? "回答问题"
-                      : "动手模仿"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {currentStepId === "imitate" ? (
-                  <>
-                    <AssignmentCard
-                      moduleId={teachingModule.id}
-                      showTaskTypeFooter={
-                        teachingModule.taskType === "code"
-                      }
-                    />
-                    {teachingModule.taskType === "code" ? (
-                      <p className="text-xs text-muted-foreground">
-                        看不懂示范？{" "}
-                        <Link
-                          href={`/learn/${teachingModule.id}/observe`}
-                          className="underline underline-offset-2"
-                        >
-                          回到观察示范
-                        </Link>{" "}
-                        再看一遍 —— 示范代码卡就在那一步。
-                      </p>
-                    ) : null}
-                  </>
-                ) : null}
-                {teachingModule.taskType === "qa" ? (
-                  <TextAnswerArea moduleId={teachingModule.id} />
-                ) : (
-                  <ValidateSubmit moduleId={teachingModule.id} />
-                )}
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {showWorkspacePanels &&
-          currentStepId !== "practice" &&
-          currentStepId !== "imitate" &&
-          currentStepId !== "validate" &&
-          currentStepId !== "mastery" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>可视化</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VisualizationPanel sceneId={teachingModule.sceneId} moduleId={teachingModule.id} />
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
-
-        {/* 右拖拽手柄（xl+ 可见，折叠时隐藏） */}
-        {!rightCollapsed ? (
-          <div
-            className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
-            onMouseDown={beginDrag("right")}
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="拖拽调整右栏宽度"
-          >
-            <div className="h-10 w-0.5 rounded-full bg-border" />
+            ) : null}
           </div>
-        ) : null}
 
-        {/* 右栏 */}
-        {rightCollapsed ? (
-          <aside className="hidden shrink-0 xl:flex xl:sticky xl:top-20 xl:self-start">
-            <div className="w-fit rounded-md border bg-card p-2">
-              <button
-                type="button"
-                onClick={toggleRight}
-                aria-label="展开本节目标"
-                title="展开本节目标"
-                aria-expanded={false}
-                className="flex flex-col items-center gap-3 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ChevronLeft className="size-4" aria-hidden />
-                <span className="text-xs [writing-mode:vertical-rl]">
-                  本节目标
-                </span>
-              </button>
+          {/* 右拖拽手柄（xl+ 可见，折叠时隐藏） */}
+          {!rightCollapsed ? (
+            <div
+              className="hidden shrink-0 cursor-col-resize items-center justify-center px-1.5 transition-colors hover:bg-accent/50 xl:flex"
+              onMouseDown={beginDrag("right")}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="拖拽调整右栏宽度"
+            >
+              <div className="h-10 w-0.5 rounded-full bg-border" />
             </div>
-          </aside>
-        ) : (
-          <aside
-            className="flex shrink-0 flex-col gap-4 w-full xl:sticky xl:top-20 xl:self-start"
-            style={{ width: rightWidth, maxWidth: "100%" }}
-          >
-            <LearnDashboard
-              teachingModule={teachingModule}
-              currentStepIndex={stepIndex(currentStepId)}
-              totalSteps={LEARNING_STEPS.length}
-              currentStepLabel={currentStep?.label ?? ""}
-              onToggleCollapse={toggleRight}
-            />
-          </aside>
-        )}
-      </div>
-    </main>
+          ) : null}
+
+          {/* 右栏 */}
+          {rightCollapsed ? (
+            <aside className="hidden shrink-0 xl:sticky xl:top-20 xl:flex xl:self-start">
+              <div className="w-fit rounded-md border bg-card p-2">
+                <button
+                  type="button"
+                  onClick={toggleRight}
+                  aria-label="展开本节目标"
+                  title="展开本节目标"
+                  aria-expanded={false}
+                  className="flex flex-col items-center gap-3 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                  <span className="text-xs [writing-mode:vertical-rl]">
+                    本节目标
+                  </span>
+                </button>
+              </div>
+            </aside>
+          ) : (
+            <aside
+              className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-20 xl:self-start"
+              style={{ width: rightWidth, maxWidth: "100%" }}
+            >
+              <LearnDashboard
+                teachingModule={teachingModule}
+                currentStepIndex={stepIndex(currentStepId)}
+                totalSteps={LEARNING_STEPS.length}
+                currentStepLabel={currentStep?.label ?? ""}
+                onToggleCollapse={toggleRight}
+              />
+            </aside>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
