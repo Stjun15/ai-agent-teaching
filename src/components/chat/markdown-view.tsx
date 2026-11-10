@@ -174,7 +174,7 @@ function CodeBlock({
           title={copied ? "已复制" : "复制代码"}
         >
           {copied ? (
-            <Check className="size-3 text-emerald-500" />
+            <Check className="size-3 text-ok" />
           ) : (
             <Copy className="size-3" />
           )}

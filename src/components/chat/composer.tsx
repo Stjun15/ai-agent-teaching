@@ -386,7 +386,7 @@ export function Composer({
         <p
           className={cn(
             "flex items-center gap-1.5 text-xs",
-            elapsed >= 30 ? "text-amber-600" : "text-muted-foreground",
+            elapsed >= 30 ? "text-warn" : "text-muted-foreground",
           )}
         >
           <Loader2 className="size-3 animate-spin" />

@@ -134,7 +134,7 @@ export function ExplainColdStart({
           <CardContent>
             {/* 头部 */}
             <div className="mb-4 flex items-start gap-3">
-              <Axe className="mt-0.5 size-5 shrink-0 text-orange-500" />
+              <Axe className="mt-0.5 size-5 shrink-0 text-warn" />
               <div>
                 <h2 className="text-lg font-semibold">
                   怎么造：三板斧 + 一条龙骨

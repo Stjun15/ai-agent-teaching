@@ -66,7 +66,7 @@ export function LearnDashboard({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <TrendingUp className="size-4 text-emerald-500" />
+            <TrendingUp className="size-4 text-ok" />
             学习进度
           </CardTitle>
         </CardHeader>
@@ -84,7 +84,7 @@ export function LearnDashboard({
           </p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              className="h-full rounded-full bg-ok transition-all duration-500"
               style={{
                 width: `${Math.round(((currentStepIndex + 1) / totalSteps) * 100)}%`,
               }}
@@ -97,7 +97,7 @@ export function LearnDashboard({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm">
-            <BookOpen className="size-4 text-amber-500" />
+            <BookOpen className="size-4 text-warn" />
             模块信息
           </CardTitle>
         </CardHeader>

@@ -223,7 +223,7 @@ export function PlatformReplicaWorkspace({
               <div key={p.index} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   {isDone ? (
-                    <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="size-5 shrink-0 text-ok" />
                   ) : isActive ? (
                     <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                       {i + 1}
@@ -235,7 +235,7 @@ export function PlatformReplicaWorkspace({
                     <div
                       className={
                         isDone
-                          ? "my-0.5 w-px flex-1 bg-emerald-500/30"
+                          ? "my-0.5 w-px flex-1 bg-ok/30"
                           : "my-0.5 w-px flex-1 bg-muted"
                       }
                     />
@@ -470,20 +470,20 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                 ) : null}
 
                 {task.stuckPrompt ? (
-                  <div className="mb-2 rounded-md border border-orange-200 bg-orange-50 px-2.5 py-2 dark:border-orange-800 dark:bg-orange-950/30">
-                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-orange-700 dark:text-orange-400">
+                  <div className="mb-2 rounded-md border border-warn bg-warn-soft px-2.5 py-2 dark:border-warn dark:bg-warn-soft">
+                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-warn dark:text-warn">
                       <AlertTriangle className="size-3" />
                       卡住了？
                     </div>
-                    <p className="text-base leading-relaxed text-orange-800 dark:text-orange-300">
+                    <p className="text-base leading-relaxed text-warn dark:text-warn">
                       {task.stuckPrompt}
                     </p>
                   </div>
                 ) : null}
 
                 {task.pitfalls && task.pitfalls.length > 0 ? (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 dark:border-amber-800 dark:bg-amber-950/30">
-                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-amber-700 dark:text-amber-400">
+                  <div className="rounded-md border border-warn bg-warn-soft px-2.5 py-2 dark:border-warn dark:bg-warn-soft">
+                    <div className="mb-1 flex items-center gap-1 text-base font-medium text-warn dark:text-warn">
                       <AlertTriangle className="size-3" />
                       常见坑
                     </div>
@@ -491,7 +491,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
                       {task.pitfalls.map((p, j) => (
                         <li
                           key={j}
-                          className="text-base leading-relaxed text-amber-800 dark:text-amber-300"
+                          className="text-base leading-relaxed text-warn dark:text-warn"
                         >
                           {p}
                         </li>

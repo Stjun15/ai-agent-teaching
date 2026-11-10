@@ -279,11 +279,11 @@ export function ReplicaToolbox({
                           </pre>
 
                           {content.runInstructions ? (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
-                              <div className="mb-2 text-base font-medium text-amber-800 dark:text-amber-400">
+                            <div className="rounded-lg border border-warn bg-warn-soft p-3 dark:border-warn dark:bg-warn-soft">
+                              <div className="mb-2 text-base font-medium text-warn dark:text-warn">
                                 怎么运行
                               </div>
-                              <div className="whitespace-pre-wrap font-mono text-base leading-relaxed text-amber-700 dark:text-amber-300">
+                              <div className="whitespace-pre-wrap font-mono text-base leading-relaxed text-warn dark:text-warn">
                                 {extractCodeBlockFromMarkdown(content.runInstructions)}
                               </div>
                             </div>
@@ -349,11 +349,11 @@ export function ReplicaToolbox({
                           ))}
 
                           {content.installSteps ? (
-                            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
-                              <div className="mb-2 text-base font-medium text-orange-800 dark:text-orange-400">
+                            <div className="rounded-lg border border-warn bg-warn-soft p-3 dark:border-warn dark:bg-warn-soft">
+                              <div className="mb-2 text-base font-medium text-warn dark:text-warn">
                                 安装步骤
                               </div>
-                              <div className="whitespace-pre-wrap font-mono text-base leading-relaxed text-orange-700 dark:text-orange-300">
+                              <div className="whitespace-pre-wrap font-mono text-base leading-relaxed text-warn dark:text-warn">
                                 {content.installSteps}
                               </div>
                             </div>

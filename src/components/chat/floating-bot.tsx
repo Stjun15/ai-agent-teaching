@@ -743,7 +743,7 @@ function FloatingMessageItem({ message }: { message: FloatingMessage }) {
           >
             {copied ? (
               <>
-                <Check className="size-3 text-emerald-500" />
+                <Check className="size-3 text-ok" />
                 <span>已复制</span>
               </>
             ) : (

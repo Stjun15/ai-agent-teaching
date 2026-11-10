@@ -72,7 +72,7 @@ export function FunBreak() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <Lightbulb className="size-4 text-amber-500" />
+          <Lightbulb className="size-4 text-warn" />
           课间小憩
         </CardTitle>
       </CardHeader>

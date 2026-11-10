@@ -95,11 +95,16 @@ export default function DemoAdjustmentsPage() {
   const [visible, setVisible] = useState(true);
 
   return (
-    <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
+    <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-8 px-6 py-8 md:flex-row">
       {/* ================================================================ */}
       {/* 左栏 —— 模拟模块页 module-workspace 的 <aside>                    */}
       {/* ================================================================ */}
-      <aside className="flex w-56 shrink-0 flex-col gap-4">
+      {/* w-56 shrink-0 在窄屏是一根 224px 的硬柱子，加上主区的最小内容宽度
+          直接把视口撑出 632px 横向滚动条（实测）。所以窄屏改为整行铺开、
+          只保留 list 的横向滚动，宽屏才回到并排。
+          min-w-0 不能省：flex 交叉轴的 min-width:auto 会让 w-full 失效，
+          子项按 min-content 撑到 718px（实测），这是溢出的直接成因。 */}
+      <aside className="flex w-full min-w-0 shrink-0 flex-col gap-4 md:w-56">
         {/* ---- StepNav 模拟 ---- */}
         <nav aria-label="学习步骤" className="rounded-md border bg-card p-3">
           <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -206,7 +211,9 @@ export default function DemoAdjustmentsPage() {
         </div>
 
         {/* 四条规则说明 */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* 两列在小屏是硬性的：每列的最小内容宽度合起来超过 390px 视口，
+            把父容器撑到 718px（实测）。窄屏堆成一列，宽屏才并排。 */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
             {
               rule: "规则 1 · 连续失败",
@@ -249,24 +256,26 @@ export default function DemoAdjustmentsPage() {
           <p className="mb-2 text-xs font-medium text-muted-foreground">
             数据流
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {/* 五个标签用同一组色，原来 amber/blue/rose/emerald/purple 各一色
+                —— 这是「数据流」的同一串节点，不需要五种颜色区分。 */}
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-warn">
               answer-grade
             </span>
-            <ArrowRight className="size-3" />
-            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800">
+            <ArrowRight className="size-3 shrink-0" />
+            <span className="rounded bg-ok-soft px-1.5 py-0.5 text-ok">
               path-adjuster.ts
             </span>
-            <ArrowRight className="size-3" />
-            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-rose-800">
+            <ArrowRight className="size-3 shrink-0" />
+            <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">
               learning_paths.adjustments
             </span>
-            <ArrowRight className="size-3" />
-            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-800">
+            <ArrowRight className="size-3 shrink-0" />
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">
               StudentStore
             </span>
-            <ArrowRight className="size-3" />
-            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-800">
+            <ArrowRight className="size-3 shrink-0" />
+            <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
               PathAdjustmentList
             </span>
           </div>

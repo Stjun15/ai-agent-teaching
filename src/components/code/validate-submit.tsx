@@ -246,7 +246,7 @@ function ValidationReport({
   return (
     <div className="flex flex-col gap-4 rounded-lg border bg-background px-4 py-3.5">
       {usedFallback ? (
-        <p className="flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="flex items-center gap-1.5 rounded-md bg-warn-soft px-2.5 py-1.5 text-xs text-warn dark:bg-warn-soft dark:text-warn">
           <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
           这次没能连上点评模型，以下是系统兜底的占位结果——分数仅供参考，别当真。
         </p>
@@ -264,12 +264,12 @@ function ValidationReport({
           {result.level}
         </span>
         {passed ? (
-          <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-ok dark:text-ok">
             <CircleCheck className="size-4" aria-hidden />
             通过
           </span>
         ) : (
-          <span className="flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-warn dark:text-warn">
             <AlertTriangle className="size-4" aria-hidden />
             还没通过
           </span>
