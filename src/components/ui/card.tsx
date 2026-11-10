@@ -10,7 +10,12 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
         // scroll-mt-24：滚动定位（键盘 Tab、锚点、scrollIntoView）落到卡片时，
         // 给 sticky 页头（h-14）留出高度，否则卡片顶部被页头盖住 —— 实测
         // 自动化点击与键盘滚动都会命中「可见却被遮」的死区。
-        "flex scroll-mt-24 flex-col gap-4 rounded-xl border bg-card py-5 text-card-foreground shadow-xs",
+        //
+        // 视觉：从「描边 + 阴影的盒子」改成「一张纸」。
+        // 去掉 border 与 shadow-xs —— 满屏圆角描边盒是模板感最直接的来源，
+        // 卡片之间的分界交给背景明度差（bg-card 比 bg-background 亮一档）
+        // 和留白，页面立刻从「一堆容器」回到「一张纸上的几块内容」。
+        "flex scroll-mt-24 flex-col gap-4 rounded-lg bg-card py-6 text-card-foreground transition-colors",
         className,
       )}
       {...props}
@@ -32,7 +37,10 @@ function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   return (
     <h3
       data-slot="card-title"
-      className={cn("text-base leading-none font-semibold", className)}
+      className={cn(
+        "font-serif text-[1.0625rem] leading-snug font-semibold",
+        className,
+      )}
       {...props}
     />
   );
