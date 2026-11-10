@@ -7,19 +7,38 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TeachingModule } from "@/lib/modules";
 
-const ACCENT_COLORS = [
-  "oklch(0.62 0.19 50)" /* amber */,
-  "oklch(0.55 0.16 160)" /* teal */,
-  "oklch(0.50 0.14 230)" /* blue */,
-  "oklch(0.55 0.18 320)" /* purple */,
-  "oklch(0.58 0.20 20)" /* coral */,
-  "oklch(0.50 0.16 185)" /* cyan */,
-  "oklch(0.55 0.14 270)" /* indigo */,
-  "oklch(0.56 0.20 140)" /* green */,
-  "oklch(0.60 0.18 80)" /* gold */,
-  "oklch(0.58 0.16 10)" /* rose */,
-  "oklch(0.50 0.14 200)" /* sky */,
+/**
+ * 讲次索引色：同一色相里从浅到深。
+ *
+ * 原来这里是 11 个互不相干的高饱和色（amber / teal / blue / purple / coral …），
+ * 每张卡取一种描在顶上，一屏三张就是三条撞色的横杠 —— 这正是被否决过的
+ * 「色彩太多」。但颜色本身不该取消：学生扫一眼要看得出「这是第几讲」。
+ *
+ * 所以保留一讲一色，收进同一个色相（色相 262，蓝紫），只让明度递减。
+ * 第 0 讲最浅、越往后越深：位置本身携带了「进度」的含义，
+ * 而页面上不再出现第二种色相。
+ */
+const ACCENT_STEPS = [
+  "oklch(0.82 0.035 262)",
+  "oklch(0.78 0.042 262)",
+  "oklch(0.74 0.05 262)",
+  "oklch(0.7 0.058 262)",
+  "oklch(0.66 0.066 262)",
+  "oklch(0.62 0.074 262)",
+  "oklch(0.58 0.082 262)",
+  "oklch(0.54 0.088 262)",
+  "oklch(0.5 0.094 262)",
+  "oklch(0.46 0.098 262)",
+  "oklch(0.42 0.1 262)",
+  "oklch(0.38 0.1 262)",
 ];
+
+/** 取讲次对应的索引色。超出表长时回落到最深一档，不循环 —— 循环会让第 13 讲
+ *  和第 1 讲撞色，反而破坏「越深越靠后」这条唯一的可读规律。 */
+function accentFor(order: number): string {
+  const index = Math.min(Math.max(order, 0), ACCENT_STEPS.length - 1);
+  return ACCENT_STEPS[index];
+}
 
 /**
  * 学习中心的模块卡片。
@@ -38,10 +57,9 @@ export function ModuleCard({
 }) {
   return (
     <Card
-      className="group h-full gap-3 overflow-hidden border-t-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"
+      className="group h-full gap-3 overflow-hidden border-t-2 border-t-rule transition-colors duration-300 hover:bg-muted/40"
       style={{
-        borderTopColor:
-          ACCENT_COLORS[teachingModule.order % ACCENT_COLORS.length],
+        borderTopColor: accentFor(teachingModule.order),
       }}
     >
       <CardHeader>
