@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { AgentLoop } from "@/components/home/agent-loop";
+import { HomeNebulaField } from "@/components/home/home-nebula";
 import {
   StudyProgress,
   StudyProgressSkeleton,
@@ -103,35 +104,16 @@ export default function HomePage() {
 }
 
 /**
- * 整页纹理底：一组超大、极淡的波段铺在正文下面，贯穿首屏到页脚。
+ * 整页纹理底。
  *
- * 为什么要有这一层：区块内各挂一片波纹只能让局部有东西，
- * 中间几段之间仍是白纸 —— 观感会滑向「极简文档风」，那正是作者否过的方向。
- * 这一层横向连成一片，保证任何一屏都有图形纹理在，同时透明度压到 0.16 以下，
- * 不跟正文抢对比度。
+ * 这一层已从「四片《星月夜》笔触」换成星云 —— 与登录页同构
+ * （见 `components/home/home-nebula.tsx` 与 `components/auth/auth-backdrop.tsx`）。
+ * 换的理由不是笔触不好看，是两页语言不一致：从首页点「登录」像换了产品。
+ *
+ * 可读性仍由 `.paper-panel` 兜底，所以星云可以浓。
  */
 function PageTexture() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-    >
-      {/* 满版笔触。文字区由 .paper-panel 的不透明纸面兜住，
-          所以这里的浓度可以放开 —— 纹理负责气氛，纸面负责可读性。 */}
-      <div className="sky-drift-b absolute top-[16rem] -left-[34rem] w-[96rem] opacity-[0.5]">
-        <StripeField depth={2.5} rotate={-14} />
-      </div>
-      <div className="sky-drift-a absolute top-[58rem] -right-[36rem] w-[92rem] opacity-[0.44]">
-        <StripeField depth={1.5} rotate={12} />
-      </div>
-      <div className="sky-drift-c absolute top-[104rem] -left-[36rem] w-[90rem] opacity-[0.4]">
-        <StripeField depth={2.1} rotate={-6} />
-      </div>
-      <div className="sky-drift-b absolute top-[150rem] -right-[38rem] w-[94rem] opacity-[0.36]">
-        <StripeField depth={1.9} rotate={19} />
-      </div>
-    </div>
-  );
+  return <HomeNebulaField />;
 }
 
 /**
@@ -655,6 +637,12 @@ function HomeStyles() {
   66% { transform: translate3d(14px, -9px, 0) rotate(-0.8deg); }
 }
 @keyframes sky-spin { to { transform: rotate(360deg); } }
+/* 星云自转：与登录页同速（240s），保证两页的「呼吸节奏」一致。
+   转的是几何本身，不是位移 —— 位移会让它撞进版心。 */
+@keyframes sky-turn {
+  to { transform: rotate(360deg); }
+}
+.sky-turn { transform-origin: center; }
 
 @media (prefers-reduced-motion: no-preference) {
   .sky-drift-a, .sky-drift-b, .sky-drift-c {
@@ -670,6 +658,10 @@ function HomeStyles() {
     animation-duration: 240s;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
+  }
+  /* 星云自转：慢到看不出在转，只让几何不是一张死图 */
+  .sky-turn {
+    animation: sky-turn 240s linear infinite;
   }
   @supports (animation-timeline: view()) {
     .sky-reveal {
