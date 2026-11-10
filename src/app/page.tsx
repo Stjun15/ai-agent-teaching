@@ -116,20 +116,19 @@ function PageTexture() {
       aria-hidden
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      {/* 中段：一片横跨全宽的旋涡，压住能力区与流程区之间的空白 */}
-      <div className="sky-drift-b absolute top-[34rem] -left-[30rem] w-[110rem] opacity-[0.2]">
-        <StripeField depth={2.5} rotate={-7} />
+      {/* 满版笔触。文字区由 .paper-panel 的不透明纸面兜住，
+          所以这里的浓度可以放开 —— 纹理负责气氛，纸面负责可读性。 */}
+      <div className="sky-drift-b absolute top-[16rem] -left-[34rem] w-[96rem] opacity-[0.5]">
+        <StripeField depth={2.5} rotate={-14} />
       </div>
-      {/* 柔光：不改变纹理分布，只把正文落点抬亮一档。
-          纯白径向、透明度 0.62，肉眼只当作「纸被灯照到」，看不出有图层。 */}
-      <div className="absolute inset-0 bg-[radial-gradient(62rem_38rem_at_26%_10%,oklch(0.995_0.002_85/0.9),transparent_74%),radial-gradient(56rem_34rem_at_22%_58%,oklch(0.995_0.002_85/0.86),transparent_72%),radial-gradient(54rem_32rem_at_24%_86%,oklch(0.995_0.002_85/0.8),transparent_72%)]" />
-      {/* 下段：偏右倾的另一片，让视觉重心从中间平移到右下方 */}
-      <div className="sky-drift-a absolute top-[92rem] -right-[34rem] w-[104rem] opacity-[0.18]">
-        <StripeField depth={1.5} rotate={17} />
+      <div className="sky-drift-a absolute top-[58rem] -right-[36rem] w-[92rem] opacity-[0.44]">
+        <StripeField depth={1.5} rotate={12} />
       </div>
-      {/* 收尾段：压在深色带上，颜色由深色的 mix-blend 吸收，只留笔触 */}
-      <div className="sky-drift-c absolute top-[150rem] -left-[26rem] w-[96rem] opacity-[0.16]">
-        <StripeField depth={1.9} rotate={-21} />
+      <div className="sky-drift-c absolute top-[104rem] -left-[36rem] w-[90rem] opacity-[0.4]">
+        <StripeField depth={2.1} rotate={-6} />
+      </div>
+      <div className="sky-drift-b absolute top-[150rem] -right-[38rem] w-[94rem] opacity-[0.36]">
+        <StripeField depth={1.9} rotate={19} />
       </div>
     </div>
   );
@@ -142,28 +141,21 @@ function PageTexture() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* 主旋涡：圆心压在标题右上方，让它像从文字里升起来的 */}
+      {/* 首屏的纹理只从「上方与右侧」介入，不覆盖左侧正文列。
+          窄屏没有留白可用，整片隐藏 —— 首屏宁可不装饰，也不能压字。 */}
       <div
         aria-hidden
-        className="sky-drift-a pointer-events-none absolute -top-[30rem] -left-[16rem] w-[86rem] opacity-[0.62] sm:-top-[34rem]"
+        className="sky-drift-a pointer-events-none absolute -top-[32rem] -left-[18rem] w-[86rem] opacity-[0.62] sm:-top-[36rem]"
       >
         <StripeField depth={1.9} rotate={-9} />
       </div>
       <div
         aria-hidden
-        className="sky-drift-b pointer-events-none absolute -top-[14rem] -right-[26rem] hidden w-[76rem] opacity-[0.48] lg:block"
+        className="sky-drift-b pointer-events-none absolute -top-[16rem] -right-[24rem] hidden w-[74rem] opacity-[0.5] lg:block"
       >
         <StripeField depth={1.1} rotate={13} />
       </div>
-      <CypressBand className="sky-drift-c pointer-events-none absolute -top-[6rem] left-[62%] hidden h-[58rem] w-[14rem] opacity-60 md:block" />
-
-      {/* 纸面柔光：压在笔触之上、正文之下。
-          不拿一整块底色去遮纹理（那会在容器边界切出一条直边），
-          只让笔触在文字落点附近淡出 —— 边缘照旧有纹理，字下面干净。 */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(72rem_42rem_at_26%_46%,var(--background)_0%,var(--background)_50%,transparent_78%)]"
-      />
+      <CypressBand className="sky-drift-c pointer-events-none absolute -top-[6rem] left-[62%] hidden h-[56rem] w-[13rem] opacity-55 md:block" />
 
       <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
         <div>
