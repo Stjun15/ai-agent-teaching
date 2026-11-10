@@ -23,10 +23,17 @@ export function ReportNebula() {
       <div className="absolute inset-0 bg-[radial-gradient(42%_22%_at_90%_2%,var(--warn-soft)_0%,transparent_58%)] opacity-70" />
       <div className="absolute inset-0 bg-[radial-gradient(44%_20%_at_2%_54%,color-mix(in_oklch,var(--primary)_8%,transparent)_0%,transparent_60%)] opacity-85" />
 
-      {/* 首屏右上：托住标题与四张统计卡 */}
+      {/* 首屏右上：托住标题与四张统计卡。
+          与首页、学习中心同一规格（76rem / 0.62 + 74rem / 0.56）。
+          报告页数字密集，所以第二块比学习中心略低一点，但仍在同一档，
+          不再像之前那样明显发白。 */}
       <Nebula
-        className="-top-[22rem] -right-[26rem] h-[58rem] w-[58rem]"
-        opacity={0.42}
+        className="-top-[34rem] -right-[34rem] h-[76rem] w-[76rem]"
+        opacity={0.56}
+      />
+      <Nebula
+        className="-top-[22rem] -right-[22rem] hidden h-[74rem] w-[74rem] lg:block"
+        opacity={0.5}
       />
       {/* 中段左侧：六项子能力那一片 */}
       <Nebula

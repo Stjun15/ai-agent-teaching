@@ -24,9 +24,16 @@ export function LearnNebula() {
       <div className="absolute inset-0 bg-[radial-gradient(44%_24%_at_88%_4%,var(--warn-soft)_0%,transparent_60%)] opacity-75" />
       <div className="absolute inset-0 bg-[radial-gradient(46%_22%_at_4%_40%,color-mix(in_oklch,var(--primary)_9%,transparent)_0%,transparent_62%)] opacity-90" />
 
-      {/* 首屏右上：托住标题与复习提示条 */}
+      {/* 首屏右上：托住标题与复习提示条。
+          尺寸与浓度对齐首页首屏（首页在同位置叠了两块 76rem/0.66 与 74rem/0.62，
+          实测可见覆盖率 57%/56%）；学习中心原来只有 62rem/0.5，实测 39%，
+          视觉上明显比首页「薄」。这里改成与首页同规格的一对。 */}
       <Nebula
-        className="-top-[20rem] -right-[24rem] h-[62rem] w-[62rem]"
+        className="-top-[30rem] -right-[30rem] h-[76rem] w-[76rem]"
+        opacity={0.5}
+      />
+      <Nebula
+        className="-top-[18rem] -right-[16rem] hidden h-[74rem] w-[74rem] lg:block"
         opacity={0.5}
       />
       {/* 卡片流中段：左侧 */}
