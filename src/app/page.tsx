@@ -12,7 +12,6 @@ import {
   StripeField,
   StripeSprite,
 } from "@/components/home/stripe-field";
-import { Button } from "@/components/ui/button";
 import { loadModules } from "@/lib/modules";
 
 const ABILITIES = [
@@ -577,32 +576,45 @@ async function HomeCurriculum() {
  */
 function Closing() {
   return (
-    <section className="relative mt-16 overflow-hidden border-t bg-muted sm:mt-20">
-      <div
-        aria-hidden
-        className="sky-drift-c pointer-events-none absolute top-1/2 left-1/2 w-[100rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.4]"
-      >
-        <StripeField depth={2.1} rotate={-5} />
-      </div>
-
-      <div className="relative mx-auto flex w-full max-w-[1160px] flex-col gap-8 bg-muted px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-16">
-        <div>
-          <p className="flex items-center gap-3 text-[13px] font-medium tracking-wide text-muted-foreground uppercase">
-            <span className="font-mono text-primary tabular-nums">IV</span>
-            掌握式学习
-            <span aria-hidden className="h-px w-10 bg-border" />
-          </p>
-          <h2 className="mt-4 max-w-[17em] text-[1.6rem] leading-tight font-semibold tracking-tight text-balance sm:text-[2rem]">
-            每一讲都走完这七步，掌握度够格才继续往下走。
-          </h2>
+    <section className="content-auto mt-24 sm:mt-32">
+      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
+        <div
+          aria-hidden
+          className="sky-drift-c pointer-events-none absolute -top-16 -right-[28rem] hidden w-[64rem] opacity-[0.16] lg:block"
+        >
+          <StripeField depth={2.1} rotate={-5} />
         </div>
 
-        <Button asChild size="sm" className="shrink-0">
-          <Link href="/learn">
-            进入学习中心
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <div className="relative">
+          <SectionMark index="IV" label="掌握式学习" />
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
+            <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
+              每一讲都走完这七步，掌握度够格才继续往下走。
+            </h2>
+            <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
+              七步走完才有掌握度，够格才解锁下一讲 —— 没有跳过这一说的关卡。
+            </p>
+          </div>
+
+          {/* 收尾不再开新容器：只是七步流水线的封口，一条线加一个动作 */}
+          <div className="mt-12 flex flex-col gap-6 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-[34em] text-sm leading-relaxed text-muted-foreground">
+              十三讲、七步，每一步都有真实点评。学完一讲是一讲，
+              报告里能看到每一讲的掌握度从哪来。
+            </p>
+            <Link
+              href="/learn"
+              className="group inline-flex shrink-0 items-center gap-2 text-sm font-medium text-primary"
+            >
+              进入学习中心
+              <span
+                aria-hidden
+                className="h-px w-9 bg-primary transition-all group-hover:w-14"
+              />
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );
