@@ -43,6 +43,7 @@ export function Nebula({
       className={`sky-turn pointer-events-none absolute ${className}`}
       style={{ opacity }}
     >
+      <NebulaSpin />
       <svg viewBox="-500 -500 1000 1000" fill="none" className="h-full w-full">
         <defs>
           <radialGradient
@@ -165,5 +166,24 @@ export function HomeNebulaField() {
         opacity={0.34}
       />
     </div>
+  );
+}
+
+/**
+ * 星云自转的样式，挂在组件内部而不是某个页面的 `<style>` 里。
+ *
+ * 之前这条定义在 `app/page.tsx` 的 `HomeStyles` 中，只有首页拿得到 ——
+ * 学习中心复用了 `Nebula` 却转不起来（实测 `anims=0`）。
+ * 样式跟着组件走，谁用它谁就有效果。
+ */
+function NebulaSpin() {
+  return (
+    <style>{`
+@keyframes nebula-turn { to { transform: rotate(360deg); } }
+.sky-turn { transform-origin: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .sky-turn { animation: nebula-turn 240s linear infinite; }
+}
+`}</style>
   );
 }

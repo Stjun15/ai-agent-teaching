@@ -622,10 +622,7 @@ function HomeStyles() {
 @keyframes sky-spin { to { transform: rotate(360deg); } }
 /* 星云自转：与登录页同速（240s），保证两页的「呼吸节奏」一致。
    转的是几何本身，不是位移 —— 位移会让它撞进版心。 */
-@keyframes sky-turn {
-  to { transform: rotate(360deg); }
-}
-.sky-turn { transform-origin: center; }
+/* 星云自转定义在 components/home/home-nebula.tsx，跟随组件走 */
 
 @media (prefers-reduced-motion: no-preference) {
   .sky-drift-a, .sky-drift-b, .sky-drift-c {
@@ -642,10 +639,7 @@ function HomeStyles() {
     animation-timing-function: linear;
     animation-iteration-count: infinite;
   }
-  /* 星云自转：慢到看不出在转，只让几何不是一张死图 */
-  .sky-turn {
-    animation: sky-turn 240s linear infinite;
-  }
+
   @supports (animation-timeline: view()) {
     .sky-reveal {
       animation: sky-reveal linear both;
