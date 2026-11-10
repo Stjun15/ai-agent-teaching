@@ -158,7 +158,7 @@ function Hero() {
       </div>
       <CypressBand className="sky-drift-c pointer-events-none absolute -top-[6rem] left-[62%] hidden h-[58rem] w-[14rem] opacity-60 md:block" />
 
-      <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
+      <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 bg-background px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
         <div>
           <h1 className="max-w-[16em] text-[2.4rem] leading-[1.06] font-semibold tracking-[-0.025em] text-balance sm:text-[3.7rem]">
             用 AI 教学生
@@ -232,7 +232,7 @@ function Abilities() {
         <StripeField depth={2.5} rotate={-15} />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
+      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
         <SectionMark index="I" label="能力模型" />
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
           <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
@@ -271,7 +271,7 @@ function Abilities() {
 function Flow() {
   return (
     <section className="content-auto mt-24 sm:mt-32">
-      <div className="mx-auto w-full max-w-[1160px] px-5 sm:px-8">
+      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
         <SectionMark index="II" label="学习流程" />
         <h2 className="mt-5 text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
           一次学习的完整过程
@@ -471,7 +471,7 @@ function FactsPlaceholder() {
 function CurriculumSkeleton() {
   return (
     <section className="mt-24 sm:mt-32">
-      <div className="mx-auto w-full max-w-[1160px] px-5 sm:px-8">
+      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
         <div className="h-4 w-40 animate-pulse rounded bg-muted/70" />
         <div className="mt-6 h-10 w-72 animate-pulse rounded bg-muted/60" />
         <div className="mt-10 flex flex-col gap-1">
@@ -502,7 +502,7 @@ async function HomeCurriculum() {
 
   return (
     <section id="modules" className="content-auto mt-24 scroll-mt-24 sm:mt-32">
-      <div className="relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
+      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
         <div
           aria-hidden
           className="sky-drift-a pointer-events-none absolute -top-16 -right-[26rem] hidden w-[64rem] opacity-[0.38] lg:block"
@@ -577,7 +577,7 @@ async function HomeCurriculum() {
  */
 function Closing() {
   return (
-    <section className="relative mt-16 overflow-hidden border-t bg-muted/30 sm:mt-20">
+    <section className="relative mt-16 overflow-hidden border-t bg-muted sm:mt-20">
       <div
         aria-hidden
         className="sky-drift-c pointer-events-none absolute top-1/2 left-1/2 w-[100rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.4]"
@@ -585,7 +585,7 @@ function Closing() {
         <StripeField depth={2.1} rotate={-5} />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-16">
+      <div className="relative mx-auto flex w-full max-w-[1160px] flex-col gap-8 bg-muted px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-16">
         <div>
           <p className="flex items-center gap-3 text-[13px] font-medium tracking-wide text-muted-foreground uppercase">
             <span className="font-mono text-primary tabular-nums">IV</span>
