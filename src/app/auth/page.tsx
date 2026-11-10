@@ -15,6 +15,7 @@ import * as React from "react";
 import { Blocks, GraduationCap, Info, LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AuthBackdrop } from "@/components/auth/auth-backdrop";
 import { siteConfig } from "@/lib/site";
 import { LEARNING_STEPS } from "@/lib/learning-steps";
 import { cn } from "@/lib/utils";
@@ -218,264 +219,269 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col px-5 py-12 sm:px-8 sm:py-20">
-      {/* 扉页式两栏：左页交代「这是一门什么课」，右页是入口。
+    // 外层只负责「铺满视口 + 承载背景」：背景必须比版心宽，
+    // 否则笔触会被 1120px 的容器剪掉，两侧留白又变回白纸。
+    <main className="relative isolate flex w-full flex-1 flex-col overflow-hidden">
+      <AuthBackdrop />
+      <div className="auth-paper mx-auto flex w-full max-w-[1120px] flex-1 flex-col px-5 py-12 sm:px-8 sm:py-20">
+        {/* 扉页式两栏：左页交代「这是一门什么课」，右页是入口。
           原来是一枚居中的 logo + 标题 + 副标题 + 两张卡片 —— 那是登录页模板
           的标准长相，与首页的长卷、学习中心的条目完全不是一回事。
           左栏不是装饰：七步流程直接摆出来，人在登录前就知道自己签的是什么。 */}
-      <div className="grid flex-1 items-start gap-14 lg:grid-cols-[1fr_21rem] lg:gap-20">
-        {/* ---------- 左页：课程扉页 ---------- */}
-        <section className="hidden lg:block">
-          <p className="text-[0.75rem] font-medium tracking-[0.24em] text-primary uppercase">
-            AI Native · 掌握式学习
-          </p>
+        <div className="grid flex-1 items-start gap-14 lg:grid-cols-[1fr_21rem] lg:gap-20">
+          {/* ---------- 左页：课程扉页 ---------- */}
+          <section className="hidden lg:block">
+            <p className="text-[0.75rem] font-medium tracking-[0.24em] text-primary uppercase">
+              AI Native · 掌握式学习
+            </p>
 
-          <h1 className="mt-5 text-[2.8rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">
-            用 AI 教学生
-            <br />
-            <span className="text-primary">理解 AI</span>
-          </h1>
+            <h1 className="mt-5 text-[2.8rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">
+              用 AI 教学生
+              <br />
+              <span className="text-primary">理解 AI</span>
+            </h1>
 
-          <p className="mt-6 max-w-[26em] leading-relaxed text-pretty text-muted-foreground">
-            十二讲，每一讲都走完下面这七步。掌握度达标才解锁下一讲 ——
-            没学会就不往前走，这是这门课唯一的规定。
-          </p>
+            <p className="mt-6 max-w-[26em] leading-relaxed text-pretty text-muted-foreground">
+              十二讲，每一讲都走完下面这七步。掌握度达标才解锁下一讲 ——
+              没学会就不往前走，这是这门课唯一的规定。
+            </p>
 
-          <ol className="mt-10 flex flex-col border-t border-rule">
-            {LEARNING_STEPS.map((step, index) => (
-              <li
-                key={step.id}
-                className="flex items-baseline gap-4 border-b border-rule py-3"
+            <ol className="mt-10 flex flex-col border-t border-rule">
+              {LEARNING_STEPS.map((step, index) => (
+                <li
+                  key={step.id}
+                  className="flex items-baseline gap-4 border-b border-rule py-3"
+                >
+                  <span className="w-6 shrink-0 font-serif text-[0.95rem] text-primary tabular-nums">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="w-[5.5em] shrink-0 text-sm font-medium">
+                    {step.label}
+                  </span>
+                  <span className="text-[0.8rem] leading-relaxed text-muted-foreground">
+                    {step.detail}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <div>
+            <div className="flex items-center gap-2.5 lg:hidden">
+              <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Blocks className="size-5" aria-hidden />
+              </span>
+              <span className="font-serif text-lg font-semibold">
+                {siteConfig.name}
+              </span>
+            </div>
+
+            <div
+              role="tablist"
+              aria-label="登录或注册"
+              className="mt-8 flex gap-7 border-b border-rule lg:mt-0"
+            >
+              {(
+                [
+                  { id: "login", label: "登录" },
+                  { id: "register", label: "注册" },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  onClick={() => {
+                    setTab(item.id);
+                    setLoginError(null);
+                    setRegError(null);
+                  }}
+                  aria-selected={tab === item.id}
+                  className={cn(
+                    "-mb-px border-b-2 pb-2.5 font-serif text-[1.05rem] transition-colors",
+                    tab === item.id
+                      ? "border-b-foreground font-semibold text-foreground"
+                      : "border-b-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-5 text-[0.8rem] leading-relaxed text-muted-foreground">
+              登录后将以该身份继续学习，报告与掌握度按它记录。
+            </p>
+
+            {tab === "login" ? (
+              <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-6">
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="login-username"
+                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                  >
+                    用户名
+                  </label>
+                  <input
+                    id="login-username"
+                    type="text"
+                    autoComplete="username"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="用户名"
+                    className={inputClass(false)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="login-password"
+                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                  >
+                    密码
+                  </label>
+                  <input
+                    id="login-password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="密码"
+                    className={inputClass(false)}
+                  />
+                </div>
+
+                {loginError ? (
+                  <p
+                    role="alert"
+                    className="text-[0.8rem] leading-relaxed text-danger"
+                  >
+                    {loginError}
+                  </p>
+                ) : null}
+
+                <Button type="submit" disabled={submitting} className="h-10">
+                  登 录
+                </Button>
+
+                <div className="rounded-md bg-surface px-4 py-3.5">
+                  <div className="mb-2.5 flex items-center gap-1.5 text-[0.72rem] font-medium text-muted-foreground">
+                    <GraduationCap className="size-3.5" aria-hidden />
+                    评审演示
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoFill("test", "test1234")}
+                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                    >
+                      test / test1234
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoFill("eval", "eval1234")}
+                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                    >
+                      eval / eval1234
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[0.7rem] leading-relaxed text-muted-foreground/70">
+                    点击按钮自动填充账号密码，然后点「登录」即可。
+                  </p>
+                </div>
+              </form>
+            ) : (
+              <form
+                onSubmit={handleRegister}
+                className="mt-8 flex flex-col gap-6"
               >
-                <span className="w-6 shrink-0 font-serif text-[0.95rem] text-primary tabular-nums">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="w-[5.5em] shrink-0 text-sm font-medium">
-                  {step.label}
-                </span>
-                <span className="text-[0.8rem] leading-relaxed text-muted-foreground">
-                  {step.detail}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="reg-username"
+                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                  >
+                    用户名
+                  </label>
+                  <input
+                    id="reg-username"
+                    type="text"
+                    autoComplete="username"
+                    value={regUsername}
+                    onChange={(e) => setRegUsername(e.target.value)}
+                    placeholder="用户名（2–32 个字符）"
+                    className={inputClass(false)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="reg-password"
+                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                  >
+                    密码
+                  </label>
+                  <input
+                    id="reg-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="密码（至少 6 个字符）"
+                    className={inputClass(false)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="reg-confirm"
+                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                  >
+                    确认密码
+                  </label>
+                  <input
+                    id="reg-confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={regConfirm}
+                    onChange={(e) => setRegConfirm(e.target.value)}
+                    placeholder="再次输入密码"
+                    className={inputClass(false)}
+                  />
+                </div>
 
-        <div>
-          <div className="flex items-center gap-2.5 lg:hidden">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Blocks className="size-5" aria-hidden />
-            </span>
-            <span className="font-serif text-lg font-semibold">
-              {siteConfig.name}
-            </span>
-          </div>
+                {regError ? (
+                  <p
+                    role="alert"
+                    className="text-[0.8rem] leading-relaxed text-danger"
+                  >
+                    {regError}
+                  </p>
+                ) : null}
 
-          <div
-            role="tablist"
-            aria-label="登录或注册"
-            className="mt-8 flex gap-7 border-b border-rule lg:mt-0"
-          >
-            {(
-              [
-                { id: "login", label: "登录" },
-                { id: "register", label: "注册" },
-              ] as const
-            ).map((item) => (
+                <Button type="submit" disabled={submitting} className="h-10">
+                  注册并登录
+                </Button>
+              </form>
+            )}
+
+            <div className="mt-10 border-t border-rule pt-5">
+              <p className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase">
+                当前身份
+              </p>
+              <code className="mt-2 block overflow-x-auto font-mono text-[0.72rem] text-muted-foreground">
+                {currentId ?? "读取中…"}
+              </code>
+              <p className="mt-2 flex items-start gap-1.5 text-[0.7rem] leading-relaxed text-muted-foreground/80">
+                <Info className="mt-0.5 size-3 shrink-0" aria-hidden />
+                这里显示的是当前学生身份的
+                id。退出登录会把它清空，回到内置的种子学生。
+              </p>
               <button
-                key={item.id}
                 type="button"
-                role="tab"
-                onClick={() => {
-                  setTab(item.id);
-                  setLoginError(null);
-                  setRegError(null);
-                }}
-                aria-selected={tab === item.id}
-                className={cn(
-                  "-mb-px border-b-2 pb-2.5 font-serif text-[1.05rem] transition-colors",
-                  tab === item.id
-                    ? "border-b-foreground font-semibold text-foreground"
-                    : "border-b-transparent text-muted-foreground hover:text-foreground",
-                )}
+                onClick={handleLogout}
+                className="mt-3 inline-flex items-center gap-1.5 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground"
               >
-                {item.label}
+                <LogOut className="size-3.5" aria-hidden />
+                退出登录（回到种子身份）
               </button>
-            ))}
-          </div>
-
-          <p className="mt-5 text-[0.8rem] leading-relaxed text-muted-foreground">
-            登录后将以该身份继续学习，报告与掌握度按它记录。
-          </p>
-
-          {tab === "login" ? (
-            <form onSubmit={handleLogin} className="mt-8 flex flex-col gap-6">
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="login-username"
-                  className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
-                >
-                  用户名
-                </label>
-                <input
-                  id="login-username"
-                  type="text"
-                  autoComplete="username"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="用户名"
-                  className={inputClass(false)}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="login-password"
-                  className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
-                >
-                  密码
-                </label>
-                <input
-                  id="login-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="密码"
-                  className={inputClass(false)}
-                />
-              </div>
-
-              {loginError ? (
-                <p
-                  role="alert"
-                  className="text-[0.8rem] leading-relaxed text-danger"
-                >
-                  {loginError}
-                </p>
-              ) : null}
-
-              <Button type="submit" disabled={submitting} className="h-10">
-                登 录
-              </Button>
-
-              <div className="rounded-md bg-surface px-4 py-3.5">
-                <div className="mb-2.5 flex items-center gap-1.5 text-[0.72rem] font-medium text-muted-foreground">
-                  <GraduationCap className="size-3.5" aria-hidden />
-                  评审演示
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill("test", "test1234")}
-                    className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-                  >
-                    test / test1234
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDemoFill("eval", "eval1234")}
-                    className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-                  >
-                    eval / eval1234
-                  </button>
-                </div>
-                <p className="mt-2 text-[0.7rem] leading-relaxed text-muted-foreground/70">
-                  点击按钮自动填充账号密码，然后点「登录」即可。
-                </p>
-              </div>
-            </form>
-          ) : (
-            <form
-              onSubmit={handleRegister}
-              className="mt-8 flex flex-col gap-6"
-            >
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="reg-username"
-                  className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
-                >
-                  用户名
-                </label>
-                <input
-                  id="reg-username"
-                  type="text"
-                  autoComplete="username"
-                  value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
-                  placeholder="用户名（2–32 个字符）"
-                  className={inputClass(false)}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="reg-password"
-                  className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
-                >
-                  密码
-                </label>
-                <input
-                  id="reg-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="密码（至少 6 个字符）"
-                  className={inputClass(false)}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="reg-confirm"
-                  className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
-                >
-                  确认密码
-                </label>
-                <input
-                  id="reg-confirm"
-                  type="password"
-                  autoComplete="new-password"
-                  value={regConfirm}
-                  onChange={(e) => setRegConfirm(e.target.value)}
-                  placeholder="再次输入密码"
-                  className={inputClass(false)}
-                />
-              </div>
-
-              {regError ? (
-                <p
-                  role="alert"
-                  className="text-[0.8rem] leading-relaxed text-danger"
-                >
-                  {regError}
-                </p>
-              ) : null}
-
-              <Button type="submit" disabled={submitting} className="h-10">
-                注册并登录
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-10 border-t border-rule pt-5">
-            <p className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase">
-              当前身份
-            </p>
-            <code className="mt-2 block overflow-x-auto font-mono text-[0.72rem] text-muted-foreground">
-              {currentId ?? "读取中…"}
-            </code>
-            <p className="mt-2 flex items-start gap-1.5 text-[0.7rem] leading-relaxed text-muted-foreground/80">
-              <Info className="mt-0.5 size-3 shrink-0" aria-hidden />
-              这里显示的是当前学生身份的
-              id。退出登录会把它清空，回到内置的种子学生。
-            </p>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="mt-3 inline-flex items-center gap-1.5 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <LogOut className="size-3.5" aria-hidden />
-              退出登录（回到种子身份）
-            </button>
+            </div>
           </div>
         </div>
       </div>
