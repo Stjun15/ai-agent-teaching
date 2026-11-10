@@ -156,6 +156,14 @@ export function StripeSprite() {
   );
 }
 
+/** 边缘羽化：笔触在画布边界之前先淡出，整片与页面底色融成一体，看不出矩形边缘。 */
+const EDGE_FADE =
+  "radial-gradient(closest-side, rgb(0 0 0 / 1) 54%, rgb(0 0 0 / 0.5) 78%, rgb(0 0 0 / 0) 100%)";
+
+/** 柏树是竖向的，羽化改为上下淡出 —— 用径向会让树梢和树根一起消失。 */
+const BAND_FADE =
+  "linear-gradient(to bottom, rgb(0 0 0 / 0) 0%, rgb(0 0 0 / 1) 18%, rgb(0 0 0 / 1) 74%, rgb(0 0 0 / 0) 100%)";
+
 export function StripeField({
   className = "",
   depth = 1,
@@ -211,7 +219,11 @@ export function StripeField({
     <div
       aria-hidden
       className={`pointer-events-none ${className}`}
-      style={{ transform: `rotate(${rotate}deg)` }}
+      style={{
+        transform: `rotate(${rotate}deg)`,
+        maskImage: EDGE_FADE,
+        WebkitMaskImage: EDGE_FADE,
+      }}
     >
       <svg
         ref={svgRef}
@@ -244,7 +256,11 @@ export function CypressBand({
     <div
       aria-hidden
       className={`pointer-events-none ${className}`}
-      style={{ transform: flip ? "scaleX(-1)" : undefined }}
+      style={{
+        transform: flip ? "scaleX(-1)" : undefined,
+        maskImage: BAND_FADE,
+        WebkitMaskImage: BAND_FADE,
+      }}
     >
       <svg viewBox="0 0 120 560" fill="none" className="h-full w-full">
         <use href="#sky-cypress" />

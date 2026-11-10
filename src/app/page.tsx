@@ -157,7 +157,15 @@ function Hero() {
       </div>
       <CypressBand className="sky-drift-c pointer-events-none absolute -top-[6rem] left-[62%] hidden h-[58rem] w-[14rem] opacity-60 md:block" />
 
-      <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 bg-background px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
+      {/* 纸面柔光：压在笔触之上、正文之下。
+          不拿一整块底色去遮纹理（那会在容器边界切出一条直边），
+          只让笔触在文字落点附近淡出 —— 边缘照旧有纹理，字下面干净。 */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(72rem_42rem_at_26%_46%,var(--background)_0%,var(--background)_50%,transparent_78%)]"
+      />
+
+      <div className="relative mx-auto grid w-full max-w-[1160px] gap-12 px-5 pt-20 pb-20 sm:px-8 sm:pt-28 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-14">
         <div>
           <h1 className="max-w-[16em] text-[2.4rem] leading-[1.06] font-semibold tracking-[-0.025em] text-balance sm:text-[3.7rem]">
             用 AI 教学生
@@ -231,7 +239,7 @@ function Abilities() {
         <StripeField depth={2.5} rotate={-15} />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
+      <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <SectionMark index="I" label="能力模型" />
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
           <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
@@ -270,7 +278,7 @@ function Abilities() {
 function Flow() {
   return (
     <section className="content-auto mt-24 sm:mt-32">
-      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
+      <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <SectionMark index="II" label="学习流程" />
         <h2 className="mt-5 text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
           一次学习的完整过程
@@ -447,10 +455,13 @@ async function HomeFacts() {
     <dl className="mt-9 flex flex-wrap items-baseline gap-x-8 gap-y-3 border-t border-border pt-5">
       {facts.map((fact) => (
         <div key={fact.label} className="flex items-baseline gap-2">
-          <dd className="font-mono text-[1.6rem] leading-none text-foreground tabular-nums">
+          {/* dt 必须在 dd 之前（dl 的结构要求），靠 order 把数值放到视觉左侧 */}
+          <dt className="order-2 text-[13px] text-muted-foreground">
+            {fact.label}
+          </dt>
+          <dd className="order-1 font-mono text-[1.6rem] leading-none text-foreground tabular-nums">
             {fact.value}
           </dd>
-          <dt className="text-[13px] text-muted-foreground">{fact.label}</dt>
         </div>
       ))}
     </dl>
@@ -501,7 +512,7 @@ async function HomeCurriculum() {
 
   return (
     <section id="modules" className="content-auto mt-24 scroll-mt-24 sm:mt-32">
-      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
+      <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <div
           aria-hidden
           className="sky-drift-a pointer-events-none absolute -top-16 -right-[26rem] hidden w-[64rem] opacity-[0.38] lg:block"
@@ -577,7 +588,7 @@ async function HomeCurriculum() {
 function Closing() {
   return (
     <section className="content-auto mt-24 sm:mt-32">
-      <div className="relative mx-auto w-full max-w-[1160px] bg-background px-5 sm:px-8">
+      <div className="paper-panel relative mx-auto w-full max-w-[1160px] px-5 sm:px-8">
         <div
           aria-hidden
           className="sky-drift-c pointer-events-none absolute -top-16 -right-[28rem] hidden w-[64rem] opacity-[0.16] lg:block"
@@ -628,18 +639,41 @@ function Closing() {
 function HomeStyles() {
   return (
     <style>{`
-.sky-drift-a { animation: sky-drift 92s ease-in-out infinite; }
-.sky-drift-b { animation: sky-drift 134s ease-in-out infinite reverse; }
-.sky-drift-c { animation: sky-drift 116s ease-in-out infinite; }
+/* 版心的「纸」：中间实心、左右两端淡出。
+   直接铺一块实底色会在容器边界剪出一条直边，纹理看着像被切断；
+   改成两端渐隐后，笔触像是被雾遮住，读字的地方仍然是干净底色。 */
+.paper-panel {
+  background-image: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--background) 6%,
+    var(--background) 94%,
+    transparent 100%
+  );
+}
+
 @keyframes sky-drift {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
   33% { transform: translate3d(-18px, 13px, 0) rotate(1.1deg); }
   66% { transform: translate3d(14px, -9px, 0) rotate(-0.8deg); }
 }
-.sky-spin { animation: sky-spin 240s linear infinite; }
 @keyframes sky-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: no-preference) {
+  .sky-drift-a, .sky-drift-b, .sky-drift-c {
+    animation-name: sky-drift;
+    animation-duration: 92s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+  .sky-drift-b { animation-duration: 134s; animation-direction: reverse; }
+  .sky-drift-c { animation-duration: 116s; }
+  .sky-spin {
+    animation-name: sky-spin;
+    animation-duration: 240s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
   @supports (animation-timeline: view()) {
     .sky-reveal {
       animation: sky-reveal linear both;
