@@ -189,24 +189,12 @@ function Hero() {
             <HomeFacts />
           </Suspense>
 
-          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
-            <Button asChild size="sm">
-              <Link href="/learn">
-                开始学习
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Link
-              href="#modules"
-              className="group inline-flex items-center gap-2 text-[13px] font-medium text-primary"
-            >
-              课程大纲
-              <span
-                aria-hidden
-                className="h-px w-8 bg-primary transition-all group-hover:w-12"
-              />
-            </Link>
-          </div>
+          {/* 下一步：只给一个具体动作，并且它指向真实的第一讲。
+              按钮上不写「开始学习」——那只是把选择推回给学生；
+              写清「第几讲、叫什么、要多久」，人才知道按下之后会发生什么。 */}
+          <Suspense fallback={<StartPlaceholder />}>
+            <HomeStart />
+          </Suspense>
         </div>
 
         {/* 纸条：略歪、带一点投影，像贴在星图上的一角 */}
@@ -416,6 +404,71 @@ function StepDial({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * 下一步入口。
+ *
+ * 数据来自 `loadModules()`（按前置依赖排好序），所以按钮上的讲次与名称
+ * 不会和课程本身脱节 —— 新增一讲、调整顺序，这里自动跟着变。
+ *
+ * 没有任何模块时**不编一个假目标**：退回到学习中心，并说明为什么。
+ */
+async function HomeStart() {
+  const modules = await loadModules();
+  const first = modules[0];
+
+  if (!first) {
+    return (
+      <div className="mt-10">
+        <Button asChild size="sm">
+          <Link href="/learn">
+            进入学习中心
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-10">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <Button asChild size="sm">
+          <Link href={first.href}>
+            从第 {first.orderLabel} 讲开始：{first.name}
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+        <Link
+          href="#modules"
+          className="group inline-flex items-center gap-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-primary"
+        >
+          先看课程大纲
+          <span
+            aria-hidden
+            className="h-px w-8 bg-border transition-all group-hover:w-12 group-hover:bg-primary"
+          />
+        </Link>
+      </div>
+
+      {/* 成本预期：让人判断「现在要不要开始」，而不是点进去才发现要花多久 */}
+      <p className="mt-3 text-[13px] text-muted-foreground">
+        {first.estimatedTime
+          ? `第 ${first.orderLabel} 讲读完约 ${first.estimatedTime}，之后每一讲都要过掌握度才解锁。`
+          : "每一讲都要过掌握度才解锁下一讲。"}
+      </p>
+    </div>
+  );
+}
+
+function StartPlaceholder() {
+  return (
+    <div className="mt-10 flex flex-col gap-3">
+      <div className="h-8 w-56 animate-pulse rounded-md bg-muted" />
+      <div className="h-4 w-72 animate-pulse rounded bg-muted/70" />
+    </div>
+  );
+}
+
 /** 三个数字：一行图例，不是三张卡。 */
 async function HomeFacts() {
   const modules = await loadModules();
@@ -482,6 +535,8 @@ async function HomeCurriculum() {
     },
     ...modules,
   ];
+  // 「从这里开始」只标一行：序言页之后的第一个教学模块（不是序言本身）
+  const firstId = modules[0]?.id ?? null;
 
   return (
     <section id="modules" className="content-auto mt-24 scroll-mt-24 sm:mt-32">
@@ -515,8 +570,13 @@ async function HomeCurriculum() {
                   <span className="font-mono text-[13px] text-primary tabular-nums transition-colors group-hover:text-primary">
                     {row.orderLabel}
                   </span>
-                  <span className="min-w-0 truncate font-medium">
-                    {row.name}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium">{row.name}</span>
+                    {row.id === firstId ? (
+                      <span className="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                        从这里开始
+                      </span>
+                    ) : null}
                   </span>
                   <span className="flex shrink-0 items-center gap-4">
                     <span
@@ -538,16 +598,6 @@ async function HomeCurriculum() {
               </li>
             ))}
           </ul>
-
-          <div className="mt-5 flex justify-end">
-            <Link
-              href="/learn"
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:underline hover:underline-offset-4"
-            >
-              进入学习中心
-              <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
         </div>
       </div>
     </section>
