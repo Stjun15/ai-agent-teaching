@@ -84,18 +84,7 @@ const TEACHING_FLOW = [
  */
 export default function HomePage() {
   return (
-    <main
-      className="relative w-full overflow-x-clip"
-      style={
-        {
-          "--ink-soft": "oklch(0.33 0.03 264)",
-          "--ink-mid": "oklch(0.45 0.1 258)",
-          "--ink-deep": "oklch(0.28 0.09 266)",
-          "--star": "oklch(0.7 0.11 92)",
-          "--rule": "oklch(0.87 0.018 250)",
-        } as React.CSSProperties
-      }
-    >
+    <main className="relative w-full overflow-x-clip">
       <StripeSprite />
       <PageTexture />
       <Hero />
@@ -170,9 +159,7 @@ function Hero() {
           <h1 className="max-w-[16em] text-[2.4rem] leading-[1.06] font-semibold tracking-[-0.025em] text-balance sm:text-[3.7rem]">
             用 AI 教学生
             <span className="relative ml-1 inline-block">
-              <span className="bg-gradient-to-r from-[var(--ink-deep)] via-[var(--ink-mid)] to-[var(--ink-deep)] bg-clip-text text-transparent">
-                理解 AI
-              </span>
+              <span className="text-primary">理解 AI</span>
               {/* 手画的一道下划线：滚动到此处自己画出来 */}
               <svg
                 aria-hidden
@@ -184,7 +171,7 @@ function Hero() {
                 <path
                   className="sky-arc"
                   d="M3 10C46 3.5 92 4 138 7.5s74 5 99 1"
-                  stroke="var(--star)"
+                  stroke="var(--primary)"
                   strokeWidth="3"
                   strokeLinecap="round"
                   pathLength="1"
@@ -193,7 +180,7 @@ function Hero() {
             </span>
           </h1>
 
-          <p className="mt-9 max-w-[30em] text-[0.95rem] leading-8 text-pretty text-[var(--ink-soft)]">
+          <p className="mt-9 max-w-[30em] text-[0.95rem] leading-8 text-pretty text-muted-foreground">
             七步掌握式学习：从第一行 Prompt 走到完整 Agent
             系统。每一步都有真实点评与掌握度判定，没学会就不解锁下一讲。
           </p>
@@ -211,12 +198,12 @@ function Hero() {
             </Button>
             <Link
               href="#modules"
-              className="group inline-flex items-center gap-2 text-xs font-medium text-[var(--ink-mid)]"
+              className="group inline-flex items-center gap-2 text-xs font-medium text-primary"
             >
               课程大纲
               <span
                 aria-hidden
-                className="h-px w-8 bg-[var(--ink-mid)] transition-all group-hover:w-12"
+                className="h-px w-8 bg-primary transition-all group-hover:w-12"
               />
             </Link>
           </div>
@@ -235,10 +222,10 @@ function Hero() {
 
 function SectionMark({ index, label }: { index: string; label: string }) {
   return (
-    <p className="flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] text-[var(--ink-mid)]">
-      <span className="text-[var(--star)]">{index}</span>
+    <p className="flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <span className="font-mono text-primary tabular-nums">{index}</span>
       {label}
-      <span aria-hidden className="h-px flex-1 bg-[var(--rule)]" />
+      <span aria-hidden className="h-px flex-1 bg-border" />
     </p>
   );
 }
@@ -260,22 +247,22 @@ function Abilities() {
           <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
             六个可迁移的子能力
           </h2>
-          <p className="max-w-[26em] text-xs leading-6 text-[var(--ink-soft)] sm:text-right">
+          <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
             所有功能都服务于这六个子能力 —— 不训练它们的功能，不做。
           </p>
         </div>
 
-        <ul className="mt-12 border-t border-[var(--rule)]">
+        <ul className="mt-12 border-t border-border">
           {ABILITIES.map((ability, index) => (
             <li
               key={ability.name}
-              className="sky-reveal grid grid-cols-[2.75rem_minmax(0,1fr)] items-baseline gap-x-5 gap-y-1.5 border-b border-[var(--rule)] py-5 sm:grid-cols-[3.25rem_11rem_minmax(0,1fr)] sm:py-4"
+              className="sky-reveal grid grid-cols-[2.75rem_minmax(0,1fr)] items-baseline gap-x-5 gap-y-1.5 border-b border-border py-5 sm:grid-cols-[3.25rem_11rem_minmax(0,1fr)] sm:py-4"
             >
-              <span className="font-mono text-[11px] text-[var(--star)] tabular-nums">
+              <span className="font-mono text-[11px] text-primary tabular-nums">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="text-sm font-semibold">{ability.name}</span>
-              <span className="col-start-2 text-xs leading-6 text-[var(--ink-soft)] sm:col-start-3">
+              <span className="col-start-2 text-sm leading-relaxed text-muted-foreground sm:col-start-3">
                 {ability.detail}
               </span>
             </li>
@@ -298,7 +285,7 @@ function Flow() {
         <h2 className="mt-5 text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
           一次学习的完整过程
         </h2>
-        <p className="mt-3 max-w-[30em] text-xs leading-6 text-[var(--ink-soft)]">
+        <p className="mt-3 max-w-[30em] text-sm leading-relaxed text-muted-foreground">
           七步一条流水线，前一步的产出就是后一步的输入。
         </p>
 
@@ -307,14 +294,14 @@ function Flow() {
             {TEACHING_FLOW.map((item) => (
               <li
                 key={item.step}
-                className="sky-reveal group flex gap-4 border-t border-[var(--rule)] py-4 last:border-b lg:border-t-0 lg:border-b lg:py-3.5 lg:last:border-b"
+                className="sky-reveal group flex gap-4 border-t border-border py-4 last:border-b lg:border-t-0 lg:border-b lg:py-3.5 lg:last:border-b"
               >
-                <span className="w-6 shrink-0 pt-0.5 font-mono text-[11px] text-[var(--star)] tabular-nums">
+                <span className="w-6 shrink-0 pt-0.5 font-mono text-[11px] text-primary tabular-nums">
                   {item.step.padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-1 text-xs leading-6 text-[var(--ink-soft)]">
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                     {item.detail}
                   </p>
                 </div>
@@ -380,7 +367,7 @@ function StepDial({ className = "" }: { className?: string }) {
               y1={tick.y1}
               x2={tick.x2}
               y2={tick.y2}
-              stroke="var(--rule)"
+              stroke="var(--border)"
               strokeWidth="1.5"
               strokeLinecap="round"
             />
@@ -391,7 +378,7 @@ function StepDial({ className = "" }: { className?: string }) {
           cx="160"
           cy="160"
           r="86"
-          stroke="var(--rule)"
+          stroke="var(--border)"
           strokeWidth="1"
           strokeDasharray="2 7"
         />
@@ -399,7 +386,7 @@ function StepDial({ className = "" }: { className?: string }) {
         <path
           className="sky-arc"
           d={DIAL.arc}
-          stroke="var(--ink-mid)"
+          stroke="var(--primary)"
           strokeWidth="1.6"
           strokeLinecap="round"
           pathLength="1"
@@ -412,13 +399,13 @@ function StepDial({ className = "" }: { className?: string }) {
               cx={node.x}
               cy={node.y}
               r={index === 6 ? 4.6 : 3}
-              fill={index === 6 ? "var(--star)" : "var(--ink-mid)"}
+              fill={index === 6 ? "var(--primary)" : "var(--border)"}
             />
             <text
               x={node.label.x}
               y={node.label.y}
               textAnchor="middle"
-              className="fill-[var(--ink-soft)] font-mono text-[10px] tabular-nums"
+              className="fill-muted-foreground font-mono text-[10px] tabular-nums"
             >
               {String(index + 1).padStart(2, "0")}
             </text>
@@ -443,13 +430,13 @@ async function HomeFacts() {
   ];
 
   return (
-    <dl className="mt-9 flex flex-wrap items-baseline gap-x-8 gap-y-3 border-t border-[var(--rule)] pt-5">
+    <dl className="mt-9 flex flex-wrap items-baseline gap-x-8 gap-y-3 border-t border-border pt-5">
       {facts.map((fact) => (
         <div key={fact.label} className="flex items-baseline gap-2">
-          <dd className="font-mono text-[1.6rem] leading-none text-[var(--ink-deep)] tabular-nums">
+          <dd className="font-mono text-[1.6rem] leading-none text-foreground tabular-nums">
             {fact.value}
           </dd>
-          <dt className="text-[11px] text-[var(--ink-soft)]">{fact.label}</dt>
+          <dt className="text-[11px] text-muted-foreground">{fact.label}</dt>
         </div>
       ))}
     </dl>
@@ -458,7 +445,7 @@ async function HomeFacts() {
 
 function FactsPlaceholder() {
   return (
-    <div className="mt-9 flex gap-8 border-t border-[var(--rule)] pt-5">
+    <div className="mt-9 flex gap-8 border-t border-border pt-5">
       {[0, 1, 2].map((i) => (
         <div key={i} className="h-7 w-24 animate-pulse rounded bg-muted" />
       ))}
@@ -512,23 +499,20 @@ async function HomeCurriculum() {
             <h2 className="text-[1.65rem] leading-tight font-semibold tracking-tight sm:text-[2.1rem]">
               十三讲，按依赖顺序排好
             </h2>
-            <p className="max-w-[26em] text-xs leading-6 text-[var(--ink-soft)] sm:text-right">
+            <p className="max-w-[26em] text-sm leading-relaxed text-muted-foreground sm:text-right">
               每个模块的前置知识都已经排在它前面，从第一行 Prompt 一路走到完整
               Agent 系统。
             </p>
           </div>
 
-          <ul className="mt-10 border-t border-[var(--rule)]">
+          <ul className="mt-10 border-t border-border">
             {rows.map((row) => (
-              <li
-                key={row.id}
-                className="sky-reveal border-b border-[var(--rule)]"
-              >
+              <li key={row.id} className="sky-reveal border-b border-border">
                 <Link
                   href={row.href}
                   className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-4 py-3.5 text-sm transition-colors hover:bg-[oklch(0.98_0.01_250/0.7)]"
                 >
-                  <span className="font-mono text-[11px] text-[var(--ink-mid)] tabular-nums transition-colors group-hover:text-[var(--star)]">
+                  <span className="font-mono text-[11px] text-primary tabular-nums transition-colors group-hover:text-primary">
                     {row.orderLabel}
                   </span>
                   <span className="min-w-0 truncate font-medium">
@@ -543,14 +527,12 @@ async function HomeCurriculum() {
                         <span
                           key={i}
                           className={`h-2.5 w-1 ${
-                            i < row.difficulty
-                              ? "bg-[var(--ink-mid)]"
-                              : "bg-[var(--rule)]"
+                            i < row.difficulty ? "bg-primary" : "bg-border"
                           }`}
                         />
                       ))}
                     </span>
-                    <ArrowRight className="size-3.5 text-[var(--ink-mid)]/50 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--star)]" />
+                    <ArrowRight className="size-3.5 text-primary/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                   </span>
                 </Link>
               </li>
@@ -560,7 +542,7 @@ async function HomeCurriculum() {
           <div className="mt-5 flex justify-end">
             <Link
               href="/learn"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--ink-mid)] hover:underline hover:underline-offset-4"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline hover:underline-offset-4"
             >
               进入学习中心
               <ArrowRight className="size-3.5" />
@@ -575,45 +557,40 @@ async function HomeCurriculum() {
 /**
  * 收尾。
  *
- * 上一版这里是一整块深色横幅 —— 从浅色纸面「啪」地切进深蓝，太突兀，
- * 而且在整页低饱和的语境里像另开了个页面。改法：
- * 不做整块底色，只让这一段的笔触场自己慢慢加密、慢慢变深 ——
- * 像夜里走得越远天色越浓，而不是有人关了一次灯。
- *
- * 文字保持深墨色，压在浅底上；重心靠右侧一小块深色标尺收住。
+ * 位置在页脚正上方，所以它不能是「另一块深色横幅」——
+ * 那会在页脚之前先来一次结束，让整页读起来像两段拼在一起。
+ * 底色对齐页脚那一族（`bg-muted/30` + 上边线），
+ * 笔触场只在里面轻轻飘一层，形成从正文到页脚的过渡，
+ * 而不是从纸面「啪」地跳到另一个色域。
  */
 function Closing() {
   return (
-    <section className="relative mt-20 overflow-hidden sm:mt-24">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        {/* 顶部透明、向下渐浓：没有边界线，只有浓度的变化 */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,oklch(0.72_0.05_260/0.04)_0%,oklch(0.64_0.07_262/0.16)_18%,oklch(0.56_0.08_263/0.34)_55%,oklch(0.44_0.09_266/0.5))]" />
-        <div className="sky-drift-c absolute top-1/2 left-1/2 w-[108rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.62]">
-          <StripeField depth={2.1} rotate={-5} />
-        </div>
+    <section className="relative mt-16 overflow-hidden border-t bg-muted/30 sm:mt-20">
+      <div
+        aria-hidden
+        className="sky-drift-c pointer-events-none absolute top-1/2 left-1/2 w-[100rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.4]"
+      >
+        <StripeField depth={2.1} rotate={-5} />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1160px] px-5 py-20 sm:px-8 sm:py-28">
+      <div className="relative mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-16">
         <div>
-          <p className="flex items-center gap-3 font-mono text-[10px] tracking-[0.28em] text-[var(--ink-mid)]">
-            <span className="text-[var(--star)]">IV</span>
+          <p className="flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <span className="font-mono text-primary tabular-nums">IV</span>
             掌握式学习
+            <span aria-hidden className="h-px w-10 bg-border" />
           </p>
-          <h2 className="mt-5 max-w-[17em] text-[1.7rem] leading-tight font-semibold tracking-tight text-balance text-[var(--ink-deep)] sm:text-[2.2rem]">
+          <h2 className="mt-4 max-w-[17em] text-[1.6rem] leading-tight font-semibold tracking-tight text-balance sm:text-[2rem]">
             每一讲都走完这七步，掌握度够格才继续往下走。
           </h2>
-          <Link
-            href="/learn"
-            className="group mt-8 inline-flex items-center gap-2 text-sm font-medium text-[var(--ink-mid)]"
-          >
-            进入学习中心
-            <span
-              aria-hidden
-              className="h-px w-9 bg-[var(--ink-mid)] transition-all group-hover:w-14"
-            />
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
         </div>
+
+        <Button asChild size="sm" className="shrink-0">
+          <Link href="/learn">
+            进入学习中心
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
       </div>
     </section>
   );
