@@ -223,7 +223,9 @@ export default function AuthPage() {
     // 否则笔触会被 1120px 的容器剪掉，两侧留白又变回白纸。
     <main className="relative isolate flex w-full flex-1 flex-col overflow-hidden">
       <AuthBackdrop />
-      <div className="auth-paper mx-auto flex w-full max-w-[1120px] flex-1 flex-col px-5 py-12 sm:px-8 sm:py-20">
+      {/* 不再套 .auth-paper：可读性由背景自己的 mask 保证（背景在内容区
+          自动淡到 0），不需要一层不透明纸把背景整片盖掉。 */}
+      <div className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col px-5 py-12 sm:px-8 sm:py-20">
         {/* 扉页式两栏：左页交代「这是一门什么课」，右页是入口。
           原来是一枚居中的 logo + 标题 + 副标题 + 两张卡片 —— 那是登录页模板
           的标准长相，与首页的长卷、学习中心的条目完全不是一回事。
