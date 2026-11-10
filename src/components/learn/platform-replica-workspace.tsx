@@ -22,9 +22,9 @@ import { MarkdownView } from "@/components/chat/markdown-view";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import {
-  LessonNebula,
-  LessonNebulaStyles,
-} from "@/components/learn/lesson-nebula";
+  ReplicaCardPattern,
+  ReplicaNebula,
+} from "@/components/learn/replica-nebula";
 import { ReplicaToolbox } from "@/components/learn/replica-toolbox";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
 import { useCodeStore, useQaStore } from "@/stores";
@@ -175,8 +175,8 @@ export function PlatformReplicaWorkspace({
   return (
     // 外层只承载星空：它必须全宽，而任务卡住在 1400px 版心里。
     <div className="relative isolate flex w-full flex-1 flex-col">
-      <LessonNebula />
-      <LessonNebulaStyles />
+      <ReplicaNebula />
+      <ReplicaCardPattern />
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
         <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
           <ol className="flex items-center gap-1">
@@ -414,7 +414,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
   );
 
   return (
-    <Card>
+    <Card className="replica-card">
       <CardHeader>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">

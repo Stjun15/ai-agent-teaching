@@ -614,8 +614,13 @@ export function PromptHistorySection() {
 
                 {item.issues.length > 0 ? (
                   <ul className="mt-2 flex flex-col gap-1">
-                    {item.issues.map((issue) => (
-                      <li key={`${issue.type}-${issue.detail}`}>
+                    {item.issues.map((issue, index) => (
+                      // key 不能用 `${type}-${detail}` 单独决定：同一条点评里
+                      // 两处「严重错误：缺少 description」在语义上是两条独立问题
+                      // （针对不同工具 / 不同参数），文本却可能一模一样。
+                      // 加 index 兜底与 `report-sections.tsx` 的评分维度同理：
+                      // 顺序稳定，且不需要 detail 唯一。
+                      <li key={`${issue.type}-${issue.detail}-${index}`}>
                         <Badge
                           variant={
                             issue.type === "严重错误" ? "levelLow" : "muted"

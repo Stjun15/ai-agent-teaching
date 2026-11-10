@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -345,11 +346,22 @@ export function ModuleWorkspace({
         ) : null}
 
         {/* ---------- 三栏 ---------- */}
+        {/*
+        列宽只在「真的并排」的断点生效，窄屏让每栏各占一行。
+
+        曾经把 `width: leftWidth` 写成 inline style，而 inline style 不受断点
+        约束 —— 390 宽视口下左栏仍死死占着 220px，加上 `shrink-0`，中栏（对话区）
+        被挤到 123px，教学消息正文只剩 23px 宽、竖向排列（2026-11-10 交接文档
+        记的就是这个现象）。
+
+        所以列宽走 CSS 变量 + 断点前缀：lg（1024）起左栏固定宽、右栏落到下一行，
+        xl（1280）起三栏并排；更窄的屏幕各栏 w-full 上下堆叠。
+      */}
         <div className="mt-6 flex flex-wrap xl:flex-nowrap">
           {/* 左栏 */}
           <aside
-            className="flex shrink-0 flex-col gap-4 lg:sticky lg:top-20 lg:self-start"
-            style={{ width: leftWidth }}
+            className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-20 lg:w-[var(--col-w)] lg:self-start"
+            style={{ "--col-w": `${leftWidth}px` } as CSSProperties}
           >
             <StepNav
               moduleId={teachingModule.id}
@@ -370,7 +382,16 @@ export function ModuleWorkspace({
           </div>
 
           {/* 中栏 */}
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {/*
+          `basis-full` 不是可有可无的：flex 容器允许换行时，`flex-1` 的
+          `flex-basis: 0%` 会让中栏与左栏挤进同一行，可宽度已被左栏占满，
+          中栏最终塌成 0 —— 实测 390 宽下中栏宽 0、ovf 63。给满基础宽度，
+          它在窄屏才真的会换到下一行并占满整行。
+
+          断点用 lg 而不是 xl：与左栏「lg 起固定宽」成对 —— 左栏一旦固定宽，
+          中栏就得让出剩余空间，两者必须在同一个断点切换。
+        */}
+          <div className="flex min-w-0 basis-full flex-col gap-4 lg:flex-1 lg:basis-0">
             {/*
             当前步横幅：七步共用同一工作区，切步只换左栏高亮 —— 零基础
             走查实测学生感知不到「切步发生了」。在中栏顶部常驻一条横幅，
@@ -634,8 +655,8 @@ export function ModuleWorkspace({
             </aside>
           ) : (
             <aside
-              className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-20 xl:self-start"
-              style={{ width: rightWidth, maxWidth: "100%" }}
+              className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-20 xl:w-[var(--col-w)] xl:self-start"
+              style={{ "--col-w": `${rightWidth}px` } as CSSProperties}
             >
               <LearnDashboard
                 teachingModule={teachingModule}

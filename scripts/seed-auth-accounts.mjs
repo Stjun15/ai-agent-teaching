@@ -23,6 +23,7 @@
 
 import { randomBytes, scryptSync } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const ACCOUNTS = [
@@ -192,7 +193,16 @@ const DEMO = {
           { name: "迭代调优", score: 4 },
           { name: "理解 AI 行为", score: 5 },
         ],
-        ["messages 数组正确"],
+        [
+          {
+            type: "优化建议",
+            detail:
+              "第二轮消息里没有注释说明为何不必重复 system prompt，读者分不清是有意省略还是漏写",
+            deduction: 15,
+            relatedDimension: "上下文管理",
+            relatedAntiPattern: null,
+          },
+        ],
         ["可以加注释说明为什么第二轮不需要重复 system prompt"],
         1,
         true,
@@ -210,8 +220,16 @@ const DEMO = {
           { name: "迭代调优", score: 3 },
           { name: "理解 AI 行为", score: 5 },
         ],
-        ["角色定义不错", "边界可以更清晰"],
-        ['建议加上"如果顾客问的不是奶茶就走兜底话术"'],
+        [
+          {
+            type: "优化建议",
+            detail: "边界可以更清晰",
+            deduction: 8,
+            relatedDimension: "边界条件",
+            relatedAntiPattern: "vague-prompt",
+          },
+        ],
+        ['角色定义不错；建议加上"如果顾客问的不是奶茶就走兜底话术"'],
         1,
         true,
       ],
@@ -229,9 +247,28 @@ const DEMO = {
           { name: "理解 AI 行为", score: 3 },
         ],
         [
-          "工具名不规范（下划线 + 单词），应为全小写英文字母且用破折号连接",
-          "description 未定义",
-          "参数缺少类型注释",
+          {
+            type: "严重错误",
+            detail:
+              "工具名不规范（下划线 + 单词），应为全小写英文字母且用破折号连接",
+            deduction: 15,
+            relatedDimension: "工具定义",
+            relatedAntiPattern: "missing-params",
+          },
+          {
+            type: "严重错误",
+            detail: "description 未定义",
+            deduction: 12,
+            relatedDimension: "工具定义",
+            relatedAntiPattern: "missing-params",
+          },
+          {
+            type: "优化建议",
+            detail: "参数缺少类型注释",
+            deduction: 5,
+            relatedDimension: "工具定义",
+            relatedAntiPattern: "missing-params",
+          },
         ],
         [
           '工具名改为 check-package，加上 description: "根据姓名和手机号查询快递状态"',
@@ -252,7 +289,22 @@ const DEMO = {
           { name: "迭代调优", score: 2 },
           { name: "理解 AI 行为", score: 3 },
         ],
-        ["具名仍有下划线", "缺少 description 说明触发条件"],
+        [
+          {
+            type: "严重错误",
+            detail: "具名仍有下划线",
+            deduction: 10,
+            relatedDimension: "工具定义",
+            relatedAntiPattern: "missing-params",
+          },
+          {
+            type: "优化建议",
+            detail: "缺少 description 说明触发条件",
+            deduction: 8,
+            relatedDimension: "工具定义",
+            relatedAntiPattern: "missing-params",
+          },
+        ],
         ["命名为 check-package，加上 description"],
         2,
         false,
@@ -270,7 +322,15 @@ const DEMO = {
           { name: "迭代调优", score: 2 },
           { name: "理解 AI 行为", score: 4 },
         ],
-        ["类比部分有亮点但不够精确，没说明不观察的后果"],
+        [
+          {
+            type: "优化建议",
+            detail: "类比部分有亮点但不够精确，没说明不观察的后果",
+            deduction: 10,
+            relatedDimension: "表达清晰度",
+            relatedAntiPattern: "vague-prompt",
+          },
+        ],
         ["加上：如果跳过尝一口直接加盐，最后整锅都废了"],
         1,
         true,
@@ -288,7 +348,15 @@ const DEMO = {
           { name: "迭代调优", score: 4 },
           { name: "理解 AI 行为", score: 4 },
         ],
-        ["四步写全了"],
+        [
+          {
+            type: "优化建议",
+            detail: "四步写全了，但缺一个具体例子",
+            deduction: 6,
+            relatedDimension: "表达清晰度",
+            relatedAntiPattern: null,
+          },
+        ],
         ["可以加一个具体例子来说明"],
         2,
         true,
@@ -482,8 +550,11 @@ const DEMO = {
           { name: "迭代调优", score: 3 },
           { name: "理解 AI 行为", score: 4 },
         ],
-        ["buildContext 用评分公式筛选文档是正确的思路"],
-        ["选仓鼠那篇是对的（啮齿类有参考价值），选猫粮那篇应该解释为什么不选"],
+        [],
+        [
+          "buildContext 用评分公式筛选文档是正确的思路",
+          "选仓鼠那篇是对的（啮齿类有参考价值），选猫粮那篇应该解释为什么不选",
+        ],
         1,
         false,
       ],
@@ -518,8 +589,11 @@ const DEMO = {
           { name: "迭代调优", score: 3 },
           { name: "理解 AI 行为", score: 4 },
         ],
-        ["Agent 分工清晰，输入输出有定义"],
-        ["3 个 Agent 的职责界限再明确一点更好"],
+        [],
+        [
+          "Agent 分工清晰，输入输出有定义",
+          "3 个 Agent 的职责界限再明确一点更好",
+        ],
         1,
         true,
       ],
@@ -565,6 +639,21 @@ const DEMO = {
     },
   },
 };
+
+/**
+ * 两个演示账号的 promptHistory 每条记录的 issues，扁平成一个记录列表
+ * （每项是一条 `promptHistory` 条目的 `issues` 数组）。
+ *
+ * 给 `scripts/seed-contract-spec.ts` 用：这份数据手写、不经 Zod，
+ * 和 `PromptIssue` 契约之间没有任何东西强制一致（TS 看不见 .mjs 里的字面量）。
+ * 2026-11-10 就因此把 issues 写成了字符串数组，报告页上每条 issue
+ * 渲染成空徽章 +「（-）」，问题文本整个消失。导出出来才能被测试钉住。
+ *
+ * 元组位置 5 是 issues —— 与 `fillPromptHistory` 的解构顺序同源。
+ */
+export const DEMO_PROMPT_ISSUES = Object.values(DEMO).flatMap((demo) =>
+  demo.promptHistory.map((entry) => entry[5]),
+);
 
 function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
@@ -708,6 +797,38 @@ function fillErrors(db, studentId, accountIndex, entries) {
 }
 
 function fillPromptHistory(db, studentId, accountIndex, entries) {
+  // 先清掉「同一个演示账号、同模块、同内容，但 id 不是本脚本生成的」残留行。
+  //
+  // 为什么需要这一步：文件头承诺「重复执行不会产生重复行」，而那个承诺
+  // 只在「id 一直是 demoId 生成」的前提下成立。旧版脚本曾用 randomUUID 写
+  // 演示行，那些行留在库里，重跑只会 upsert 自己那份，旧行原地不动 ——
+  // 于是报告页同一个 Prompt 出现两次（实测 test 账号多出 12 行、eval 多出 18 行），
+  // 且它们的 `issues` 还是不合契约的字符串数组。
+  //
+  // 匹配条件用 (module_id, content) **加** 随机 id 判定，不用「删该账号全部」：
+  // 演示账号上也有真实产生的行（实测 test 的 platform-replica 一条），
+  // 一刀切会把真实数据一起删掉。内容逐字相同才算残留 —— 学生自主提交
+  // 出与种子一字不差的内容在实际上不会发生。
+  const seedKeys = new Set(entries.map((entry) => `${entry[0]}|${entry[2]}`));
+  const stale = db
+    .prepare(
+      `SELECT id, module_id, content FROM prompt_history WHERE student_id = ?`,
+    )
+    .all(studentId)
+    .filter(
+      (row) =>
+        !row.id.startsWith("aaaaaaaa-0000-4000-9000-") &&
+        seedKeys.has(`${row.module_id}|${row.content}`),
+    )
+    .map((row) => row.id);
+  if (stale.length > 0) {
+    const ph = stale.map(() => "?").join(",");
+    db.prepare(`DELETE FROM prompt_history WHERE id IN (${ph})`).run(...stale);
+    console.log(
+      `  清掉 ${stale.length} 条旧版演示残留（同模块同内容、id 非 demoId）`,
+    );
+  }
+
   const upsert = db.prepare(
     `INSERT INTO prompt_history (id, student_id, module_id, task_type, content, score, dimensions, issues, suggestions, attempt_number, is_passed, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -837,4 +958,8 @@ function main() {
   console.log("\n评审账号与演示数据已就绪（重复执行不会产生重复行）。");
 }
 
-main();
+// 直接 `node scripts/seed-auth-accounts.mjs` 才执行；被测试 import 时不做任何副作用（
+// 否则那条「数据形状」的断言会顺带把演示数据写进 dev.db）。
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

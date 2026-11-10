@@ -71,6 +71,11 @@ const SUITES = [
     model: false,
   },
   {
+    name: "种子数据契约",
+    file: "scripts/seed-contract-spec.ts",
+    model: false,
+  },
+  {
     name: "评分维度汇总",
     file: "scripts/report-dimensions-spec.ts",
     model: false,
