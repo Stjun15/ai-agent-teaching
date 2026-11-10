@@ -198,7 +198,7 @@ function Hero() {
             </Button>
             <Link
               href="#modules"
-              className="group inline-flex items-center gap-2 text-xs font-medium text-primary"
+              className="group inline-flex items-center gap-2 text-[13px] font-medium text-primary"
             >
               课程大纲
               <span
@@ -222,7 +222,7 @@ function Hero() {
 
 function SectionMark({ index, label }: { index: string; label: string }) {
   return (
-    <p className="flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+    <p className="flex items-center gap-3 text-[13px] font-medium tracking-wide text-muted-foreground uppercase">
       <span className="font-mono text-primary tabular-nums">{index}</span>
       {label}
       <span aria-hidden className="h-px flex-1 bg-border" />
@@ -258,7 +258,7 @@ function Abilities() {
               key={ability.name}
               className="sky-reveal grid grid-cols-[2.75rem_minmax(0,1fr)] items-baseline gap-x-5 gap-y-1.5 border-b border-border py-5 sm:grid-cols-[3.25rem_11rem_minmax(0,1fr)] sm:py-4"
             >
-              <span className="font-mono text-[11px] text-primary tabular-nums">
+              <span className="font-mono text-[13px] text-primary tabular-nums">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="text-sm font-semibold">{ability.name}</span>
@@ -296,7 +296,7 @@ function Flow() {
                 key={item.step}
                 className="sky-reveal group flex gap-4 border-t border-border py-4 last:border-b lg:border-t-0 lg:border-b lg:py-3.5 lg:last:border-b"
               >
-                <span className="w-6 shrink-0 pt-0.5 font-mono text-[11px] text-primary tabular-nums">
+                <span className="w-7 shrink-0 pt-0.5 font-mono text-[13px] text-primary tabular-nums">
                   {item.step.padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
@@ -405,7 +405,7 @@ function StepDial({ className = "" }: { className?: string }) {
               x={node.label.x}
               y={node.label.y}
               textAnchor="middle"
-              className="fill-muted-foreground font-mono text-[10px] tabular-nums"
+              className="fill-muted-foreground font-mono text-[12px] tabular-nums"
             >
               {String(index + 1).padStart(2, "0")}
             </text>
@@ -436,7 +436,7 @@ async function HomeFacts() {
           <dd className="font-mono text-[1.6rem] leading-none text-foreground tabular-nums">
             {fact.value}
           </dd>
-          <dt className="text-[11px] text-muted-foreground">{fact.label}</dt>
+          <dt className="text-[13px] text-muted-foreground">{fact.label}</dt>
         </div>
       ))}
     </dl>
@@ -512,7 +512,7 @@ async function HomeCurriculum() {
                   href={row.href}
                   className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-4 py-3.5 text-sm transition-colors hover:bg-[oklch(0.98_0.01_250/0.7)]"
                 >
-                  <span className="font-mono text-[11px] text-primary tabular-nums transition-colors group-hover:text-primary">
+                  <span className="font-mono text-[13px] text-primary tabular-nums transition-colors group-hover:text-primary">
                     {row.orderLabel}
                   </span>
                   <span className="min-w-0 truncate font-medium">
@@ -542,7 +542,7 @@ async function HomeCurriculum() {
           <div className="mt-5 flex justify-end">
             <Link
               href="/learn"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline hover:underline-offset-4"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:underline hover:underline-offset-4"
             >
               进入学习中心
               <ArrowRight className="size-3.5" />
@@ -575,7 +575,7 @@ function Closing() {
 
       <div className="relative mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-5 py-14 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-16">
         <div>
-          <p className="flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          <p className="flex items-center gap-3 text-[13px] font-medium tracking-wide text-muted-foreground uppercase">
             <span className="font-mono text-primary tabular-nums">IV</span>
             掌握式学习
             <span aria-hidden className="h-px w-10 bg-border" />
