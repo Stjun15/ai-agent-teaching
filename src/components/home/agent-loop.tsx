@@ -80,10 +80,10 @@ export function AgentLoop() {
   return (
     <div className="border border-border bg-foreground text-background">
       <div className="flex items-center justify-between border-b border-background/15 px-4 py-2.5">
-        <span className="font-mono text-[10px] text-background/60">
+        <span className="font-mono text-[12px] text-background/60">
           教学循环
         </span>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] text-background/60">
+        <span className="flex items-center gap-1.5 font-mono text-[12px] text-background/60">
           <span className="size-1.5 animate-pulse rounded-full bg-background/70" />
           运行中
         </span>
@@ -96,7 +96,7 @@ export function AgentLoop() {
           className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-background/8 opacity-0 transition-opacity duration-150 will-change-transform"
         />
 
-        <ol className="space-y-3 px-4 py-4 font-mono text-[11px] leading-6">
+        <ol className="space-y-3 px-4 py-4 font-mono text-[13px] leading-6">
           {LOOP.slice(0, shown).map((item) => (
             <li
               key={item.label}
@@ -121,7 +121,7 @@ export function AgentLoop() {
         </ol>
       </div>
 
-      <p className="border-t border-background/15 px-4 py-2 font-mono text-[10px] text-background/45">
+      <p className="border-t border-background/15 px-4 py-2 font-mono text-[12px] text-background/45">
         示意：一次真实教学循环的形状
       </p>
     </div>
