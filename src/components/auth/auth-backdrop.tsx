@@ -254,6 +254,23 @@ function AuthStyles() {
     opacity: 0.22;
   }
 }
+
+/* 表单底：右栏那一片单独垫一层半透明纸。
+   mask 已经把星云在表单位置挖空了，但挖空区边缘仍是渐变的 ——
+   星云的蓝紫调会从四边渗进来，让表单文字看起来「被盖住」。
+   这一层用 92% 的纸色压住渗色，同时留 8% 让格子与外圈纹理若隐若现，
+   不至于变成一张死白卡。 */
+.auth-form-sheet {
+  background-color: color-mix(in oklch, var(--background) 92%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--rule) 60%, transparent);
+}
+@media (max-width: 1023px) {
+  /* 窄屏星云已经压到 0.22，不需要再垫，垫了反而多一块框 */
+  .auth-form-sheet {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
 `}</style>
   );
 }

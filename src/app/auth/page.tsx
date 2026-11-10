@@ -233,7 +233,7 @@ export default function AuthPage() {
         <div className="grid flex-1 items-start gap-14 lg:grid-cols-[1fr_21rem] lg:gap-20">
           {/* ---------- 左页：课程扉页 ---------- */}
           <section className="hidden lg:block">
-            <p className="text-[0.75rem] font-medium tracking-[0.24em] text-primary uppercase">
+            <p className="text-[0.8125rem] font-medium tracking-[0.24em] text-primary uppercase">
               AI Native · 掌握式学习
             </p>
 
@@ -260,7 +260,7 @@ export default function AuthPage() {
                   <span className="w-[5.5em] shrink-0 text-sm font-medium">
                     {step.label}
                   </span>
-                  <span className="text-[0.8rem] leading-relaxed text-muted-foreground">
+                  <span className="text-[0.9rem] leading-relaxed text-foreground/70">
                     {step.detail}
                   </span>
                 </li>
@@ -268,7 +268,7 @@ export default function AuthPage() {
             </ol>
           </section>
 
-          <div>
+          <div className="auth-form-sheet lg:rounded-lg lg:px-6 lg:py-7">
             <div className="flex items-center gap-2.5 lg:hidden">
               <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <Blocks className="size-5" aria-hidden />
@@ -311,7 +311,7 @@ export default function AuthPage() {
               ))}
             </div>
 
-            <p className="mt-5 text-[0.8rem] leading-relaxed text-muted-foreground">
+            <p className="mt-5 text-[0.9rem] leading-relaxed text-foreground/70">
               登录后将以该身份继续学习，报告与掌握度按它记录。
             </p>
 
@@ -320,7 +320,7 @@ export default function AuthPage() {
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="login-username"
-                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase"
                   >
                     用户名
                   </label>
@@ -337,7 +337,7 @@ export default function AuthPage() {
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="login-password"
-                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase"
                   >
                     密码
                   </label>
@@ -355,7 +355,7 @@ export default function AuthPage() {
                 {loginError ? (
                   <p
                     role="alert"
-                    className="text-[0.8rem] leading-relaxed text-danger"
+                    className="text-[0.9rem] leading-relaxed text-danger"
                   >
                     {loginError}
                   </p>
@@ -366,7 +366,7 @@ export default function AuthPage() {
                 </Button>
 
                 <div className="rounded-md bg-surface px-4 py-3.5">
-                  <div className="mb-2.5 flex items-center gap-1.5 text-[0.72rem] font-medium text-muted-foreground">
+                  <div className="mb-2.5 flex items-center gap-1.5 text-[0.8125rem] font-semibold text-foreground/75">
                     <GraduationCap className="size-3.5" aria-hidden />
                     评审演示
                   </div>
@@ -374,19 +374,19 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => handleDemoFill("test", "test1234")}
-                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
                     >
                       test / test1234
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDemoFill("eval", "eval1234")}
-                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
                     >
                       eval / eval1234
                     </button>
                   </div>
-                  <p className="mt-2 text-[0.7rem] leading-relaxed text-muted-foreground/70">
+                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-foreground/70">
                     点击按钮自动填充账号密码，然后点「登录」即可。
                   </p>
                 </div>
@@ -399,7 +399,7 @@ export default function AuthPage() {
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="reg-username"
-                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase"
                   >
                     用户名
                   </label>
@@ -416,7 +416,7 @@ export default function AuthPage() {
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="reg-password"
-                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase"
                   >
                     密码
                   </label>
@@ -433,7 +433,7 @@ export default function AuthPage() {
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="reg-confirm"
-                    className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase"
                   >
                     确认密码
                   </label>
@@ -451,7 +451,7 @@ export default function AuthPage() {
                 {regError ? (
                   <p
                     role="alert"
-                    className="text-[0.8rem] leading-relaxed text-danger"
+                    className="text-[0.9rem] leading-relaxed text-danger"
                   >
                     {regError}
                   </p>
@@ -464,13 +464,13 @@ export default function AuthPage() {
             )}
 
             <div className="mt-10 border-t border-rule pt-5">
-              <p className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase">
+              <p className="text-[0.8125rem] font-semibold tracking-wide text-foreground/75 uppercase">
                 当前身份
               </p>
-              <code className="mt-2 block overflow-x-auto font-mono text-[0.72rem] text-muted-foreground">
+              <code className="mt-2 block overflow-x-auto font-mono text-[0.8125rem] text-foreground/70">
                 {currentId ?? "读取中…"}
               </code>
-              <p className="mt-2 flex items-start gap-1.5 text-[0.7rem] leading-relaxed text-muted-foreground/80">
+              <p className="mt-2 flex items-start gap-1.5 text-[0.8125rem] leading-relaxed text-foreground/70">
                 <Info className="mt-0.5 size-3 shrink-0" aria-hidden />
                 这里显示的是当前学生身份的
                 id。退出登录会把它清空，回到内置的种子学生。
@@ -478,7 +478,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="mt-3 inline-flex items-center gap-1.5 text-[0.75rem] text-muted-foreground transition-colors hover:text-foreground"
+                className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] text-foreground/70 transition-colors hover:text-foreground"
               >
                 <LogOut className="size-3.5" aria-hidden />
                 退出登录（回到种子身份）
