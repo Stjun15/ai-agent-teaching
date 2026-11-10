@@ -60,3 +60,50 @@ export function ReportNebula() {
     </div>
   );
 }
+
+/**
+ * 报告页卡片列表的星空纹路。
+ *
+ * 卡片不能做成半透明（会连带影响全站 Card 的观感），所以改成
+ * **卡片自己带一层极淡的同心环纹路**：不透明纸底之上再叠一圈圈
+ * 同心的星图刻度，与页面背景的星云同构，但浓度只有它的十分之一。
+ *
+ * 为什么不做满整张卡片：这些列表一屏十几条，很密。纹路如果铺满，
+ * 十张卡各带一圈环，页面会变得很吵；所以环心放在卡片右上角之外
+ * （`at 118% -18%`），只在卡片的右上角露出弧线的一小段 ——
+ * 远看是干净的纸，近看才发现有星图。
+ *
+ * 环间距 22px、线宽 1px、透明度 0.05~0.07：这三个数是在
+ * 1440 截图上看不出来的量级，但并排十张卡时能读出「有东西」。
+ */
+export function ErrorCardPattern() {
+  return (
+    <style>{`
+.star-card {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--card);
+}
+.star-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  /* 同心环：每 20px 一圈。
+     透明度从 7% 提到 16% —— 7% 时实测卡片右上角亮度跨度只有 6.1/255，
+     肉眼看不见，等于没加。16% 落在「近看有环、远看是干净的纸」这一档。 */
+  background-image: repeating-radial-gradient(
+    circle at 118% -18%,
+    transparent 0 19px,
+    color-mix(in oklch, var(--primary) 16%, transparent) 19px 20px
+  );
+  /* 可见范围比之前 62% 放宽到 78%：原来只在右上角一小块，
+     一块卡片上只有两三条弧，读不出「同心」。仍向左下淡出，不铺满整卡。 */
+  mask-image: radial-gradient(125% 125% at 118% -18%, #000 14%, transparent 78%);
+  -webkit-mask-image: radial-gradient(125% 125% at 118% -18%, #000 14%, transparent 78%);
+}
+`}</style>
+  );
+}

@@ -283,7 +283,7 @@ export function ErrorBookSection() {
             {data.errors.map((item) => (
               <li
                 key={item.id}
-                className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                className="star-card rounded-lg border px-3 py-2 text-xs leading-relaxed"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
@@ -558,7 +558,7 @@ export function PromptHistorySection() {
             {data.history.map((item) => (
               <li
                 key={item.id}
-                className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                className="star-card rounded-lg border px-3 py-2 text-xs leading-relaxed"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

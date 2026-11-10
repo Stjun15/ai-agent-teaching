@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { ReportView } from "@/components/report/report-view";
-import { ReportNebula } from "@/components/report/report-nebula";
+import {
+  ErrorCardPattern,
+  ReportNebula,
+} from "@/components/report/report-nebula";
 
 export const metadata: Metadata = {
   title: "学习报告",
@@ -21,6 +24,7 @@ export default function ReportPage() {
     // 与首页、登录页、学习中心同构：外层铺满承载星云，内层限宽放内容。
     <main className="relative isolate flex w-full flex-1 flex-col overflow-hidden">
       <ReportNebula />
+      <ErrorCardPattern />
       <div className="mx-auto w-full max-w-[1120px] px-5 py-12 sm:px-8 sm:py-16">
         <header className="max-w-2xl">
           <h1 className="text-[2rem] tracking-tight sm:text-[2.4rem]">
