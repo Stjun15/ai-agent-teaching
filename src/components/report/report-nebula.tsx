@@ -45,6 +45,18 @@ export function ReportNebula() {
         className="top-[104rem] -right-[28rem] hidden h-[46rem] w-[46rem] lg:block"
         opacity={0.22}
       />
+      {/* 错题本：标题在文档 1859px（实测），卡片流一直延伸到 ~3200px。
+          这一段的星云必须**更靠内**：之前放在 -right-[28rem]，
+          1440 视口下大半被推出屏幕右缘（实测该区域饱和度 max 只有 0.222，
+          等于没有）。收到 -right-[18rem] 并提高浓度，让卡片缝隙里能看见。 */}
+      <Nebula
+        className="top-[118rem] -right-[10rem] hidden h-[58rem] w-[58rem] lg:block"
+        opacity={0.46}
+      />
+      <Nebula
+        className="top-[152rem] -left-[16rem] hidden h-[54rem] w-[54rem] lg:block"
+        opacity={0.38}
+      />
     </div>
   );
 }
