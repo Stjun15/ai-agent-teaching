@@ -21,6 +21,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownView } from "@/components/chat/markdown-view";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
+import {
+  LessonNebula,
+  LessonNebulaStyles,
+} from "@/components/learn/lesson-nebula";
 import { ReplicaToolbox } from "@/components/learn/replica-toolbox";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
 import { useCodeStore, useQaStore } from "@/stores";
@@ -157,7 +161,10 @@ export function PlatformReplicaWorkspace({
   }, [activePhaseIndex, wikiContent === null]);
 
   useEffect(() => {
-    contentRef.current?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    contentRef.current?.scrollTo({
+      top: 0,
+      behavior: "instant" as ScrollBehavior,
+    });
   }, [activePhaseIndex]);
 
   const prerequisiteNames = teachingModule.prerequisites.map(
@@ -166,230 +173,237 @@ export function PlatformReplicaWorkspace({
   const phase = REPLICA_PHASES[activePhaseIndex];
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
-      <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
-        <ol className="flex items-center gap-1">
-          <li>
-            <Link href="/learn" className="underline-offset-4 hover:underline">
-              学习中心
-            </Link>
-          </li>
-          <ChevronRight className="size-3" aria-hidden />
-          <li className="text-foreground">{teachingModule.name}</li>
-        </ol>
-      </nav>
-
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {teachingModule.name}
-        </h1>
-        <DifficultyBadge difficulty={teachingModule.difficulty} />
-        <Badge variant="outline">
-          <Clock aria-hidden />
-          {teachingModule.estimatedTime}
-        </Badge>
-        {prerequisiteNames.length > 0 ? (
-          <span className="text-xs text-muted-foreground">
-            前置：{prerequisiteNames.join("、")}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            无前置，从这里开始
-          </span>
-        )}
-      </header>
-
-      {teachingModule.summary ? (
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {teachingModule.summary}
-        </p>
-      ) : null}
-
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-        这一讲在浏览器外完成：命令敲在<b>你自己电脑的终端</b>里，代码写在
-        <b>你自己的项目</b>
-        里。这个页面是你的任务卡、验收速查和导师——卡住了随时问。
-      </p>
-
-      {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <nav aria-label="搭建阶段" className="flex flex-col gap-1">
-          {REPLICA_PHASES.map((p, i) => {
-            const isActive = i === activePhaseIndex;
-            const isDone = i < activePhaseIndex;
-            const isLast = i === REPLICA_PHASES.length - 1;
-
-            return (
-              <div key={p.index} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  {isDone ? (
-                    <CheckCircle2 className="size-5 shrink-0 text-ok" />
-                  ) : isActive ? (
-                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                      {i + 1}
-                    </div>
-                  ) : (
-                    <Circle className="size-5 shrink-0 text-muted-foreground/40" />
-                  )}
-                  {!isLast ? (
-                    <div
-                      className={
-                        isDone
-                          ? "my-0.5 w-px flex-1 bg-ok/30"
-                          : "my-0.5 w-px flex-1 bg-muted"
-                      }
-                    />
-                  ) : null}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActivePhaseIndex(i)}
-                  className={
-                    "flex-1 pb-5 text-left text-sm transition-colors " +
-                    (isActive
-                      ? "font-semibold text-foreground"
-                      : isDone
-                        ? "text-muted-foreground hover:text-foreground"
-                        : "text-muted-foreground/60 hover:text-muted-foreground")
-                  }
-                >
-                  <div>{p.title}</div>
-                  <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
-                    {isDone
-                      ? "已完成"
-                      : p.goal.length > 28
-                        ? p.goal.slice(0, 28) + "..."
-                        : p.goal}
-                  </div>
-                </button>
-              </div>
-            );
-          })}
+    // 外层只承载星空：它必须全宽，而任务卡住在 1400px 版心里。
+    <div className="relative isolate flex w-full flex-1 flex-col">
+      <LessonNebula />
+      <LessonNebulaStyles />
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6">
+        <nav aria-label="面包屑" className="mb-3 text-xs text-muted-foreground">
+          <ol className="flex items-center gap-1">
+            <li>
+              <Link
+                href="/learn"
+                className="underline-offset-4 hover:underline"
+              >
+                学习中心
+              </Link>
+            </li>
+            <ChevronRight className="size-3" aria-hidden />
+            <li className="text-foreground">{teachingModule.name}</li>
+          </ol>
         </nav>
 
-        <div className="flex flex-col gap-4">
-          {phase ? (
-            <PhaseDetailCard phase={phase} />
-          ) : (
-            <p className="text-sm text-muted-foreground">阶段数据缺失</p>
-          )}
-
-          {/* ---- 工具箱：验收脚本 / Skill 自查 / 交付与检验单 ---- */}
-          <ReplicaToolbox
-            phase={phase!}
-            moduleId={teachingModule.id}
-          />
-
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={activePhaseIndex === 0}
-              onClick={() =>
-                setActivePhaseIndex(Math.max(0, activePhaseIndex - 1))
-              }
-            >
-              上一阶段
-            </Button>
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {teachingModule.name}
+          </h1>
+          <DifficultyBadge difficulty={teachingModule.difficulty} />
+          <Badge variant="outline">
+            <Clock aria-hidden />
+            {teachingModule.estimatedTime}
+          </Badge>
+          {prerequisiteNames.length > 0 ? (
             <span className="text-xs text-muted-foreground">
-              {activePhaseIndex + 1} / {REPLICA_PHASES.length}
+              前置：{prerequisiteNames.join("、")}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={activePhaseIndex === REPLICA_PHASES.length - 1}
-              onClick={() =>
-                setActivePhaseIndex(
-                  Math.min(REPLICA_PHASES.length - 1, activePhaseIndex + 1),
-                )
-              }
-            >
-              下一阶段
-              <ArrowRight className="ml-1.5 size-3.5" />
-            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              无前置，从这里开始
+            </span>
+          )}
+        </header>
+
+        {teachingModule.summary ? (
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {teachingModule.summary}
+          </p>
+        ) : null}
+
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          这一讲在浏览器外完成：命令敲在<b>你自己电脑的终端</b>里，代码写在
+          <b>你自己的项目</b>
+          里。这个页面是你的任务卡、验收速查和导师——卡住了随时问。
+        </p>
+
+        {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
+        <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <nav aria-label="搭建阶段" className="flex flex-col gap-1">
+            {REPLICA_PHASES.map((p, i) => {
+              const isActive = i === activePhaseIndex;
+              const isDone = i < activePhaseIndex;
+              const isLast = i === REPLICA_PHASES.length - 1;
+
+              return (
+                <div key={p.index} className="flex min-w-0 gap-3">
+                  <div className="flex flex-col items-center">
+                    {isDone ? (
+                      <CheckCircle2 className="size-5 shrink-0 text-ok" />
+                    ) : isActive ? (
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                        {i + 1}
+                      </div>
+                    ) : (
+                      <Circle className="size-5 shrink-0 text-muted-foreground/40" />
+                    )}
+                    {!isLast ? (
+                      <div
+                        className={
+                          isDone
+                            ? "my-0.5 w-px flex-1 bg-ok/30"
+                            : "my-0.5 w-px flex-1 bg-muted"
+                        }
+                      />
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActivePhaseIndex(i)}
+                    className={
+                      "min-w-0 flex-1 pb-5 text-left text-sm transition-colors " +
+                      (isActive
+                        ? "font-semibold text-foreground"
+                        : isDone
+                          ? "text-muted-foreground hover:text-foreground"
+                          : "text-muted-foreground/60 hover:text-muted-foreground")
+                    }
+                  >
+                    <div>{p.title}</div>
+                    <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
+                      {isDone
+                        ? "已完成"
+                        : p.goal.length > 28
+                          ? p.goal.slice(0, 28) + "..."
+                          : p.goal}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* min-w-0：grid 子项默认 min-width:auto，里面一段长句/pre
+            会把这一列撑到 570px，窄屏就横向溢出（实测 196px）。 */}
+          <div className="flex min-w-0 flex-col gap-4">
+            {phase ? (
+              <PhaseDetailCard phase={phase} />
+            ) : (
+              <p className="text-sm text-muted-foreground">阶段数据缺失</p>
+            )}
+
+            {/* ---- 工具箱：验收脚本 / Skill 自查 / 交付与检验单 ---- */}
+            <ReplicaToolbox phase={phase!} moduleId={teachingModule.id} />
+
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={activePhaseIndex === 0}
+                onClick={() =>
+                  setActivePhaseIndex(Math.max(0, activePhaseIndex - 1))
+                }
+              >
+                上一阶段
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {activePhaseIndex + 1} / {REPLICA_PHASES.length}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={activePhaseIndex === REPLICA_PHASES.length - 1}
+                onClick={() =>
+                  setActivePhaseIndex(
+                    Math.min(REPLICA_PHASES.length - 1, activePhaseIndex + 1),
+                  )
+                }
+              >
+                下一阶段
+                <ArrowRight className="ml-1.5 size-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ---- 教案 ---- */}
-      {wikiLoading ? (
-        <Card className="mt-3">
-          <CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-            <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            正在加载教案…
-          </CardContent>
-        </Card>
-      ) : wikiError ? (
-        <Card className="mt-3">
-          <CardContent className="flex items-center gap-2 py-4 text-sm text-red-600">
-            <AlertTriangle className="size-4" />
-            加载失败：{wikiError}
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-2"
-              onClick={retryWikiContent}
-            >
-              重试
-            </Button>
-          </CardContent>
-        </Card>
-      ) : wikiContent ? (
-        <Card className="mt-3">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">完整教案</CardTitle>
-              {tocItems.length > 0 ? (
-                <Button
-                  variant={showToc ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() => setShowToc((v) => !v)}
-                >
-                  <List className="mr-1 size-3.5" />
-                  {showToc ? "隐藏目录" : "目录"}
-                </Button>
+        {/* ---- 教案 ---- */}
+        {wikiLoading ? (
+          <Card className="mt-3">
+            <CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+              <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              正在加载教案…
+            </CardContent>
+          </Card>
+        ) : wikiError ? (
+          <Card className="mt-3">
+            <CardContent className="flex items-center gap-2 py-4 text-sm text-red-600">
+              <AlertTriangle className="size-4" />
+              加载失败：{wikiError}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2"
+                onClick={retryWikiContent}
+              >
+                重试
+              </Button>
+            </CardContent>
+          </Card>
+        ) : wikiContent ? (
+          <Card className="mt-3">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">完整教案</CardTitle>
+                {tocItems.length > 0 ? (
+                  <Button
+                    variant={showToc ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowToc((v) => !v)}
+                  >
+                    <List className="mr-1 size-3.5" />
+                    {showToc ? "隐藏目录" : "目录"}
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="flex min-h-0 gap-0 p-0">
+              {showToc && tocItems.length > 0 ? (
+                <nav className="hidden w-52 shrink-0 overflow-y-auto border-r bg-muted/20 py-3 lg:block">
+                  <div className="mb-2 px-3 text-[11px] font-semibold text-muted-foreground">
+                    目录
+                  </div>
+                  <ul className="space-y-0.5">
+                    {tocItems.map((item, i) => (
+                      <li key={i}>
+                        <button
+                          type="button"
+                          onClick={() => scrollToHeading(item.slug)}
+                          className={
+                            "block w-full truncate px-3 py-1 text-left text-xs transition-colors hover:bg-muted hover:text-foreground " +
+                            (item.level === 2
+                              ? "font-medium text-foreground/80"
+                              : "pl-6 text-muted-foreground")
+                          }
+                          title={item.text}
+                        >
+                          {item.text}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
               ) : null}
-            </div>
-          </CardHeader>
-          <CardContent className="flex min-h-0 gap-0 p-0">
-            {showToc && tocItems.length > 0 ? (
-              <nav className="hidden w-52 shrink-0 overflow-y-auto border-r bg-muted/20 py-3 lg:block">
-                <div className="mb-2 px-3 text-[11px] font-semibold text-muted-foreground">
-                  目录
-                </div>
-                <ul className="space-y-0.5">
-                  {tocItems.map((item, i) => (
-                    <li key={i}>
-                      <button
-                        type="button"
-                        onClick={() => scrollToHeading(item.slug)}
-                        className={
-                          "block w-full truncate px-3 py-1 text-left text-xs transition-colors hover:bg-muted hover:text-foreground " +
-                          (item.level === 2
-                            ? "font-medium text-foreground/80"
-                            : "pl-6 text-muted-foreground")
-                        }
-                        title={item.text}
-                      >
-                        {item.text}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ) : null}
-            <div
-              ref={contentRef}
-              className="prose prose-sm dark:prose-invert max-w-none min-w-0 flex-1 overflow-y-auto px-6 py-4 [&_li]:text-[clamp(12px,1.8vw,16px)] [&_p]:text-[clamp(12px,1.8vw,16px)] [&_pre]:text-[clamp(11px,1.6vw,14px)] [&_table]:text-[clamp(11px,1.6vw,14px)]"
-              style={{ maxHeight: "60vh" }}
-            >
-              <MarkdownView source={wikiContent ?? ""} />
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-    </main>
+              <div
+                ref={contentRef}
+                className="prose prose-sm dark:prose-invert max-w-none min-w-0 flex-1 overflow-y-auto px-6 py-4 [&_li]:text-[clamp(12px,1.8vw,16px)] [&_p]:text-[clamp(12px,1.8vw,16px)] [&_pre]:text-[clamp(11px,1.6vw,14px)] [&_table]:text-[clamp(11px,1.6vw,14px)]"
+                style={{ maxHeight: "60vh" }}
+              >
+                <MarkdownView source={wikiContent ?? ""} />
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+      </main>
+    </div>
   );
 }
 
@@ -553,7 +567,8 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
         {phase.acceptanceScript || phase.acceptanceDesc ? (
           <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 dark:border-blue-800 dark:bg-blue-950/30">
             <p className="text-xs text-blue-700 dark:text-blue-400">
-              验收脚本和 Skill 自查清单已移至下方「工具箱」面板——一键复制、一键发送给导师。
+              验收脚本和 Skill
+              自查清单已移至下方「工具箱」面板——一键复制、一键发送给导师。
             </p>
           </div>
         ) : null}
@@ -563,11 +578,7 @@ function PhaseDetailCard({ phase }: { phase: ReplicaPhase }) {
 }
 
 /** 前置知识速查：可折叠的词条列表，零基础学生进入阶段前先扫一眼。 */
-function PreKnowledgeSection({
-  entries,
-}: {
-  entries: PreKnowledgeEntry[];
-}) {
+function PreKnowledgeSection({ entries }: { entries: PreKnowledgeEntry[] }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -597,7 +608,8 @@ function PreKnowledgeSection({
                   {e.term}
                 </span>
                 <span className="text-green-700 dark:text-green-400">
-                  {" —— "}{e.explanation}
+                  {" —— "}
+                  {e.explanation}
                 </span>
               </li>
             ))}
