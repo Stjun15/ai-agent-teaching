@@ -598,10 +598,22 @@ function Closing() {
 function HomeStyles() {
   return (
     <style>{`
-/* 版心的「纸」：中间实心、左右两端淡出。
-   直接铺一块实底色会在容器边界剪出一条直边，纹理看着像被切断；
-   改成两端渐隐后，笔触像是被雾遮住，读字的地方仍然是干净底色。 */
+/* 版心的「纸」：中间实心，四边都淡出。
+   直接铺一块实底色会在容器边界剪出一条直边，纹理看着像被切断。
+   横向靠背景色自身的 alpha 渐隐，纵向靠 mask —— 上下没有内边距可借，
+   用固定宽度的雾带，纸就从相邻 section 的纹理里长出来，而不是贴上去。
+   画在 ::before 而不是元素本身：mask 会作用到整棵子树，
+   直接加在 .paper-panel 上会把文字一起擦掉。 */
 .paper-panel {
+  /* 隔离出层叠上下文，让下面那块 z-index:-1 的纸只落在本元素内 */
+  isolation: isolate;
+}
+.paper-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   /* 渐隐带必须窄于内边距，否则首尾的字会压在半透明区上 ——
      版心 px-8 = 32px，容器 1160 宽时 1% ≈ 11.6px，
      取 1.6%（≈19px）留一点余量，文字的左右边界就全在实底里。 */
@@ -610,6 +622,20 @@ function HomeStyles() {
     transparent 0%,
     var(--background) 1.6%,
     var(--background) 98.4%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 3.5rem,
+    #000 calc(100% - 3.5rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 3.5rem,
+    #000 calc(100% - 3.5rem),
     transparent 100%
   );
 }
