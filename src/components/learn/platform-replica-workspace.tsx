@@ -8,14 +8,12 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
-  Clock,
   FileText,
   FolderOpen,
   List,
   MessageSquare,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownView } from "@/components/chat/markdown-view";
@@ -199,10 +197,6 @@ export function PlatformReplicaWorkspace({
             {teachingModule.name}
           </h1>
           <DifficultyBadge difficulty={teachingModule.difficulty} />
-          <Badge variant="outline">
-            <Clock aria-hidden />
-            {teachingModule.estimatedTime}
-          </Badge>
           {prerequisiteNames.length > 0 ? (
             <span className="text-xs text-muted-foreground">
               前置：{prerequisiteNames.join("、")}

@@ -93,10 +93,6 @@ const ROADMAP = [
 
 export default async function WelcomePage() {
   const modules = await loadModules();
-  const totalMinutes = modules.reduce((total, teachingModule) => {
-    const minutes = Number.parseInt(teachingModule.estimatedTime, 10);
-    return total + (Number.isNaN(minutes) ? 0 : minutes);
-  }, 0);
 
   return (
     // 外层铺满承载星云，内层限宽放正文 —— 与首页、学习中心、报告页同一套结构。
@@ -243,7 +239,7 @@ export default async function WelcomePage() {
         <section>
           <h2 className="text-xl font-semibold tracking-tight">建造顺序</h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            从毛坯到交付，共 {modules.length} 讲、约 {totalMinutes} 分钟。
+            从毛坯到交付，共 {modules.length} 讲。
             顺序由前置依赖算出来——上一讲的掌握度达标，下一讲才解锁。跳不过的，踩实了再往上。
           </p>
 

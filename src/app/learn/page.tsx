@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Clock, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,10 +28,6 @@ export const metadata: Metadata = {
 export default async function LearnPage() {
   const modules = await loadModules();
   const prerequisites = new Map(modules.map((m) => [m.id, m.name]));
-  const totalMinutes = modules.reduce((total, teachingModule) => {
-    const minutes = Number.parseInt(teachingModule.estimatedTime, 10);
-    return total + (Number.isNaN(minutes) ? 0 : minutes);
-  }, 0);
 
   return (
     // 外层铺满视口承载星云，内层限宽放内容 —— 与首页、登录页同一套结构。
@@ -47,10 +43,9 @@ export default async function LearnPage() {
             学习中心
           </h1>
           <p className="mt-4 leading-relaxed text-pretty text-muted-foreground">
-            {modules.length} 个模块按依赖关系排定顺序，共约 {totalMinutes}{" "}
-            分钟。 每个模块走完「概念讲解 → 观察示范 → 动手模仿 → 校验点评 →
-            可视化 → 变式练习 → 掌握判定」七步，掌握度达标后再进入下一个 ——
-            这是掌握式学习的顺序，不建议跳讲。
+            {modules.length} 个模块按依赖关系排定顺序。 每个模块走完「概念讲解 →
+            观察示范 → 动手模仿 → 校验点评 → 可视化 → 变式练习 → 掌握判定」七步，
+            掌握度达标后再进入下一个 —— 这是掌握式学习的顺序，不建议跳讲。
           </p>
         </header>
 
@@ -83,10 +78,6 @@ export default async function LearnPage() {
                     <Badge variant="outline">
                       <Sparkles />
                       序言
-                    </Badge>
-                    <Badge variant="outline">
-                      <Clock />
-                      10min
                     </Badge>
                   </div>
                 </CardHeader>

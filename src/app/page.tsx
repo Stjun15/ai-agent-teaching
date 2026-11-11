@@ -393,7 +393,6 @@ async function HomeStudyPlan() {
         href: teachingModule.href,
         orderLabel: teachingModule.orderLabel,
         name: teachingModule.name,
-        estimatedTime: teachingModule.estimatedTime,
       }))}
     />
   );

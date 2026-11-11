@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
-  Clock,
   MessageSquare,
   X,
 } from "lucide-react";
@@ -311,10 +310,6 @@ export function ModuleWorkspace({
             {teachingModule.name}
           </h1>
           <DifficultyBadge difficulty={teachingModule.difficulty} />
-          <Badge variant="outline">
-            <Clock aria-hidden />
-            {teachingModule.estimatedTime}
-          </Badge>
           {teachingModule.sceneId !== null ? (
             <Badge variant="muted">
               配套动画：{sceneLabel(teachingModule.sceneId)}

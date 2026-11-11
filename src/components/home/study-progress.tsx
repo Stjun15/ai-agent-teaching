@@ -34,7 +34,6 @@ export interface PlanLesson {
   href: string;
   orderLabel: string;
   name: string;
-  estimatedTime: string;
 }
 
 /** 「第 N 讲」——两个数字并排时必须各自带单位，否则「6/12」与「第 5 讲」像自相矛盾。 */
@@ -105,14 +104,11 @@ export function StudyProgress({ lessons }: { lessons: PlanLesson[] }) {
         {started && mastery[current.id] ? (
           <p className="mt-2 flex items-center gap-1.5 text-[13px] text-primary-foreground/80">
             <CheckCircle2 className="size-3.5 shrink-0" />
-            上一轮这里 {masteryToPercent(mastery[current.id].score)}
-            /100{current.estimatedTime ? ` · 约 ${current.estimatedTime}` : ""}
+            上一轮这里 {masteryToPercent(mastery[current.id].score)}/100
           </p>
         ) : (
           <p className="mt-2 text-[13px] text-primary-foreground/80">
-            {current.estimatedTime
-              ? `约 ${current.estimatedTime} · 过掌握度才解锁下一讲`
-              : "过掌握度才解锁下一讲"}
+            过掌握度才解锁下一讲
           </p>
         )}
         <Link

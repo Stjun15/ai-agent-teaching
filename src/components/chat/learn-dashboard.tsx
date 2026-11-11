@@ -106,12 +106,6 @@ export function LearnDashboard({
             <span>难度</span>
             <DifficultyBadge difficulty={teachingModule.difficulty} />
           </div>
-          <div className="flex items-center gap-2">
-            <span>预计时长</span>
-            <span className="font-medium text-foreground">
-              {teachingModule.estimatedTime}
-            </span>
-          </div>
           {teachingModule.tags.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {teachingModule.tags.map((tag) => (

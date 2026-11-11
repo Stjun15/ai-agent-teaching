@@ -34,7 +34,7 @@ export function ReplicaNebula() {
       <div className="absolute inset-0 bg-[radial-gradient(44%_22%_at_92%_0%,var(--warn-soft)_0%,transparent_58%)] opacity-70" />
       <div className="absolute inset-0 bg-[radial-gradient(46%_20%_at_2%_38%,color-mix(in_oklch,var(--primary)_7%,transparent)_0%,transparent_60%)] opacity-85" />
 
-      {/* 首屏右肩：托住标题与「难度 / 时长 / 前置」那一行。
+      {/* 首屏右肩：托住标题与「难度 / 前置」那一行。
           版心右缘以内 8rem 处起笔，卡片从 214px 才开始，这一块是页面
           唯一稳定可见的空白。 */}
       <Nebula

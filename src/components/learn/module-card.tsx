@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Clock, Film } from "lucide-react";
+import { ArrowRight, Film } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/learn/difficulty-badge";
 import { ModuleProgress } from "@/components/learn/module-progress";
@@ -78,10 +78,6 @@ export function ModuleCard({
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <DifficultyBadge difficulty={teachingModule.difficulty} />
-          <Badge variant="outline">
-            <Clock />
-            {teachingModule.estimatedTime}
-          </Badge>
           {teachingModule.sceneId !== null ? (
             <Badge variant="muted">
               <Film />
