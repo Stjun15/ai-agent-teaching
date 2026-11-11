@@ -25,6 +25,7 @@ import {
   ReplicaCardPattern,
   ReplicaNebula,
 } from "@/components/learn/replica-nebula";
+import { ReplicaStarTrail } from "@/components/learn/replica-star-trail";
 import { ReplicaToolbox } from "@/components/learn/replica-toolbox";
 import { useReplicaPhase } from "@/hooks/use-replica-phase";
 import { useCodeStore, useQaStore } from "@/stores";
@@ -227,60 +228,70 @@ export function PlatformReplicaWorkspace({
 
         {/* ---- 双栏：阶段导航 + 阶段详情 ---- */}
         <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <nav aria-label="搭建阶段" className="flex flex-col gap-1">
-            {REPLICA_PHASES.map((p, i) => {
-              const isActive = i === activePhaseIndex;
-              const isDone = i < activePhaseIndex;
-              const isLast = i === REPLICA_PHASES.length - 1;
+          {/* 左栏：导航只有六条（实测 214–701px），而这一列要跟着右侧
+              3501px 的阶段卡一路撑到 4568px —— 中间 3867px 是空的。
+              星轨就长在这块空白里（不是背景，是留白本身的图形）。 */}
+          <div className="flex min-w-0 flex-col">
+            <nav aria-label="搭建阶段" className="flex flex-col gap-1">
+              {REPLICA_PHASES.map((p, i) => {
+                const isActive = i === activePhaseIndex;
+                const isDone = i < activePhaseIndex;
+                const isLast = i === REPLICA_PHASES.length - 1;
 
-              return (
-                <div key={p.index} className="flex min-w-0 gap-3">
-                  <div className="flex flex-col items-center">
-                    {isDone ? (
-                      <CheckCircle2 className="size-5 shrink-0 text-ok" />
-                    ) : isActive ? (
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                        {i + 1}
-                      </div>
-                    ) : (
-                      <Circle className="size-5 shrink-0 text-muted-foreground/40" />
-                    )}
-                    {!isLast ? (
-                      <div
-                        className={
-                          isDone
-                            ? "my-0.5 w-px flex-1 bg-ok/30"
-                            : "my-0.5 w-px flex-1 bg-muted"
-                        }
-                      />
-                    ) : null}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setActivePhaseIndex(i)}
-                    className={
-                      "min-w-0 flex-1 pb-5 text-left text-sm transition-colors " +
-                      (isActive
-                        ? "font-semibold text-foreground"
-                        : isDone
-                          ? "text-muted-foreground hover:text-foreground"
-                          : "text-muted-foreground/60 hover:text-muted-foreground")
-                    }
-                  >
-                    <div>{p.title}</div>
-                    <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
-                      {isDone
-                        ? "已完成"
-                        : p.goal.length > 28
-                          ? p.goal.slice(0, 28) + "..."
-                          : p.goal}
+                return (
+                  <div key={p.index} className="flex min-w-0 gap-3">
+                    <div className="flex flex-col items-center">
+                      {isDone ? (
+                        <CheckCircle2 className="size-5 shrink-0 text-ok" />
+                      ) : isActive ? (
+                        <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                          {i + 1}
+                        </div>
+                      ) : (
+                        <Circle className="size-5 shrink-0 text-muted-foreground/40" />
+                      )}
+                      {!isLast ? (
+                        <div
+                          className={
+                            isDone
+                              ? "my-0.5 w-px flex-1 bg-ok/30"
+                              : "my-0.5 w-px flex-1 bg-muted"
+                          }
+                        />
+                      ) : null}
                     </div>
-                  </button>
-                </div>
-              );
-            })}
-          </nav>
+
+                    <button
+                      type="button"
+                      onClick={() => setActivePhaseIndex(i)}
+                      className={
+                        "min-w-0 flex-1 pb-5 text-left text-sm transition-colors " +
+                        (isActive
+                          ? "font-semibold text-foreground"
+                          : isDone
+                            ? "text-muted-foreground hover:text-foreground"
+                            : "text-muted-foreground/60 hover:text-muted-foreground")
+                      }
+                    >
+                      <div>{p.title}</div>
+                      <div className="mt-0.5 text-[11px] leading-relaxed opacity-70">
+                        {isDone
+                          ? "已完成"
+                          : p.goal.length > 28
+                            ? p.goal.slice(0, 28) + "..."
+                            : p.goal}
+                      </div>
+                    </button>
+                  </div>
+                );
+              })}
+            </nav>
+
+            {/* 星空点缀：填住导航下方那段随阶段卡拉长的空白。
+                flex-1 让它吃掉剩余高度，而高度是右侧内容撑出来的 ——
+                所以无论切到哪个阶段它都正好铺满。 */}
+            <ReplicaStarTrail className="min-h-[18rem] flex-1" />
+          </div>
 
           {/* min-w-0：grid 子项默认 min-width:auto，里面一段长句/pre
             会把这一列撑到 570px，窄屏就横向溢出（实测 196px）。 */}
