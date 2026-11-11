@@ -6,7 +6,6 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SkeletonGrid } from "@/components/ui/skeleton-card";
-import { CredentialCard } from "@/components/report/credential-card";
 import {
   ErrorBookSection,
   PromptHistorySection,
@@ -124,7 +123,6 @@ export function ReportView() {
       <div className="flex flex-col gap-8 border-t pt-6">
         <ErrorBookSection />
         <PromptHistorySection />
-        <CredentialCard credential={report.credential} />
       </div>
     </div>
   );
