@@ -94,12 +94,11 @@ export function ModuleCard({
           </p>
         ) : null}
 
+        {/* 进度条放在这一块的**最后**：这一块贴底（mt-auto），底边固定，
+            所以进度条的位置就不再随「前置」换行、标签多少而上下漂。
+            之前它排在最前，前置或标签多一行，进度条就被顶高一整行，
+            同一行卡片之间对不齐。 */}
         <div className="mt-auto flex flex-col gap-2">
-          <ModuleProgress
-            moduleId={teachingModule.id}
-            moduleName={teachingModule.name}
-          />
-
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <span>前置：</span>
             {teachingModule.prerequisites.length === 0 ? (
@@ -123,6 +122,11 @@ export function ModuleCard({
               </span>
             ))}
           </div>
+
+          <ModuleProgress
+            moduleId={teachingModule.id}
+            moduleName={teachingModule.name}
+          />
         </div>
       </CardContent>
 

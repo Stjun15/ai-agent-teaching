@@ -38,6 +38,9 @@ export function ModuleProgress({
           label={`${moduleName} 的学习进度`}
           className="h-1.5"
         />
+        {/* 未开始时也占一行，和有掌握度时的档位标签同高，
+            否则同一行卡片的进度条会差一个行高。 */}
+        <span className="text-[11px] text-muted-foreground">未开始</span>
       </div>
     );
   }

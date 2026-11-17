@@ -37,14 +37,13 @@ interface HealthResponse {
  * ---------------------------------
  * `04-frontend.md` 的 SettingsStore 列了四项（模型 / 主题 / 语言 / 语音），
  * 但**当前只有主题有真实消费方**：主题能改 `<html>` 的 class 与代码编辑器的
- * 配色。另外两项的现状是：
+ * 配色。模型一项的现状是：
  *
  * | 项 | 现状 | 为什么 |
  * |---|---|---|
  * | 模型 | 只能看，不能改 | 实际模型来自服务端环境变量（`DASHSCOPE_TEXT_MODEL`）；没有任何路由接受 per-request 的模型参数，做一个改不了任何东西的下拉框就是「看着能用、点了没反应」 |
- * | 界面语言 | 未接入 | 界面文案当前只有中文；`locale` 影响的是文案而非内容，接它要先把文案抽出来 |
  *
- * 把它们显示成可点的开关会让评审以为功能齐了 —— 所以这里显示为不可点的
+ * 把它显示成可点的开关会让评审以为功能齐了 —— 所以这里显示为不可点的
  * 徽标 + 一句原因。这与顶栏「规划中」的处理是同一种做法。
  */
 export function SettingsView() {
@@ -166,17 +165,6 @@ export function SettingsView() {
         </p>
       </SettingsSection>
 
-      {/* ---------- 未接入 ---------- */}
-      <SettingsSection
-        title="界面语言"
-        description="尚未接入。"
-        badge={<Badge variant="levelMid">未接入</Badge>}
-      >
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          界面文案当前只有中文；它影响的是文案而不是内容，
-          切换要先把所有文案抽成一份可替换的表。
-        </p>
-      </SettingsSection>
     </div>
   );
 }
