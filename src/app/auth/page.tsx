@@ -368,22 +368,29 @@ export default function AuthPage() {
                 <div className="rounded-md bg-surface px-4 py-3.5">
                   <div className="mb-2.5 flex items-center gap-1.5 text-[0.8125rem] font-semibold text-foreground/75">
                     <GraduationCap className="size-3.5" aria-hidden />
-                    评审演示
+                    演示账号
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => handleDemoFill("test", "test1234")}
-                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
+                      className="col-span-2 rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
                     >
-                      test / test1234
+                      test / test1234（全部学完）
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDemoFill("eval", "eval1234")}
-                      className="flex-1 rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
+                      onClick={() => handleDemoFill("demo1", "demo1234")}
+                      className="rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
                     >
-                      eval / eval1234
+                      demo1 / demo1234
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoFill("demo2", "demo1234")}
+                      className="rounded border border-border bg-card px-2.5 py-1.5 text-[0.8125rem] font-semibold text-foreground/75 transition-colors hover:border-foreground/30 hover:text-foreground"
+                    >
+                      demo2 / demo1234
                     </button>
                   </div>
                   <p className="mt-2 text-[0.8125rem] leading-relaxed text-foreground/70">

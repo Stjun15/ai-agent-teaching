@@ -4,17 +4,18 @@
  *
  * 用法：node scripts/seed-auth-accounts.mjs（或 pnpm db:seed:auth）
  *
- * 做两件事：
- * 1. 把 test / eval 两个固定账号写进 students 表（scrypt 密码哈希），
+ * 做三件事：
+ * 1. 把 test 这个固定评审账号写进 students 表（scrypt 密码哈希），
  *    登录走 /api/auth/login，不需要从 localStorage 读账号数组。
- * 2. 给这两个账号灌演示学习数据（掌握度 / 答题记录 / 错题 / Prompt 历史 /
- *    学习路径），让学习报告页展示出有价值的内容：
- *    - test = 中等进度学生（5 个模块完成，当前卡在 agent-loop）
- *    - eval = 优等进度学生（8 个模块完成，当前在 mcp）——视频演示主账号
+ *    另有 demo1 / demo2 两个**录制专用**账号（12 讲全通关、零提交记录），
+ *    供两个人并行录制演示视频时各用各的，互不覆盖。
+ * 2. 给 test 灌一份**全通关 + 完整记录**的演示数据（掌握度 / 答题记录 / 错题 /
+ *    Prompt 历史 / 学习路径），它是评委的主账号：十二讲全部学完、报告页每一块都有内容。
+ * 3. 清掉已下线的 eval 账号及其数据（旧版脚本种过，重复执行后库里只剩三个号）。
  *
  * 错题会同时写入 `next_review_at`（第 1/3/7/14 天档期），并刻意留几条「已过期」，
  * 让学习页的「今日该复习」卡片与报告页错题本的「该复习了」筛选有真实数据可看。
- * 两个账号的到期条数：eval 4 条、test 3 条。
+ * test 的到期条数：3 条。
  *
  * 幂等：演示数据 id 由「表前缀 + 序号」确定性生成，全部走
  * ON CONFLICT(id) DO UPDATE —— 重复执行只刷新成同一状态，不会产生重复行。
@@ -34,12 +35,21 @@ const ACCOUNTS = [
     password: "test1234",
     email: "test@demo.local",
   },
+  // 录制专用：两个人并行录演示视频时各用各的，互不覆盖。
+  // 数据形态见下方 `fullPassDemo()` —— 12 讲全通关，但零提交记录。
   {
-    id: "aaaaaaaa-0000-4000-8000-000000000002",
-    username: "eval",
-    nickname: "评审演示 (eval)",
-    password: "eval1234",
-    email: "eval@demo.local",
+    id: "aaaaaaaa-0000-4000-8000-000000000003",
+    username: "demo1",
+    nickname: "录制演示 (demo1)",
+    password: "demo1234",
+    email: "demo1@demo.local",
+  },
+  {
+    id: "aaaaaaaa-0000-4000-8000-000000000004",
+    username: "demo2",
+    nickname: "录制演示 (demo2)",
+    password: "demo1234",
+    email: "demo2@demo.local",
   },
 ];
 
@@ -95,7 +105,58 @@ const PROMPT_HISTORY = 3;
  */
 const REVIEW_INTERVALS_DAYS = [1, 3, 7, 14];
 
+/**
+ * 录制专用账号的数据形态：**12 讲全部通关，但一条提交记录都没有**。
+ *
+ * 为什么这样造
+ * ------------
+ * 演示视频由两个人并行录制，各用一个账号（demo1 / demo2），谁也不会覆盖谁。
+ * 账号里的「提交记录」（`prompt_history` / `errors` / `question_results` /
+ * `validation_results`）刻意留空：镜头里的那一次点评、那一条 Prompt 历史，
+ * 必须是现场真交出来的，而不是提前摆在库里给人看的。
+ *
+ * 但掌握度必须先有：报告页的「六项子能力」「成长曲线」「掌握度」全部由
+ * `mastery` 聚合而来，没有它整页会撞空态闸门（`report-view.tsx` 的
+ * `hasAnything`）。分数取 4~5 分、状态一律 `mastered`，画面口径是
+ * 「这门课已经学完，就差最后几次真实提交」。
+ */
+const FULL_PASS_MASTERY = [
+  ["vibe-coding", 5],
+  ["ts-basics", 5],
+  ["llm-api", 5],
+  ["system-prompt", 5],
+  ["tool-calling", 4],
+  ["agent-loop", 4],
+  ["rag", 5],
+  ["llm-wiki", 4],
+  ["multi-agent", 4],
+  ["mcp", 4],
+  ["ai-safety", 4],
+  ["platform-replica", 4],
+];
+
+function fullPassDemo() {
+  return {
+    mastery: FULL_PASS_MASTERY.map(([conceptId, score]) => [
+      conceptId,
+      score,
+      0,
+      "mastered",
+    ]),
+    questionResults: [],
+    errors: [],
+    promptHistory: [],
+    learningPath: {
+      currentModule: "platform-replica",
+      nextModule: "platform-replica",
+      adjustments: [],
+    },
+  };
+}
+
 const DEMO = {
+  demo1: fullPassDemo(),
+  demo2: fullPassDemo(),
   test: {
     mastery: [
       ["vibe-coding", 5, 0, "mastered"],
@@ -103,13 +164,13 @@ const DEMO = {
       ["llm-api", 5, 0, "mastered"],
       ["system-prompt", 4, 1, "mastered"],
       ["tool-calling", 4, 2, "mastered"],
-      ["agent-loop", 3, 3, "in_progress"],
-      ["rag", 0, 0, "not_started"],
-      ["llm-wiki", 0, 0, "not_started"],
-      ["multi-agent", 0, 0, "not_started"],
-      ["mcp", 0, 0, "not_started"],
-      ["ai-safety", 0, 0, "not_started"],
-      ["platform-replica", 0, 0, "not_started"],
+      ["agent-loop", 4, 3, "mastered"],
+      ["rag", 5, 0, "mastered"],
+      ["llm-wiki", 4, 0, "mastered"],
+      ["multi-agent", 4, 1, "mastered"],
+      ["mcp", 4, 1, "mastered"],
+      ["ai-safety", 4, 0, "mastered"],
+      ["platform-replica", 4, 0, "mastered"],
     ],
     questionResults: [
       ["B", true, 100, 1],
@@ -363,8 +424,8 @@ const DEMO = {
       ],
     ],
     learningPath: {
-      currentModule: "agent-loop",
-      nextModule: "rag",
+      currentModule: "platform-replica",
+      nextModule: "platform-replica",
       adjustments: [
         {
           date: "2026-10-18",
@@ -374,265 +435,6 @@ const DEMO = {
         {
           date: "2026-10-14",
           reason: "tool-calling 第一次点评未通过，插入针对性补练",
-          type: "review",
-        },
-      ],
-    },
-  },
-  eval: {
-    mastery: [
-      ["vibe-coding", 5, 0, "mastered"],
-      ["ts-basics", 5, 0, "mastered"],
-      ["llm-api", 5, 0, "mastered"],
-      ["system-prompt", 5, 0, "mastered"],
-      ["tool-calling", 4, 1, "mastered"],
-      ["agent-loop", 4, 1, "mastered"],
-      ["rag", 5, 0, "mastered"],
-      ["llm-wiki", 4, 0, "mastered"],
-      ["multi-agent", 3, 2, "in_progress"],
-      ["mcp", 3, 2, "in_progress"],
-      ["ai-safety", 0, 0, "not_started"],
-      ["platform-replica", 0, 0, "not_started"],
-    ],
-    questionResults: [
-      ["B", true, 100, 1],
-      ["C", true, 100, 1],
-      ["A", true, 100, 1],
-      ["D", true, 100, 1],
-      ["B", true, 100, 1],
-      ["C", false, 0, 1],
-      ["A", true, 100, 1],
-      ["B", true, 100, 1],
-      ["D", true, 100, 1],
-      ["C", true, 100, 1],
-      ["B", false, 0, 1],
-      ["A", true, 100, 1],
-      ["C", true, 100, 1],
-      ["D", true, 100, 1],
-      ["A", true, 100, 1],
-      ["B", true, 100, 1],
-      ["C", true, 100, 1],
-      ["D", false, 0, 1],
-      ["A", true, 100, 1],
-      ["B", true, 100, 1],
-    ],
-    errors: [
-      [
-        "multi-agent",
-        "multi-agent",
-        "prompt",
-        "设计三个 Agent 写周报的协作流程",
-        "Agent A 收集 → Agent B 写 → Agent C 发",
-        ["Agent 之间没有输入输出定义", "没有说失败时怎么重试"],
-        "Agent A（收集数据）→ 输出 markdown 草稿 → Agent B（润色+排错）→ 输出终稿 → Agent C（邮件发送），失败退回 B 重试",
-        false,
-        // 第 3 天档期，已过期 2 天 → 今日待复习
-        1,
-        2,
-      ],
-      [
-        "mcp",
-        "mcp",
-        "code",
-        "定义一个本地文件管理的 MCP Server，至少 3 个工具",
-        "readFile, writeFile",
-        [
-          "只有 2 个工具",
-          "缺少 deleteFile 或 listFiles",
-          "工具定义太简略没写字段",
-        ],
-        null,
-        false,
-        // 第 1 天档期，拖了 4 天没复习
-        0,
-        4,
-      ],
-      [
-        "tool-calling",
-        "tool-calling",
-        "code",
-        "定义查快递的函数工具",
-        "function query(no: number) {}",
-        ["函数名不规范", "缺少 description"],
-        null,
-        true,
-        // 已订正、第 7 天档期，过期 1 天
-        2,
-        1,
-      ],
-      [
-        "agent-loop",
-        "agent-loop",
-        "prompt",
-        "说说 Agent Loop 为什么要 Observe",
-        "Observe 没啥用，LLM 自己知道对不对",
-        ["完全没理解观察步骤的必要性"],
-        "观察步骤是 Agent 判断下一步行动的唯一依据，跳过它 Agent 就变成了按规则机械执行",
-        true,
-        // 已订正、第 3 天档期，明天才轮回来
-        1,
-        -1,
-      ],
-      [
-        "rag",
-        "rag",
-        "prompt",
-        "检索到的文档和问题不相关时该怎么处理",
-        "直接把检索结果全塞进 prompt，让模型自己挑",
-        ["没有相似度阈值", "把「不相关」的判断责任推给了模型"],
-        "先按相似度阈值过滤，低于阈值的判为未命中，走「知识库里没有」的兜底话术",
-        false,
-        // 第 1 天档期，过期 1 天
-        0,
-        1,
-      ],
-      [
-        "llm-wiki",
-        "llm-wiki",
-        "code",
-        "为什么知识库要用 Markdown 而不是数据库表",
-        "因为 Markdown 好看",
-        ["把渲染效果当成了设计理由", "没提到版本管理与人可读可改"],
-        "Markdown 能进 Git：每次修改可 diff、可回滚，人和 Agent 读的是同一份文本",
-        false,
-        // 第 3 天档期，还有 2 天到期
-        1,
-        -2,
-      ],
-    ],
-    promptHistory: [
-      [
-        "llm-api",
-        "code",
-        'messages: [{role:"user",content:"你好"},{role:"assistant",content:"你好！"},{role:"user",content:"再问一个问题"}]',
-        90,
-        [
-          { name: "意图表达", score: 5 },
-          { name: "任务分解", score: 4 },
-          { name: "上下文管理", score: 4 },
-          { name: "质量判断", score: 5 },
-          { name: "迭代调优", score: 4 },
-          { name: "理解 AI 行为", score: 5 },
-        ],
-        [],
-        [],
-        1,
-        true,
-      ],
-      [
-        "system-prompt",
-        "prompt",
-        "你是甜啦啦奶茶店的 AI 店员小甜。…完整 System Prompt…",
-        88,
-        [
-          { name: "意图表达", score: 5 },
-          { name: "任务分解", score: 4 },
-          { name: "上下文管理", score: 4 },
-          { name: "质量判断", score: 4 },
-          { name: "迭代调优", score: 4 },
-          { name: "理解 AI 行为", score: 5 },
-        ],
-        [],
-        ["角色和格式都很完整"],
-        1,
-        true,
-      ],
-      [
-        "rag",
-        "prompt",
-        "知识库文档：\n## doc1: 猫粮选购指南\n内容…\n## doc2: 仓鼠饲养指南\n内容…\n## doc3: 宠物洗澡频率\n内容…\n用户问「兔子怎么喂」",
-        70,
-        [
-          { name: "意图表达", score: 3 },
-          { name: "任务分解", score: 4 },
-          { name: "上下文管理", score: 3 },
-          { name: "质量判断", score: 2 },
-          { name: "迭代调优", score: 3 },
-          { name: "理解 AI 行为", score: 4 },
-        ],
-        [],
-        [
-          "buildContext 用评分公式筛选文档是正确的思路",
-          "选仓鼠那篇是对的（啮齿类有参考价值），选猫粮那篇应该解释为什么不选",
-        ],
-        1,
-        false,
-      ],
-      [
-        "rag",
-        "prompt",
-        "用户问「仓鼠吃什么」，buildContext 返回了仓鼠饲养指南的摘要：仓鼠饲料建议…",
-        82,
-        [
-          { name: "意图表达", score: 4 },
-          { name: "任务分解", score: 4 },
-          { name: "上下文管理", score: 4 },
-          { name: "质量判断", score: 3 },
-          { name: "迭代调优", score: 4 },
-          { name: "理解 AI 行为", score: 4 },
-        ],
-        [],
-        [],
-        2,
-        true,
-      ],
-      [
-        "multi-agent",
-        "prompt",
-        "周报协作：Agent A 收集各人日报 → 汇总草稿 → Agent B 润色 → Agent C 邮件发送",
-        78,
-        [
-          { name: "意图表达", score: 4 },
-          { name: "任务分解", score: 5 },
-          { name: "上下文管理", score: 3 },
-          { name: "质量判断", score: 3 },
-          { name: "迭代调优", score: 3 },
-          { name: "理解 AI 行为", score: 4 },
-        ],
-        [],
-        [
-          "Agent 分工清晰，输入输出有定义",
-          "3 个 Agent 的职责界限再明确一点更好",
-        ],
-        1,
-        true,
-      ],
-      [
-        "mcp",
-        "prompt",
-        "MCP Server 定义：3 个工具 readFile/writeFile/deleteFile，每个都有 name/description/inputSchema",
-        76,
-        [
-          { name: "意图表达", score: 4 },
-          { name: "任务分解", score: 4 },
-          { name: "上下文管理", score: 3 },
-          { name: "质量判断", score: 3 },
-          { name: "迭代调优", score: 3 },
-          { name: "理解 AI 行为", score: 4 },
-        ],
-        [],
-        [],
-        1,
-        true,
-      ],
-    ],
-    learningPath: {
-      currentModule: "mcp",
-      nextModule: "ai-safety",
-      adjustments: [
-        {
-          date: "2026-10-22",
-          reason: "mcp 连续两次点评未通过，插入一次针对性补练再看下一讲",
-          type: "variant",
-        },
-        {
-          date: "2026-10-21",
-          reason: "multi-agent 掌握度从 4 降到 3，安排回炉重看概念页",
-          type: "review",
-        },
-        {
-          date: "2026-10-20",
-          reason: "multi-agent 掌握度偏低，安排回炉再看一次概念页",
           type: "review",
         },
       ],
@@ -910,8 +712,30 @@ function main() {
   const db = new DatabaseSync(dbPath);
   const now = new Date().toISOString();
 
+  // 删旧账号时要先关外键：其他业务表（会话、审计等）也引用 students，
+  // 且未必声明 ON DELETE CASCADE。PRAGMA 在事务内是 no-op，所以必须写在 BEGIN 前。
+  db.exec("PRAGMA foreign_keys = OFF");
   db.exec("BEGIN");
   try {
+    // 已下线的评审账号：旧版脚本种过 eval，这里连它的演示数据一起清掉，
+    // 保证重复执行后库里只剩 test / demo1 / demo2 三个号。
+    // 表名动态扫：凡是带 student_id 列的表都清一遍，不写死表清单。
+    const RETIRED_STUDENT_ID = "aaaaaaaa-0000-4000-8000-000000000002";
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+      )
+      .all();
+    for (const { name } of tables) {
+      const columns = db.prepare(`PRAGMA table_info("${name}")`).all();
+      if (columns.some((column) => column.name === "student_id")) {
+        db.prepare(`DELETE FROM "${name}" WHERE student_id = ?`).run(
+          RETIRED_STUDENT_ID,
+        );
+      }
+    }
+    db.prepare("DELETE FROM students WHERE id = ?").run(RETIRED_STUDENT_ID);
+
     const upsertStudent = db.prepare(
       `INSERT INTO students (id, nickname, username, password_hash, email, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)
