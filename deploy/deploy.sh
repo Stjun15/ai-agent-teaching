@@ -48,8 +48,10 @@ if [ -z "${node_ver}" ] || [ "$(printf '%s\n%s\n' "22.5.0" "${node_ver}" | sort 
   apt-get install -y -qq nodejs
 fi
 node -v
-# 不用 corepack：/usr/bin/pnpm 是 shim，会在启动时联网解析版本（生产上表现为启动超时）
-command -v pnpm >/dev/null 2>&1 || npm i -g pnpm@10 >/dev/null 2>&1
+NODE_BIN="$(command -v node)"
+# 不用 corepack 的 pnpm：/usr/bin/pnpm 是 shim，会在首次调用时联网解析版本，
+# 以服务用户身份运行时直接 EACCES，表现为启动超时。装成真实二进制一次到位。
+npm i -g pnpm@10 >/dev/null 2>&1
 
 step 3/9 "交换分区（内存 < 2G 且无 swap 时加 2G，防小机构建 OOM）"
 if ! swapon --show | grep -q . && [ "$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)" -lt 2048 ]; then
@@ -116,7 +118,7 @@ WorkingDirectory=${APP_DIR}
 EnvironmentFile=${ENV_FILE}
 Environment=HOME=${DATA_DIR}
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node ${APP_DIR}/node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${PORT}
+ExecStart=${NODE_BIN} ${APP_DIR}/node_modules/next/dist/bin/next start -H 127.0.0.1 -p ${PORT}
 Restart=always
 RestartSec=3
 TimeoutStopSec=20
@@ -168,7 +170,7 @@ server {
 NGINX
 ln -sf "/etc/nginx/sites-available/${SERVICE}" "/etc/nginx/sites-enabled/${SERVICE}"
 rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl enable nginx >/dev/null 2>&1 && systemctl reload nginx
+nginx -t && systemctl enable nginx >/dev/null 2>&1 && systemctl restart nginx
 
 printf '\n==> 健康检查：'
 ok=0
