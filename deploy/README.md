@@ -1,40 +1,52 @@
-# 在线演示部署套件（常驻主机路线）
+# 一键部署（常驻主机路线）
 
-大赛「在线演示」是可选加分项，要求：公网可访问 + 评审期间保持可用。
-本目录是 `docs/deployment.md` 路径 B 的**可执行版**——买一台最便宜的
-云服务器，跑一个脚本，十分钟内拿到公网演示地址。
+一台全新 Ubuntu 22.04+ / Debian 12 服务器，root 执行一条命令，得到可访问
+的公网演示地址。脚本幂等，重复执行＝拉最新代码并重启。
 
-## 你需要准备的
+## 你要准备的
 
-1. **一台云服务器**：Ubuntu 22.04+，最低配即可（1C1G 也行，脚本会加 swap）。
-   腾讯云轻量 / 阿里云 ECS / 华为云均可，新用户或学生机通常几十元一年。
-2. **一个 GitHub 细粒度 PAT**（仓库是私有的，服务器拉代码要用）：
-   GitHub → Settings → Developer settings → Fine-grained tokens →
-   仅授权 `ai-agent-teaching` 仓库、仅 `Contents: Read-only`、有效期设短。
-3. **火山方舟的 `ARK_API_KEY`**（模型密钥，只写进服务器环境文件，绝不入库）。
+1. **服务器**：任意云主机，最低配即可（1C1G 也能跑，脚本自动加 swap）。
+2. **`DASHSCOPE_API_KEY`**（百炼模型密钥）：只写进服务器 `/etc/ai-teaching.env`，
+   不入库、不进日志。仓库已 Public，拉代码不需要 Token。
 
-## 三步部署（在服务器上执行）
+## 一键部署
 
 ```bash
-# 1. 服务器上拿到部署脚本（或直接从本地上传 scp deploy/deploy.sh root@服务器IP:/root/）
-# 2. 执行（会交互式询问 ARK_API_KEY）
-GITHUB_TOKEN=github_pat_xxx bash deploy.sh
-# 3. 自检
-curl -s http://127.0.0.1:3000/api/health
+curl -fsSL https://raw.githubusercontent.com/Stjun15/ai-agent-teaching/dev/deploy/deploy.sh -o deploy.sh
+sudo DASHSCOPE_API_KEY=sk-xxx bash deploy.sh      # 交互式输入密钥时可省略该变量
 ```
 
-然后浏览器访问 `http://服务器IP/`（nginx 已反代 80 → 3000）。
+结束后脚本自己打健康检查结果与访问地址：`http://服务器IP/`，
+演示账号 `test / test1234`（另有 `demo1 / demo1234`、`demo2 / demo1234`）。
 
-## 脚本做了什么（8 步，全部幂等可重跑）
+## 两种构建路线
 
-装 git/curl/nginx 与 Node 22 → 加 2G swap（防小内存构建 OOM）→
-克隆/更新仓库 → 数据目录 `/var/lib/ai-teaching`（持久盘语义）→
-密钥写入 `/etc/ai-teaching.env`（chmod 600）→ 依赖 + 建表 + 构建 →
-systemd 服务（崩溃自动拉起、开机自启）→ nginx 反代（SSE 关缓冲、
-转发 X-Forwarded-For，限流按真实 IP 计数）。
+| 场景 | 命令 | 说明 |
+|---|---|---|
+| 2G 以上内存 | `sudo bash deploy.sh` | 机上加 swap 后就地 `pnpm build` |
+| 1C1G 小机 | 先本地 `pnpm build` 再传 `.next`，然后 `sudo bash deploy.sh --no-build` | 机上构建会打进 swap 风暴，官方推荐这条 |
 
-## 评审期间保持可用（大赛硬要求）
+传包时 zip 内路径必须带 `.next/` 前缀；解压后把 `required-server-files.json`
+里的本地绝对路径改成服务器上的路径，再跑脚本重启即可。
 
-- 服务器保持运行即可（systemd 自动守护；云主机不欠费）。
-- 建议评审开始前重启一次并打开 `/api/health` 确认。
-- 若绑定域名：在 nginx 配置加 `server_name` 并上 HTTPS（certbot）。
+## 脚本做了什么（9 步，全部幂等）
+
+装 git/curl/nginx/openssl → Node ≥22.5（不用 corepack，避免启动时联网解析）
+→ 内存不足 2G 时加 2G swap → 建系统用户 `ai-teaching` 与数据目录
+`/var/lib/ai-teaching`（服务降权，不用 root 跑应用）→ 拉 `dev` 分支
+→ 生成 `/etc/ai-teaching.env`（600，`AUTH_SECRET` 自动生成）→ 依赖 +
+建表 + 演示账号种子 → systemd 托管（`Restart=always`、`ProtectSystem=full`、
+`NoNewPrivileges`、只监听 `127.0.0.1:3000`）→ nginx 反代与加固
+（`server_tokens off`、安全响应头、隐藏 `X-Powered-By`、`client_max_body_size 2m`、
+SSE 关缓冲）→ 健康检查。
+
+## 脚本不覆盖的部分（主机层，按需手工）
+
+- SSH 加固（仅密钥登录、安全组收口）与内核参数（`rp_filter` 等）；
+- 域名与 HTTPS（配 `server_name` 后用 certbot）；
+- Cloudflare quick tunnel（可选，隧道地址每次重启都会变）。
+
+## 评审期间保持可用
+
+systemd 已 `enabled`，机器重启与进程崩溃都会自愈；云主机不欠费即可。
+评审前建议重启一次并打开 `/api/health` 确认返回 `status: ok`。
